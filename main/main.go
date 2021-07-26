@@ -1,36 +1,7 @@
 package main
 
-import (
-	"bufio"
-	"github.com/troisdiz/rcalc/rcalc"
-	"os"
-	"strings"
-)
+import "github.com/troisdiz/rcalc/rcalc"
 
 func main() {
-
-	var stack rcalc.Stack = rcalc.Create()
-
-	for {
-		// print stack
-		rcalc.DisplayStack(stack, 3)
-
-		// print prompt
-		input := bufio.NewScanner(os.Stdin)
-
-		// wait for cmd
-		input.Scan()
-
-		// interpret cmd
-		var cmds = input.Text()
-
-		singleCmd := strings.TrimSpace(cmds)
-		if singleCmd == "quit" {
-			return
-		}
-
-	}
-
-
-
+    rcalc.Run()
 }

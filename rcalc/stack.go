@@ -17,7 +17,11 @@ type IntStackElt struct {
 	value int
 }
 
-func CreateInStackElt(value int) *IntStackElt {
+func (se *IntStackElt) String() string {
+	return fmt.Sprintf("IntStackElt(%d)", se.value)
+}
+
+func CreateInStackElt(value int) StackElt {
 	var result = IntStackElt{
 		fType: TYPE_INT,
 		value: value,
@@ -48,7 +52,7 @@ type Stack struct {
 	elts []StackElt
 }
 
-func Create() Stack {
+func CreateStack() Stack {
 	var s = Stack{}
 	return s
 }

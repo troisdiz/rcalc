@@ -13,7 +13,7 @@ func TestAddApply(t *testing.T) {
 		value: 5,
 	}
 
-	i3 := ADD_OP.Apply(&i1, &i2).asIntElt()
+	i3 := ADD_OP.Apply(nil, &i1, &i2).asIntElt()
 	if i3.value != 8 {
 		t.Errorf("3+5 should be 8 and not %d", i3.value)
 	}

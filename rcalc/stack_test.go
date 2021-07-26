@@ -6,14 +6,14 @@ import (
 )
 
 func TestEmptyStack(t *testing.T) {
-	var s Stack = Create()
+	var s Stack = CreateStack()
 	if !s.IsEmpty() {
 		t.Error("Stack should be empty on creation")
 	}
 }
 
 func TestPushAndPop(t *testing.T) {
-	var s Stack = Create()
+	var s Stack = CreateStack()
 	se := IntStackElt{
 		fType: TYPE_INT,
 		value: 2,
@@ -30,7 +30,7 @@ func TestPushAndPop(t *testing.T) {
 }
 
 func TestPushAndSize(t *testing.T) {
-	var s Stack = Create()
+	var s Stack = CreateStack()
 	se := IntStackElt{
 		fType: TYPE_INT,
 		value: 2,
@@ -49,7 +49,7 @@ func TestPushAndSize(t *testing.T) {
 }
 
 func TestDisplayStack(t *testing.T) {
-	var s Stack = Create()
+	var s Stack = CreateStack()
 	se := CreateInStackElt(2)
 	s.Push(se)
 	fmt.Printf("Size after 1 Push %d / %d\n", s.Size(), len(s.elts))
