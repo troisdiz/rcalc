@@ -8,7 +8,7 @@ import (
 func Run() {
 
 	var stack Stack = CreateStack()
-
+	var system *SystemInstance = CreateSystemInstance()
 	for {
 		// print stack
 		DisplayStack(stack, 3)
@@ -37,18 +37,17 @@ func Run() {
 					}
 					stackElts[i] = stackElt
 				}
-				stackEltResult := action.Apply(nil, stackElts...)
-				stack.Push(stackEltResult)
+				stackEltResult := action.Apply(system, stackElts...)
+				if stackEltResult != nil {
+					stack.Push(stackEltResult)
+				}
+				if system.shouldStop() {
+					return
+				}
 			case STACK_ELT_EXPR_TYPE:
 				ste := expr.asStackElt()
 				stack.Push(ste)
 			}
 		}
-		/*
-		singleCmd := strings.TrimSpace(cmds)
-		if singleCmd == "quit" {
-			return
-		}
-		*/
 	}
 }
