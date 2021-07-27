@@ -73,7 +73,7 @@ func parseExpressionElt(registry *ActionRegistry, elt string) (*ExprElement,erro
     }
 
     if value, err := strconv.Atoi(elt); err == nil {
-        return createStackEltExprElt(CreateInStackElt(value)), nil
+        return createStackEltExprElt(CreateIntStackElt(value)), nil
     }
     return nil, fmt.Errorf("could not parse \"%s\"", elt)
 }

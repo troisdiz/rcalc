@@ -9,14 +9,18 @@ func OpToActionFn(opFn OpApplyFn) ActionApplyFn {
 	}
 }
 
+func GetEltAsInt(elts []StackElt, idx int) int {
+	return elts[idx].asIntElt().value
+}
+
 var ADD_OP = ActionDesc{
 	opCode:      "+",
 	nbArgs:      2,
 	checkTypeFn: addCheckTypes,
 	applyFn:     OpToActionFn(func(elt ...StackElt) StackElt {
-		elt1 := elt[0].asIntElt().value
-		elt2 := elt[1].asIntElt().value
-		return CreateInStackElt(elt1 + elt2)
+		elt1 := GetEltAsInt(elt, 0)
+		elt2 := GetEltAsInt(elt, 1)
+		return CreateIntStackElt(elt1 + elt2)
 	}),
 }
 
@@ -29,16 +33,10 @@ func addCheckTypes(elts ...StackElt) (bool, error)  {
 	return true, nil
 }
 
-func addApply(elt ...StackElt) StackElt  {
-	elt1 := elt[0].asIntElt().value
-	elt2 := elt[1].asIntElt().value
-	return CreateInStackElt(elt1+elt2)
-}
-
 var VERSION_OP = ActionDesc{
 	opCode:      "VERSION",
 	nbArgs:      0,
 	checkTypeFn: func(elts ...StackElt) (bool, error) { return true, nil },
-	applyFn:     OpToActionFn(func(elts ...StackElt) StackElt { return CreateInStackElt(0) }),
+	applyFn:     OpToActionFn(func(elts ...StackElt) StackElt { return CreateIntStackElt(0) }),
 }
 

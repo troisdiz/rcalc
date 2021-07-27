@@ -50,10 +50,10 @@ func TestPushAndSize(t *testing.T) {
 
 func TestDisplayStack(t *testing.T) {
 	var s Stack = CreateStack()
-	se := CreateInStackElt(2)
+	se := CreateIntStackElt(2)
 	s.Push(se)
 	fmt.Printf("Size after 1 Push %d / %d\n", s.Size(), len(s.elts))
-	se2 := CreateInStackElt(3)
+	se2 := CreateIntStackElt(3)
 	s.Push(se2)
 	DisplayStack(s, 4)
 }
