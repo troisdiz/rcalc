@@ -2,7 +2,7 @@ package rcalc
 
 import (
     "fmt"
-    "strconv"
+    "github.com/shopspring/decimal"
     "strings"
 )
 
@@ -72,8 +72,8 @@ func parseExpressionElt(registry *ActionRegistry, elt string) (*ExprElement,erro
         return createActionExprElt(action), nil
     }
 
-    if value, err := strconv.Atoi(elt); err == nil {
-        return createStackEltExprElt(CreateIntStackElt(value)), nil
+    if value, err := decimal.NewFromString(elt); err == nil {
+        return createStackEltExprElt(CreateNumericStackElt(value)), nil
     }
     return nil, fmt.Errorf("could not parse \"%s\"", elt)
 }

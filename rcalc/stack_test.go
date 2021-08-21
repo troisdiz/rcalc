@@ -14,8 +14,8 @@ func TestEmptyStack(t *testing.T) {
 
 func TestPushAndPop(t *testing.T) {
 	var s Stack = CreateStack()
-	se := IntStackElt{
-		fType: TYPE_INT,
+	se := NumericStackElt{
+		fType: TYPE_NUMERIC,
 		value: 2,
 	}
 	s.Push(&se)
@@ -31,14 +31,14 @@ func TestPushAndPop(t *testing.T) {
 
 func TestPushAndSize(t *testing.T) {
 	var s Stack = CreateStack()
-	se := IntStackElt{
-		fType: TYPE_INT,
+	se := NumericStackElt{
+		fType: TYPE_NUMERIC,
 		value: 2,
 	}
 	s.Push(&se)
 	fmt.Printf("Size after 1 Push %d / %d\n", s.Size(), len(s.elts))
-	se2 := IntStackElt{
-		fType: TYPE_INT,
+	se2 := NumericStackElt{
+		fType: TYPE_NUMERIC,
 		value: 2,
 	}
 	s.Push(&se2)
@@ -50,10 +50,10 @@ func TestPushAndSize(t *testing.T) {
 
 func TestDisplayStack(t *testing.T) {
 	var s Stack = CreateStack()
-	se := CreateIntStackElt(2)
+	se := CreateNumericStackElt(2)
 	s.Push(se)
 	fmt.Printf("Size after 1 Push %d / %d\n", s.Size(), len(s.elts))
-	se2 := CreateIntStackElt(3)
+	se2 := CreateNumericStackElt(3)
 	s.Push(se2)
 	DisplayStack(s, 4)
 }

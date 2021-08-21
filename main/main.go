@@ -1,8 +1,6 @@
 package main
 
-import (
-    "github.com/troisdiz/rcalc/rcalc"
-)
+import "troisdizaines.com/rcalc/rcalc"
 
 func main() {
     rcalc.Run()

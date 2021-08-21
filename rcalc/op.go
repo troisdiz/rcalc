@@ -1,5 +1,7 @@
 package rcalc
 
+import "github.com/shopspring/decimal"
+
 type CheckTypeFn func(elts ...StackElt) (bool, error)
 type OpApplyFn func(elts ...StackElt) StackElt
 
@@ -9,13 +11,13 @@ func OpToActionFn(opFn OpApplyFn) ActionApplyFn {
 	}
 }
 
-func GetEltAsInt(elts []StackElt, idx int) int {
-	return elts[idx].asIntElt().value
+func GetEltAsNumeric(elts []StackElt, idx int) decimal.Decimal {
+	return elts[idx].asNumericElt().value
 }
 
-func Check2Ints(elts ...StackElt) (bool, error) {
+func Check2Numerics(elts ...StackElt) (bool, error) {
 	for _, e := range elts {
-		if  e.getType() != TYPE_INT {
+		if  e.getType() != TYPE_NUMERIC {
 			return false, nil
 		}
 	}
@@ -25,22 +27,22 @@ func Check2Ints(elts ...StackElt) (bool, error) {
 var ADD_OP = ActionDesc{
 	opCode:      "+",
 	nbArgs:      2,
-	checkTypeFn: Check2Ints,
+	checkTypeFn: Check2Numerics,
 	applyFn:     OpToActionFn(func(elt ...StackElt) StackElt {
-		elt1 := GetEltAsInt(elt, 0)
-		elt2 := GetEltAsInt(elt, 1)
-		return CreateIntStackElt(elt1 + elt2)
+		elt1 := GetEltAsNumeric(elt, 0)
+		elt2 := GetEltAsNumeric(elt, 1)
+		return CreateNumericStackElt(elt1.Add(elt2))
 	}),
 }
 
 var MUL_OP = ActionDesc{
 	opCode:      "*",
 	nbArgs:      2,
-	checkTypeFn: Check2Ints,
+	checkTypeFn: Check2Numerics,
 	applyFn:     OpToActionFn(func(elt ...StackElt) StackElt {
-		elt1 := GetEltAsInt(elt, 0)
-		elt2 := GetEltAsInt(elt, 1)
-		return CreateIntStackElt(elt1 * elt2)
+		elt1 := GetEltAsNumeric(elt, 0)
+		elt2 := GetEltAsNumeric(elt, 1)
+		return CreateNumericStackElt(elt1.Mul(elt2))
 	}),
 }
 
@@ -48,6 +50,5 @@ var VERSION_OP = ActionDesc{
 	opCode:      "VERSION",
 	nbArgs:      0,
 	checkTypeFn: func(elts ...StackElt) (bool, error) { return true, nil },
-	applyFn:     OpToActionFn(func(elts ...StackElt) StackElt { return CreateIntStackElt(0) }),
+	applyFn:     OpToActionFn(func(elts ...StackElt) StackElt { return CreateNumericStackElt(decimal.Zero) }),
 }
-

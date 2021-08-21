@@ -2,51 +2,50 @@ package rcalc
 
 import (
 	"fmt"
-	"strconv"
+	"github.com/shopspring/decimal"
 )
 
 type Type int
 
 const (
-	TYPE_INT Type = 0
-	TYPE_STR Type = 1
+	TYPE_NUMERIC Type = 0
+	TYPE_STR     Type = 1
 )
 
-type IntStackElt struct {
+type NumericStackElt struct {
 	fType Type
-	value int
+	value decimal.Decimal
 }
 
-func (se *IntStackElt) String() string {
-	return fmt.Sprintf("IntStackElt(%d)", se.value)
+func (se *NumericStackElt) String() string {
+	return fmt.Sprintf("NumericStackElt(%v)", se.value)
 }
 
-func CreateIntStackElt(value int) StackElt {
-	var result = IntStackElt{
-		fType: TYPE_INT,
+func CreateNumericStackElt(value decimal.Decimal) StackElt {
+	var result = NumericStackElt{
+		fType: TYPE_NUMERIC,
 		value: value,
 	}
 	return &result
 }
 
-func (se *IntStackElt) asIntElt() IntStackElt {
+func (se *NumericStackElt) asNumericElt() NumericStackElt {
 	return *se
 }
 
-func (se *IntStackElt) getType() Type {
+func (se *NumericStackElt) getType() Type {
 	return 0
 }
 
-func (se *IntStackElt) display() string {
-	return strconv.Itoa(se.value)
+func (se *NumericStackElt) display() string {
+	return se.value.String()
 }
 
 type StackElt interface {
 	getType() Type
-	asIntElt() IntStackElt
+	asNumericElt() NumericStackElt
 	display()  string
 }
-
 
 type Stack struct {
 	elts []StackElt
