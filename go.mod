@@ -1,4 +1,5 @@
-module github.com/troisdiz/rcalc
+module troisdizaines.com/rcalc
 
-go 1.15
+go 1.16
 
+require github.com/shopspring/decimal v1.2.0

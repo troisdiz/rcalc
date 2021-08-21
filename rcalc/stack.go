@@ -2,7 +2,7 @@ package rcalc
 
 import (
 	"fmt"
-	"strconv"
+	"github.com/shopspring/decimal"
 )
 
 type Type int
@@ -14,14 +14,14 @@ const (
 
 type IntStackElt struct {
 	fType Type
-	value int
+	value decimal.Decimal
 }
 
 func (se *IntStackElt) String() string {
-	return fmt.Sprintf("IntStackElt(%d)", se.value)
+	return fmt.Sprintf("IntStackElt(%v)", se.value)
 }
 
-func CreateIntStackElt(value int) StackElt {
+func CreateIntStackElt(value decimal.Decimal) StackElt {
 	var result = IntStackElt{
 		fType: TYPE_INT,
 		value: value,
@@ -38,7 +38,7 @@ func (se *IntStackElt) getType() Type {
 }
 
 func (se *IntStackElt) display() string {
-	return strconv.Itoa(se.value)
+	return se.value.String()
 }
 
 type StackElt interface {
