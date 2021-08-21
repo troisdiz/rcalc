@@ -13,10 +13,19 @@ func GetEltAsInt(elts []StackElt, idx int) int {
 	return elts[idx].asIntElt().value
 }
 
+func Check2Ints(elts ...StackElt) (bool, error) {
+	for _, e := range elts {
+		if  e.getType() != TYPE_INT {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
 var ADD_OP = ActionDesc{
 	opCode:      "+",
 	nbArgs:      2,
-	checkTypeFn: addCheckTypes,
+	checkTypeFn: Check2Ints,
 	applyFn:     OpToActionFn(func(elt ...StackElt) StackElt {
 		elt1 := GetEltAsInt(elt, 0)
 		elt2 := GetEltAsInt(elt, 1)
@@ -24,13 +33,15 @@ var ADD_OP = ActionDesc{
 	}),
 }
 
-func addCheckTypes(elts ...StackElt) (bool, error)  {
-	for _, e := range elts {
-		if  e.getType() != TYPE_INT {
-			return false, nil
-		}
-	}
-	return true, nil
+var MUL_OP = ActionDesc{
+	opCode:      "*",
+	nbArgs:      2,
+	checkTypeFn: Check2Ints,
+	applyFn:     OpToActionFn(func(elt ...StackElt) StackElt {
+		elt1 := GetEltAsInt(elt, 0)
+		elt2 := GetEltAsInt(elt, 1)
+		return CreateIntStackElt(elt1 * elt2)
+	}),
 }
 
 var VERSION_OP = ActionDesc{

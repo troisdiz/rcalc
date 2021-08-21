@@ -54,6 +54,7 @@ func initRegistry() *ActionRegistry {
         actionDescs: map[string]*ActionDesc{},
     }
     reg.Register(&ADD_OP)
+    reg.Register(&MUL_OP)
     reg.Register(&VERSION_OP)
     reg.Register(&EXIT_ACTION)
     return &reg
