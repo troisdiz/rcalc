@@ -35,7 +35,7 @@ var EXIT_ACTION = ActionDesc{
     checkTypeFn: func(elts ...StackElt) (bool, error) {
         return true, nil
     },
-    applyFn: func(system System, elts ...StackElt) StackElt {
+    applyFn: func(system System, elts ...StackElt) []StackElt {
         system.exit()
         return nil
     },

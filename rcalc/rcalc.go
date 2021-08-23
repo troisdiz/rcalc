@@ -39,7 +39,9 @@ func Run() {
 				}
 				stackEltResult := action.Apply(system, stackElts...)
 				if stackEltResult != nil {
-					stack.Push(stackEltResult)
+					for _, stackElt := range stackEltResult {
+						stack.Push(stackElt)
+					}
 				}
 				if system.shouldStop() {
 					return

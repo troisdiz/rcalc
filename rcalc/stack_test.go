@@ -2,6 +2,7 @@ package rcalc
 
 import (
 	"fmt"
+	"github.com/shopspring/decimal"
 	"testing"
 )
 
@@ -16,7 +17,7 @@ func TestPushAndPop(t *testing.T) {
 	var s Stack = CreateStack()
 	se := NumericStackElt{
 		fType: TYPE_NUMERIC,
-		value: 2,
+		value: decimal.NewFromInt(2),
 	}
 	s.Push(&se)
 	popped, _ := s.Pop()
@@ -33,13 +34,13 @@ func TestPushAndSize(t *testing.T) {
 	var s Stack = CreateStack()
 	se := NumericStackElt{
 		fType: TYPE_NUMERIC,
-		value: 2,
+		value: decimal.NewFromInt(2),
 	}
 	s.Push(&se)
 	fmt.Printf("Size after 1 Push %d / %d\n", s.Size(), len(s.elts))
 	se2 := NumericStackElt{
 		fType: TYPE_NUMERIC,
-		value: 2,
+		value: decimal.NewFromInt(2),
 	}
 	s.Push(&se2)
 
@@ -50,10 +51,10 @@ func TestPushAndSize(t *testing.T) {
 
 func TestDisplayStack(t *testing.T) {
 	var s Stack = CreateStack()
-	se := CreateNumericStackElt(2)
+	se := CreateNumericStackElt(decimal.NewFromInt(2))
 	s.Push(se)
 	fmt.Printf("Size after 1 Push %d / %d\n", s.Size(), len(s.elts))
-	se2 := CreateNumericStackElt(3)
+	se2 := CreateNumericStackElt(decimal.NewFromInt(3))
 	s.Push(se2)
 	DisplayStack(s, 4)
 }

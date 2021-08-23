@@ -2,12 +2,12 @@ package rcalc
 
 import "fmt"
 
-type ActionApplyFn func(system System, elts ...StackElt) StackElt
+type ActionApplyFn func(system System, elts ...StackElt) []StackElt
 
 type Action interface {
     NbArgs() int
     CheckTypes(elts ...StackElt) (bool, error)
-    Apply(system System, elts ...StackElt) StackElt
+    Apply(system System, elts ...StackElt) []StackElt
 }
 
 // ActionDesc implementation of Action interface
@@ -34,7 +34,7 @@ func (op *ActionDesc) CheckTypes(elts ...StackElt) (bool, error)  {
     return op.checkTypeFn(elts...)
 }
 
-func (op *ActionDesc) Apply(system System, elts ...StackElt) StackElt  {
+func (op *ActionDesc) Apply(system System, elts ...StackElt) []StackElt  {
     return op.applyFn(system, elts...)
 }
 
