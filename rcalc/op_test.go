@@ -16,7 +16,7 @@ func TestAddApply(t *testing.T) {
 		value: decimal.NewFromInt(5),
 	}
 
-	i3 := ADD_OP.Apply(nil, &i1, &i2)[0].asNumericElt()
+	i3 := addOp.Apply(nil, &i1, &i2)[0].asNumericElt()
 	if i3.value.Equals(decimal.NewFromInt(8)) {
 		t.Errorf("3+5 should be 8 and not %d", i3.value)
 	}

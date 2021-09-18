@@ -24,29 +24,47 @@ func Check2Numerics(elts ...StackElt) (bool, error) {
 	return true, nil
 }
 
-var ADD_OP = ActionDesc{
-	opCode:      "+",
-	nbArgs:      2,
-	checkTypeFn: Check2Numerics,
-	applyFn:     OpToActionFn(func(elt ...StackElt) []StackElt {
-		elt1 := GetEltAsNumeric(elt, 0)
-		elt2 := GetEltAsNumeric(elt, 1)
-		return []StackElt{ CreateNumericStackElt(elt1.Add(elt2)) }
-	}),
+type NumOp2Args1Result func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal
+
+func DecimalFuncToOpApplyFn(f NumOp2Args1Result) OpApplyFn {
+	return func(elts ...StackElt) []StackElt {
+		elt1 := GetEltAsNumeric(elts, 1)
+		elt2 := GetEltAsNumeric(elts, 0)
+		return []StackElt{ CreateNumericStackElt(f(elt1, elt2)) }
+	}
 }
 
-var MUL_OP = ActionDesc{
-	opCode:      "*",
-	nbArgs:      2,
-	checkTypeFn: Check2Numerics,
-	applyFn:     OpToActionFn(func(elt ...StackElt) []StackElt {
-		elt1 := GetEltAsNumeric(elt, 0)
-		elt2 := GetEltAsNumeric(elt, 1)
-		return []StackElt{ CreateNumericStackElt(elt1.Mul(elt2)) }
-	}),
+func NewTwoArgsSingleResultNumOp(opCode string, decimalFunc NumOp2Args1Result) ActionDesc {
+	return ActionDesc{
+		opCode: opCode,
+		nbArgs: 2,
+		checkTypeFn: Check2Numerics,
+		applyFn: OpToActionFn(DecimalFuncToOpApplyFn(decimalFunc)),
+	}
+
 }
 
-var VERSION_OP = ActionDesc{
+var addOp = NewTwoArgsSingleResultNumOp("+", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
+	return num1.Add(num2)
+})
+
+var subOp = NewTwoArgsSingleResultNumOp("-", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
+	return num1.Sub(num2)
+})
+
+var mulOp = NewTwoArgsSingleResultNumOp("*", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
+	return num1.Mul(num2)
+})
+
+var divOp = NewTwoArgsSingleResultNumOp("/", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
+	return num1.Div(num2)
+})
+
+var powOp = NewTwoArgsSingleResultNumOp("^", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
+	return num1.Pow(num2)
+})
+
+var VersionOp = ActionDesc{
 	opCode:      "VERSION",
 	nbArgs:      0,
 	checkTypeFn: func(elts ...StackElt) (bool, error) { return true, nil },

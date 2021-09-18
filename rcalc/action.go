@@ -38,8 +38,6 @@ func (op *ActionDesc) Apply(system System, elts ...StackElt) []StackElt  {
     return op.applyFn(system, elts...)
 }
 
-
-/* Action registry */
 type ActionRegistry struct {
     actionDescs map[string]*ActionDesc
 }
@@ -53,9 +51,12 @@ func initRegistry() *ActionRegistry {
     reg := ActionRegistry{
         actionDescs: map[string]*ActionDesc{},
     }
-    reg.Register(&ADD_OP)
-    reg.Register(&MUL_OP)
-    reg.Register(&VERSION_OP)
+    reg.Register(&addOp)
+    reg.Register(&subOp)
+    reg.Register(&mulOp)
+    reg.Register(&divOp)
+    reg.Register(&powOp)
+    reg.Register(&VersionOp)
     reg.Register(&EXIT_ACTION)
     return &reg
 }
