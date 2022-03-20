@@ -92,5 +92,5 @@ func (s *Stack) Get(level int) (StackElt, error)  {
 
 func (s *Stack) Push(elt StackElt)  {
 	s.elts = append(s.elts, elt)
-	fmt.Printf("After Push : len = %d\n", len(s.elts))
+	// fmt.Printf("After Push : len = %d\n", len(s.elts))
 }
