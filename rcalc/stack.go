@@ -44,7 +44,7 @@ func (se *NumericStackElt) display() string {
 type StackElt interface {
 	getType() Type
 	asNumericElt() NumericStackElt
-	display()  string
+	display() string
 }
 
 type Stack struct {
@@ -60,9 +60,9 @@ func (s *Stack) Size() int {
 	return len(s.elts)
 }
 
-func (s *Stack) typeAt(l int) (Type, error)  {
+func (s *Stack) typeAt(l int) (Type, error) {
 	if l < s.Size() {
-		return (s.elts[len(s.elts) - l -1]).getType(), nil
+		return (s.elts[len(s.elts)-l-1]).getType(), nil
 	}
 	return -1, fmt.Errorf("no elt at %d", l)
 }
@@ -82,7 +82,7 @@ func (s *Stack) Pop() (StackElt, error) {
 	}
 }
 
-func (s *Stack) Get(level int) (StackElt, error)  {
+func (s *Stack) Get(level int) (StackElt, error) {
 	if level < s.Size() {
 		return s.elts[len(s.elts)-level-1], nil
 	} else {
@@ -90,7 +90,7 @@ func (s *Stack) Get(level int) (StackElt, error)  {
 	}
 }
 
-func (s *Stack) Push(elt StackElt)  {
+func (s *Stack) Push(elt StackElt) {
 	s.elts = append(s.elts, elt)
 	// fmt.Printf("After Push : len = %d\n", len(s.elts))
 }

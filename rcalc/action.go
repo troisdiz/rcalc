@@ -5,74 +5,80 @@ import "fmt"
 type ActionApplyFn func(system System, elts ...StackElt) []StackElt
 
 type Action interface {
-    NbArgs() int
-    CheckTypes(elts ...StackElt) (bool, error)
-    Apply(system System, elts ...StackElt) []StackElt
+	NbArgs() int
+	CheckTypes(elts ...StackElt) (bool, error)
+	Apply(system System, elts ...StackElt) []StackElt
 }
 
 // ActionDesc implementation of Action interface
 type ActionDesc struct {
-    opCode      string
-    nbArgs      int
-    checkTypeFn CheckTypeFn
-    applyFn     ActionApplyFn
+	opCode      string
+	nbArgs      int
+	checkTypeFn CheckTypeFn
+	applyFn     ActionApplyFn
 }
 
 func (op *ActionDesc) String() string {
-    return fmt.Sprintf("Action(opCode = %s, nbArgs = %d)", op.opCode, op.nbArgs)
+	return fmt.Sprintf("Action(opCode = %s, nbArgs = %d)", op.opCode, op.nbArgs)
 }
 
 func (op *ActionDesc) OpCode() string {
-    return op.opCode
+	return op.opCode
 }
 
 func (op *ActionDesc) NbArgs() int {
-    return op.nbArgs
+	return op.nbArgs
 }
 
-func (op *ActionDesc) CheckTypes(elts ...StackElt) (bool, error)  {
-    return op.checkTypeFn(elts...)
+func (op *ActionDesc) CheckTypes(elts ...StackElt) (bool, error) {
+	return op.checkTypeFn(elts...)
 }
 
-func (op *ActionDesc) Apply(system System, elts ...StackElt) []StackElt  {
-    return op.applyFn(system, elts...)
+func (op *ActionDesc) Apply(system System, elts ...StackElt) []StackElt {
+	return op.applyFn(system, elts...)
 }
 
 type ActionRegistry struct {
-    actionDescs map[string]*ActionDesc
+	actionDescs map[string]*ActionDesc
 }
 
-func (reg *ActionRegistry) Register(aDesc *ActionDesc)  {
-    reg.actionDescs[aDesc.opCode] = aDesc
+func (reg *ActionRegistry) Register(aDesc *ActionDesc) {
+	reg.actionDescs[aDesc.opCode] = aDesc
 }
 
+type ActionPackage struct {
+	actions []*ActionDesc
+}
+
+func (reg *ActionRegistry) RegisterActions(aPackage *ActionPackage) {
+	for _, aDesc := range aPackage.actions {
+		reg.actionDescs[aDesc.opCode] = aDesc
+	}
+}
 
 func initRegistry() *ActionRegistry {
-    reg := ActionRegistry{
-        actionDescs: map[string]*ActionDesc{},
-    }
-    reg.Register(&addOp)
-    reg.Register(&subOp)
-    reg.Register(&mulOp)
-    reg.Register(&divOp)
-    reg.Register(&powOp)
-    reg.Register(&VersionOp)
-    reg.Register(&EXIT_ACTION)
-    return &reg
+	reg := ActionRegistry{
+		actionDescs: map[string]*ActionDesc{},
+	}
+	reg.RegisterActions(&ArithmeticPackage)
+	reg.RegisterActions(&TrigonometricPackage)
+	reg.Register(&VersionOp)
+	reg.Register(&EXIT_ACTION)
+	return &reg
 }
 
 func (reg *ActionRegistry) ContainsOpCode(opCode string) bool {
-    _, ok := reg.actionDescs[opCode]
-    return ok
+	_, ok := reg.actionDescs[opCode]
+	return ok
 }
 
 func (reg *ActionRegistry) GetAction(opCode string) *ActionDesc {
-    actionDesc, ok := reg.actionDescs[opCode]
-    if !ok {
-        return nil
-    } else {
-        return actionDesc
-    }
+	actionDesc, ok := reg.actionDescs[opCode]
+	if !ok {
+		return nil
+	} else {
+		return actionDesc
+	}
 }
 
 var Registry = initRegistry()
