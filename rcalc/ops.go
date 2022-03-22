@@ -35,7 +35,7 @@ var sinOp = NewOneArgSingleResultNumOp("sin", func(num decimal.Decimal) decimal.
 })
 
 var arcSinOp = NewOneArgSingleResultNumOp("asin", func(num decimal.Decimal) decimal.Decimal {
-	return num.Div(decimal.NewFromInt(1).Sub(num.Pow(2)).Pow(decimal.New(5, -1))).Atan()
+	return num.Div(decimal.NewFromInt(1).Sub(num.Pow(decimal.NewFromInt(2))).Pow(decimal.New(5, -1))).Atan()
 })
 
 var cosOp = NewOneArgSingleResultNumOp("cos", func(num decimal.Decimal) decimal.Decimal {
