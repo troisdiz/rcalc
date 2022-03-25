@@ -34,6 +34,7 @@ func Run() {
 				if stack.Size() < action.NbArgs() {
 					fmt.Printf("Not enough args on stack (%d vs %d)\n", stack.Size(), action.NbArgs())
 				} else {
+					// TODO type checking
 					for i := 0; i < action.NbArgs(); i++ {
 						stackElt, err := stack.Pop()
 						if err != nil {

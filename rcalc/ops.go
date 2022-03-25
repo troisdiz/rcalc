@@ -4,23 +4,23 @@ import "github.com/shopspring/decimal"
 
 // Arithmetic package
 
-var addOp = NewTwoArgsSingleResultNumOp("+", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
+var addOp = NewA2R1NumericOp("+", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
 	return num1.Add(num2)
 })
 
-var subOp = NewTwoArgsSingleResultNumOp("-", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
+var subOp = NewA2R1NumericOp("-", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
 	return num1.Sub(num2)
 })
 
-var mulOp = NewTwoArgsSingleResultNumOp("*", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
+var mulOp = NewA2R1NumericOp("*", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
 	return num1.Mul(num2)
 })
 
-var divOp = NewTwoArgsSingleResultNumOp("/", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
+var divOp = NewA2R1NumericOp("/", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
 	return num1.Div(num2)
 })
 
-var powOp = NewTwoArgsSingleResultNumOp("^", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
+var powOp = NewA2R1NumericOp("^", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
 	return num1.Pow(num2)
 })
 
@@ -30,27 +30,27 @@ var ArithmeticPackage = ActionPackage{
 
 // Trigonometry package
 
-var sinOp = NewOneArgSingleResultNumOp("sin", func(num decimal.Decimal) decimal.Decimal {
+var sinOp = NewA1R1NumericOp("sin", func(num decimal.Decimal) decimal.Decimal {
 	return num.Sin()
 })
 
-var arcSinOp = NewOneArgSingleResultNumOp("asin", func(num decimal.Decimal) decimal.Decimal {
+var arcSinOp = NewA1R1NumericOp("asin", func(num decimal.Decimal) decimal.Decimal {
 	return num.Div(decimal.NewFromInt(1).Sub(num.Pow(decimal.NewFromInt(2))).Pow(decimal.New(5, -1))).Atan()
 })
 
-var cosOp = NewOneArgSingleResultNumOp("cos", func(num decimal.Decimal) decimal.Decimal {
+var cosOp = NewA1R1NumericOp("cos", func(num decimal.Decimal) decimal.Decimal {
 	return num.Cos()
 })
 
-var arcCosOp = NewOneArgSingleResultNumOp("acos", func(num decimal.Decimal) decimal.Decimal {
+var arcCosOp = NewA1R1NumericOp("acos", func(num decimal.Decimal) decimal.Decimal {
 	return decimal.NewFromInt(1).Sub(num.Pow(decimal.NewFromInt(2))).Pow(decimal.New(5, -1)).Div(num).Atan()
 })
 
-var tanOp = NewOneArgSingleResultNumOp("sin", func(num decimal.Decimal) decimal.Decimal {
+var tanOp = NewA1R1NumericOp("sin", func(num decimal.Decimal) decimal.Decimal {
 	return num.Tan()
 })
 
-var arcTanOp = NewOneArgSingleResultNumOp("atan", func(num decimal.Decimal) decimal.Decimal {
+var arcTanOp = NewA1R1NumericOp("atan", func(num decimal.Decimal) decimal.Decimal {
 	return num.Atan()
 })
 
@@ -62,7 +62,7 @@ var TrigonometricPackage = ActionPackage{
 }
 
 // Logic Package
-var negOp = New1Arg1ResultBooleanOp("neg", func(b bool) bool {
+var negOp = New1A1R1BooleanOp("neg", func(b bool) bool {
 	return !b
 })
 
