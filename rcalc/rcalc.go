@@ -2,6 +2,7 @@ package rcalc
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 )
 
@@ -30,17 +31,22 @@ func Run() {
 			case ACTION_EXPR_TYPE:
 				action := expr.asAction()
 				var stackElts []StackElt = make([]StackElt, action.NbArgs())
-				for i := 0; i < action.NbArgs(); i++ {
-					stackElt, err := stack.Pop()
-					if err != nil {
-						panic("Stack error !!")
+				if stack.Size() < action.NbArgs() {
+					fmt.Printf("Not enough args on stack (%d vs %d)\n", stack.Size(), action.NbArgs())
+				} else {
+					// TODO type checking
+					for i := 0; i < action.NbArgs(); i++ {
+						stackElt, err := stack.Pop()
+						if err != nil {
+							panic("Stack error !!")
+						}
+						stackElts[i] = stackElt
 					}
-					stackElts[i] = stackElt
-				}
-				stackEltResult := action.Apply(system, stackElts...)
-				if stackEltResult != nil {
-					for _, stackElt := range stackEltResult {
-						stack.Push(stackElt)
+					stackEltResult := action.Apply(system, stackElts...)
+					if stackEltResult != nil {
+						for _, stackElt := range stackEltResult {
+							stack.Push(stackElt)
+						}
 					}
 				}
 				if system.shouldStop() {

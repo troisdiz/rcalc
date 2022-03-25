@@ -3,11 +3,12 @@ package rcalc
 import "fmt"
 
 func DisplayStack(s Stack, minElts int) {
+	fmt.Print("\033c")
 	stackSize := s.Size()
-	for i := minElts-1; i >= stackSize; i-- {
+	for i := minElts - 1; i >= stackSize; i-- {
 		displayStackLevel(i, nil)
 	}
-	for i := stackSize -1; i >= 0; i-- {
+	for i := stackSize - 1; i >= 0; i-- {
 		elt, _ := s.Get(i)
 		displayStackLevel(i, elt)
 	}
