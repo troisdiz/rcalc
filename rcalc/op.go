@@ -87,12 +87,31 @@ func A1R1BooleanApplyFn(f A1R1BooleanFn) OpApplyFn {
 	}
 }
 
-func New1A1R1BooleanOp(opCode string, booleanFunc A1R1BooleanFn) ActionDesc {
+func NewA1R1BooleanOp(opCode string, booleanFunc A1R1BooleanFn) ActionDesc {
 	return ActionDesc{
 		opCode:      opCode,
 		nbArgs:      1,
 		checkTypeFn: CheckAllBooleans,
 		applyFn:     OpToActionFn(A1R1BooleanApplyFn(booleanFunc)),
+	}
+}
+
+type A2R1BooleanFn func(b1 bool, b2 bool) bool
+
+func A2R1BooleanApplyFn(f A2R1BooleanFn) OpApplyFn {
+	return func(elts ...StackElt) []StackElt {
+		elt := GetEltAsBoolean(elts, 1)
+		elt2 := GetEltAsBoolean(elts, 0)
+		return []StackElt{CreateBooleanStackElt(f(elt, elt2))}
+	}
+}
+
+func NewA2R1BooleanOp(opCode string, booleanFunc A2R1BooleanFn) ActionDesc {
+	return ActionDesc{
+		opCode:      opCode,
+		nbArgs:      2,
+		checkTypeFn: CheckAllBooleans,
+		applyFn:     OpToActionFn(A2R1BooleanApplyFn(booleanFunc)),
 	}
 }
 

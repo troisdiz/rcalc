@@ -62,12 +62,28 @@ var TrigonometricPackage = ActionPackage{
 }
 
 // Logic Package
-var negOp = New1A1R1BooleanOp("neg", func(b bool) bool {
+var negOp = NewA1R1BooleanOp("neg", func(b bool) bool {
 	return !b
+})
+
+var andOp = NewA2R1BooleanOp("and", func(b bool, b2 bool) bool {
+	return b && b2
+})
+
+var orOp = NewA2R1BooleanOp("or", func(b bool, b2 bool) bool {
+	return b || b2
+})
+
+var xorOp = NewA2R1BooleanOp("xor", func(b bool, b2 bool) bool {
+	return b != b2
+})
+
+var xandOp = NewA2R1BooleanOp("xand", func(b bool, b2 bool) bool {
+	return b == b2
 })
 
 var BooleanLogicPackage = ActionPackage{
 	[]*ActionDesc{
-		&negOp,
+		&negOp, &andOp, &orOp, &xorOp, &xandOp,
 	},
 }
