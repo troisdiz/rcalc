@@ -62,6 +62,37 @@ func NewTwoArgsSingleResultNumOp(opCode string, decimalFunc NumOp2Args1Result) A
 
 }
 
+func GetEltAsBoolean(elts []StackElt, idx int) bool {
+	return elts[idx].asBooleanElt().value
+}
+
+func CheckAllBooleans(elts ...StackElt) (bool, error) {
+	for _, e := range elts {
+		if e.getType() != TYPE_BOOL {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+type BooleanOp1Arg1Result func(num1 bool) bool
+
+func BooleanFuncToOp1Arg1ResultApplyFn(f BooleanOp1Arg1Result) OpApplyFn {
+	return func(elts ...StackElt) []StackElt {
+		elt := GetEltAsBoolean(elts, 0)
+		return []StackElt{CreateBooleanStackElt(f(elt))}
+	}
+}
+
+func New1Arg1ResultBooleanOp(opCode string, booleanFunc BooleanOp1Arg1Result) ActionDesc {
+	return ActionDesc{
+		opCode:      opCode,
+		nbArgs:      1,
+		checkTypeFn: CheckAllBooleans,
+		applyFn:     OpToActionFn(BooleanFuncToOp1Arg1ResultApplyFn(booleanFunc)),
+	}
+}
+
 var VersionOp = ActionDesc{
 	opCode:      "VERSION",
 	nbArgs:      0,

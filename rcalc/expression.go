@@ -72,6 +72,13 @@ func parseExpressionElt(registry *ActionRegistry, elt string) (*ExprElement, err
 		return createActionExprElt(action), nil
 	}
 
+	switch strings.ToLower(elt) {
+	case "true":
+		return createStackEltExprElt(CreateBooleanStackElt(true)), nil
+	case "false":
+		return createStackEltExprElt(CreateBooleanStackElt(false)), nil
+	}
+
 	if value, err := decimal.NewFromString(elt); err == nil {
 		return createStackEltExprElt(CreateNumericStackElt(value)), nil
 	}

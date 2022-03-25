@@ -62,3 +62,12 @@ var TrigonometricPackage = ActionPackage{
 }
 
 // Logic Package
+var negOp = New1Arg1ResultBooleanOp("neg", func(b bool) bool {
+	return !b
+})
+
+var BooleanLogicPackage = ActionPackage{
+	[]*ActionDesc{
+		&negOp,
+	},
+}

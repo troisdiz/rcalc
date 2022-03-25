@@ -62,6 +62,7 @@ func initRegistry() *ActionRegistry {
 	}
 	reg.RegisterActions(&ArithmeticPackage)
 	reg.RegisterActions(&TrigonometricPackage)
+	reg.RegisterActions(&BooleanLogicPackage)
 	reg.Register(&VersionOp)
 	reg.Register(&EXIT_ACTION)
 	return &reg
