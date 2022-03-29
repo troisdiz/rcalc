@@ -38,7 +38,7 @@ func (se *NumericStackElt) asBooleanElt() BooleanStackElt {
 }
 
 func (se *NumericStackElt) getType() Type {
-	return 0
+	return se.fType
 }
 
 func (se *NumericStackElt) display() string {
@@ -59,7 +59,7 @@ type BooleanStackElt struct {
 }
 
 func (se *BooleanStackElt) String() string {
-	return fmt.Sprintf("BooleanStackElt(%v)", se.value)
+	return fmt.Sprintf("BooleanStackElt(%v) type = %d", se.value, se.fType)
 }
 
 func (se *BooleanStackElt) asNumericElt() NumericStackElt {
@@ -71,7 +71,7 @@ func (se *BooleanStackElt) asBooleanElt() BooleanStackElt {
 }
 
 func (se *BooleanStackElt) getType() Type {
-	return 0
+	return se.fType
 }
 
 func (se *BooleanStackElt) display() string {
@@ -118,6 +118,17 @@ func (s *Stack) Pop() (StackElt, error) {
 		result := s.elts[index]
 		s.elts = s.elts[:index]
 		return result, nil
+	}
+}
+
+func (s *Stack) Peek(n int) ([]StackElt, error) {
+	if n == 0 {
+		return []StackElt{}, nil
+	} else if s.Size() < n {
+		return nil, fmt.Errorf("stack contains %d elements but %d were needed", s.Size(), n)
+	} else {
+		index := len(s.elts) - 1
+		return s.elts[index-n+1 : index], nil
 	}
 }
 
