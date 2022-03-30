@@ -5,6 +5,7 @@ import "fmt"
 type ActionApplyFn func(system System, elts ...StackElt) []StackElt
 
 type Action interface {
+	OpCode() string
 	NbArgs() int
 	CheckTypes(elts ...StackElt) (bool, error)
 	Apply(system System, elts ...StackElt) []StackElt

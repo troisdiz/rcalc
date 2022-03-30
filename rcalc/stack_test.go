@@ -56,5 +56,19 @@ func TestDisplayStack(t *testing.T) {
 	fmt.Printf("Size after 1 Push %d / %d\n", s.Size(), len(s.elts))
 	se2 := CreateNumericStackElt(decimal.NewFromInt(3))
 	s.Push(se2)
-	DisplayStack(s, 4)
+	DisplayStack(s, "", 4)
+}
+
+func TestNumericStackEltType(t *testing.T) {
+	bse := CreateNumericStackElt(decimal.NewFromInt(5))
+	if bse.getType() != TYPE_NUMERIC {
+		t.Errorf("Type should be %d and is %d", TYPE_NUMERIC, bse.getType())
+	}
+}
+
+func TestBooleanStackEltType(t *testing.T) {
+	bse := CreateBooleanStackElt(true)
+	if bse.getType() != TYPE_BOOL {
+		t.Errorf("Type should be %d and is %d", TYPE_BOOL, bse.getType())
+	}
 }

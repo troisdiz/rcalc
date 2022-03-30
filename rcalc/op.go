@@ -1,6 +1,9 @@
 package rcalc
 
-import "github.com/shopspring/decimal"
+import (
+	"fmt"
+	"github.com/shopspring/decimal"
+)
 
 type CheckTypeFn func(elts ...StackElt) (bool, error)
 type OpApplyFn func(elts ...StackElt) []StackElt
@@ -68,6 +71,7 @@ func GetEltAsBoolean(elts []StackElt, idx int) bool {
 }
 
 func CheckAllBooleans(elts ...StackElt) (bool, error) {
+	fmt.Printf("CheckAllBooleans %v\n", elts)
 	for _, e := range elts {
 		if e.getType() != TYPE_BOOL {
 			return false, nil
