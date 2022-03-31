@@ -15,4 +15,11 @@ jobs:
         with:
           go-version: '>=1.17.0'
       - run: go version
-      - run: make amd64
+      - run: make test
+      - run: make compile
+      - name: Upload package as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: rcalc-${{matrix.os}}
+          path: |
+            bin/rcalc

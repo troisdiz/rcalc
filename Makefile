@@ -6,8 +6,11 @@ fmt:
 vet:
 	@go vet -v ./...
 
-amd64:
+compile:
 	go build -o bin/$(TARGET) main/main.go
+
+test:
+	go test ./rcalc ./main
 
 clean:
 	$(RM) -v bin/*
