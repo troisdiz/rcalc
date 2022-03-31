@@ -4,7 +4,7 @@ jobs:
   CI:
     strategy:
       matrix:
-        os: ['ubuntu-latest']
+        os: ['ubuntu-latest', 'macos-latest']
     runs-on: ${{matrix.os}}
     steps:
       - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
