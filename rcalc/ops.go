@@ -87,3 +87,20 @@ var BooleanLogicPackage = ActionPackage{
 		&negOp, &andOp, &orOp, &xorOp, &xandOp,
 	},
 }
+
+// Stack package
+
+var dupOp = NewStackOp("dup", 1, func(elts ...StackElt) []StackElt {
+	return []StackElt{elts[0], elts[0]}
+})
+
+var dupNOp = NewStackOpWithtypeCheck("dupn", 1, CheckFirstInt, func(elts ...StackElt) []StackElt {
+	var result []StackElt = make([]StackElt, elts[0].asNumericElt().value.IntPart())
+	return result
+})
+
+var StackPackage = ActionPackage{
+	[]*ActionDesc{
+		&dupOp,
+	},
+}

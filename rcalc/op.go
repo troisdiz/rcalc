@@ -14,6 +14,41 @@ func OpToActionFn(opFn OpApplyFn) ActionApplyFn {
 	}
 }
 
+func CheckNoop(elts ...StackElt) (bool, error) {
+	return true, nil
+}
+
+func CheckFirstInt(elts ...StackElt) (bool, error) {
+
+	if elts[0].getType() != TYPE_NUMERIC {
+		return false, nil
+	} else {
+		v := elts[0].asNumericElt().value
+		if !v.IsInteger() {
+			return false, fmt.Errorf("%v is not an integer", v)
+		}
+	}
+	return true, nil
+}
+
+func NewStackOp(opCode string, nbArgs int, fn OpApplyFn) ActionDesc {
+	return ActionDesc{
+		opCode:      opCode,
+		nbArgs:      nbArgs,
+		checkTypeFn: CheckNoop,
+		applyFn:     OpToActionFn(fn),
+	}
+}
+
+func NewStackOpWithtypeCheck(opCode string, nbArgs int, checkFn CheckTypeFn, fn OpApplyFn) ActionDesc {
+	return ActionDesc{
+		opCode:      opCode,
+		nbArgs:      nbArgs,
+		checkTypeFn: checkFn,
+		applyFn:     OpToActionFn(fn),
+	}
+}
+
 // Tooling for Numeric (Decimal) functions
 
 func GetEltAsNumeric(elts []StackElt, idx int) decimal.Decimal {
