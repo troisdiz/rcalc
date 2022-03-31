@@ -1,0 +1,18 @@
+name:  CI Action
+on: [push]
+jobs:
+  CI:
+    strategy:
+      matrix:
+        os: ['ubuntu-latest']
+    runs-on: ${{matrix.os}}
+    steps:
+      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: Compile
+        uses: actions/setup-go@v3
+        with:
+          go-version: '>=1.17.0'
+      - run: go version
+      - run: make amd64
