@@ -99,12 +99,14 @@ func (s *Stack) Size() int {
 	return len(s.elts)
 }
 
+/*
 func (s *Stack) typeAt(l int) (Type, error) {
 	if l < s.Size() {
 		return (s.elts[len(s.elts)-l-1]).getType(), nil
 	}
 	return -1, fmt.Errorf("no elt at %d", l)
 }
+*/
 
 func (s *Stack) IsEmpty() bool {
 	return len(s.elts) == 0
