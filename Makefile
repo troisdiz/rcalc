@@ -3,8 +3,8 @@ TARGET=rcalc
 fmt:
 	@go fmt ./...
 
-vet:
-	@go vet -v ./...
+lint:
+	golangci-lint run ./...
 
 compile:
 	go build -o bin/$(TARGET) main/main.go
