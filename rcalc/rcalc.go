@@ -8,9 +8,9 @@ import (
 
 func Run() {
 
-	var stack Stack = CreateStack()
-	var message string = ""
-	var system *SystemInstance = CreateSystemInstance()
+	var stack = CreateStack()
+	var message = ""
+	var system = CreateSystemInstance()
 	for {
 		// print stack
 		DisplayStack(stack, message, 3)
@@ -31,7 +31,7 @@ func Run() {
 			switch expr.eltType {
 			case ACTION_EXPR_TYPE:
 				action := expr.asAction()
-				var stackElts []StackElt = make([]StackElt, action.NbArgs())
+				var stackElts = make([]StackElt, action.NbArgs())
 				if stack.Size() < action.NbArgs() {
 					fmt.Printf("Not enough args on stack (%d vs %d)\n", stack.Size(), action.NbArgs())
 				} else {
@@ -50,10 +50,8 @@ func Run() {
 								stackElts[i] = stackElt
 							}
 							stackEltResult := action.Apply(system, stackElts...)
-							if stackEltResult != nil {
-								for _, stackElt := range stackEltResult {
-									stack.Push(stackElt)
-								}
+							for _, stackElt := range stackEltResult {
+								stack.Push(stackElt)
 							}
 						}
 					}
@@ -70,7 +68,7 @@ func Run() {
 }
 
 func checkTypesForAction(s *Stack, a Action) (bool, error) {
-	elts, err := s.Peek(a.NbArgs())
+	elts, _ := s.Peek(a.NbArgs())
 	ok, err := a.CheckTypes(elts...)
 	if err != nil {
 		return false, err
