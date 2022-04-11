@@ -94,6 +94,24 @@ var dupOp = NewStackOp("dup", 1, func(elts ...StackElt) []StackElt {
 	return []StackElt{elts[0], elts[0]}
 })
 
+var dup2Op = NewStackOp("dup2", 2, func(elts ...StackElt) []StackElt {
+	return []StackElt{elts[1], elts[0], elts[1], elts[0]}
+})
+
+var dropOp = NewStackOp("drop", 1, func(elts ...StackElt) []StackElt {
+	return []StackElt{}
+})
+
+var drop2Op = NewStackOp("drop2", 2, func(elts ...StackElt) []StackElt {
+	return []StackElt{}
+})
+
+var swapOp = NewStackOp("swap", 2, func(elts ...StackElt) []StackElt {
+	return []StackElt{elts[0], elts[1]}
+})
+
+// rot, roll, pick, depth
+
 var dupNOp = NewStackOpWithtypeCheck("dupn", 1, CheckFirstInt, func(elts ...StackElt) []StackElt {
 	var result []StackElt = make([]StackElt, elts[0].asNumericElt().value.IntPart())
 	return result
@@ -102,5 +120,9 @@ var dupNOp = NewStackOpWithtypeCheck("dupn", 1, CheckFirstInt, func(elts ...Stac
 var StackPackage = ActionPackage{
 	[]*ActionDesc{
 		&dupOp,
+		&dup2Op,
+		&dropOp,
+		&drop2Op,
+		&swapOp,
 	},
 }
