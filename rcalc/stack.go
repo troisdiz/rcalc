@@ -146,7 +146,7 @@ func (s *Stack) PeekN(n int) ([]StackElt, error) {
 	} else {
 		index := len(s.elts)
 		result := make([]StackElt, n)
-		// this copy is probably
+		// this copy is a bit conservative (operations could modify the slice we give them)
 		copy(result, s.elts[index-n:index])
 		return result, nil
 	}

@@ -111,11 +111,12 @@ var swapOp = NewStackOp("swap", 2, func(elts ...StackElt) []StackElt {
 })
 
 // rot, roll, pick, depth
-
+/*
 var dupNOp = NewStackOpWithtypeCheck("dupn", 1, CheckFirstInt, func(elts ...StackElt) []StackElt {
 	var result []StackElt = make([]StackElt, elts[0].asNumericElt().value.IntPart())
 	return result
 })
+*/
 
 var StackPackage = ActionPackage{
 	[]*ActionDesc{
