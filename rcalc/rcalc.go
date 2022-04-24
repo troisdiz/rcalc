@@ -13,7 +13,7 @@ func Run() {
 	var system = CreateSystemInstance()
 	for {
 		// print stack
-		DisplayStack(stack, message, 3)
+		DisplayStack(stack, message, 3, true)
 
 		// print prompt
 		input := bufio.NewScanner(os.Stdin)
