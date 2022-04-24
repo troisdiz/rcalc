@@ -8,7 +8,7 @@ type Action interface {
 	OpCode() string
 	NbArgs() int
 	CheckTypes(elts ...StackElt) (bool, error)
-	Apply(system System, elts ...StackElt) []StackElt
+	Apply(system System, stack *Stack) error
 }
 
 // ActionDesc implementation of Action interface
@@ -35,8 +35,16 @@ func (op *ActionDesc) CheckTypes(elts ...StackElt) (bool, error) {
 	return op.checkTypeFn(elts...)
 }
 
-func (op *ActionDesc) Apply(system System, elts ...StackElt) []StackElt {
-	return op.applyFn(system, elts...)
+func (op *ActionDesc) Apply(system System, stack *Stack) error {
+	inputs, err := stack.PopN(op.NbArgs())
+	if err != nil {
+		return err
+	}
+	results := op.applyFn(system, inputs...)
+	for _, elt := range results {
+		stack.Push(elt)
+	}
+	return nil
 }
 
 type ActionRegistry struct {

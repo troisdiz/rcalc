@@ -87,6 +87,7 @@ func CreateBooleanStackElt(value bool) StackElt {
 }
 
 type Stack struct {
+	// Storge of the stack, top element at index 0, bottom at length-1 (end of array)
 	elts []StackElt
 }
 
@@ -123,14 +124,31 @@ func (s *Stack) Pop() (StackElt, error) {
 	}
 }
 
-func (s *Stack) Peek(n int) ([]StackElt, error) {
+func (s *Stack) PopN(n int) ([]StackElt, error) {
 	if n == 0 {
 		return []StackElt{}, nil
 	} else if s.Size() < n {
 		return nil, fmt.Errorf("stack contains %d elements but %d were needed", s.Size(), n)
 	} else {
-		index := len(s.elts) - 1
-		return s.elts[index-n+1 : index], nil
+		index := len(s.elts)
+		result := make([]StackElt, n)
+		copy(result, s.elts[index-n:index])
+		s.elts = s.elts[0 : index-n]
+		return result, nil
+	}
+}
+
+func (s *Stack) PeekN(n int) ([]StackElt, error) {
+	if n == 0 {
+		return []StackElt{}, nil
+	} else if s.Size() < n {
+		return nil, fmt.Errorf("stack contains %d elements but %d were needed", s.Size(), n)
+	} else {
+		index := len(s.elts)
+		result := make([]StackElt, n)
+		// this copy is probably
+		copy(result, s.elts[index-n:index])
+		return result, nil
 	}
 }
 

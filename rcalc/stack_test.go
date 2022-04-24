@@ -13,6 +13,35 @@ func TestEmptyStack(t *testing.T) {
 	}
 }
 
+func TestPeekN(t *testing.T) {
+	var s Stack = CreateStack()
+	se1 := NumericStackElt{
+		fType: TYPE_NUMERIC,
+		value: decimal.NewFromInt(2),
+	}
+	s.Push(&se1)
+	se2 := NumericStackElt{
+		fType: TYPE_NUMERIC,
+		value: decimal.NewFromInt(7),
+	}
+	s.Push(&se2)
+	peeked, _ := s.PeekN(2)
+	expected := []StackElt{&se1, &se2}
+	if s.IsEmpty() {
+		t.Errorf("Stack should NOT be empty after Push and Pop (current size %d)", s.Size())
+	}
+
+	if len(peeked) != len(expected) {
+		t.Errorf("Peeked array length is %d and not %d", len(peeked), len(expected))
+	} else {
+		for idx, se := range peeked {
+			if se != expected[idx] {
+				t.Errorf("Peeked element at index %d is not the expected one (real = %v, expected, %v)", idx, se, expected[idx])
+			}
+		}
+	}
+}
+
 func TestPushAndPop(t *testing.T) {
 	var s Stack = CreateStack()
 	se := NumericStackElt{
@@ -27,6 +56,41 @@ func TestPushAndPop(t *testing.T) {
 	}
 	if popped != StackElt(&se) {
 		t.Error("Popped elt is not the inserted one")
+	}
+}
+
+func TestPushAndPopN(t *testing.T) {
+	var s Stack = CreateStack()
+	var se1, se2 StackElt
+	se1 = CreateNumericStackElt(decimal.NewFromInt(2))
+	s.Push(se1)
+	se2 = CreateBooleanStackElt(true)
+	s.Push(se2)
+	popped, _ := s.PopN(2)
+
+	if !s.IsEmpty() {
+		t.Error("Stack should be empty after Push and Pop")
+	}
+	if len(popped) != 2 {
+		t.Errorf("Popped has not the right length (%d instead of 2)", len(popped))
+	}
+
+}
+
+func TestPushAndPopNAndSize(t *testing.T) {
+	var s Stack = CreateStack()
+	var se1, se2 StackElt
+	se1 = CreateNumericStackElt(decimal.NewFromInt(2))
+	s.Push(se1)
+	se2 = CreateBooleanStackElt(true)
+	s.Push(se2)
+	popped, _ := s.PopN(1)
+
+	if s.IsEmpty() {
+		t.Error("Stack should not be empty after Push 2 and Pop 1")
+	}
+	if len(popped) != 1 {
+		t.Error("Popped has not the right length")
 	}
 }
 

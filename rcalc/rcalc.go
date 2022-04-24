@@ -38,7 +38,6 @@ func Run() {
 				switch expr.eltType {
 				case ACTION_EXPR_TYPE:
 					action := expr.asAction()
-					var stackElts = make([]StackElt, action.NbArgs())
 					if stack.Size() < action.NbArgs() {
 						fmt.Printf("Not enough args on stack (%d vs %d)\n", stack.Size(), action.NbArgs())
 					} else {
@@ -49,16 +48,9 @@ func Run() {
 							if !typesOK {
 								message = "Bad types on stack"
 							} else {
-								for i := 0; i < action.NbArgs(); i++ {
-									stackElt, err := stack.Pop()
-									if err != nil {
-										panic("Stack error !!")
-									}
-									stackElts[i] = stackElt
-								}
-								stackEltResult := action.Apply(system, stackElts...)
-								for _, stackElt := range stackEltResult {
-									stack.Push(stackElt)
+								applyErr := action.Apply(system, &stack)
+								if applyErr != nil {
+									message = applyErr.Error()
 								}
 							}
 						}
@@ -76,7 +68,7 @@ func Run() {
 }
 
 func checkTypesForAction(s *Stack, a Action) (bool, error) {
-	elts, _ := s.Peek(a.NbArgs())
+	elts, _ := s.PeekN(a.NbArgs())
 	ok, err := a.CheckTypes(elts...)
 	if err != nil {
 		return false, err
