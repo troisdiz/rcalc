@@ -28,9 +28,10 @@ func TestPeekN(t *testing.T) {
 	expected := []StackElt{&se1, &se2}
 	assert.False(t, s.IsEmpty(), "Stack should NOT be empty after Push and Pop (current size %d)", s.Size())
 
-	assert.Len(t, peeked, len(expected), "Peeked array length is %d and not %d", len(peeked), len(expected))
-	for idx, se := range peeked {
-		assert.Equal(t, expected[idx], se, "Peeked element at index %d is not the expected one (real = %v, expected, %v)", idx, se, expected[idx])
+	if assert.Len(t, peeked, len(expected), "Peeked array length is %d and not %d", len(peeked), len(expected)) {
+		for idx, se := range peeked {
+			assert.Equal(t, expected[idx], se, "Peeked element at index %d is not the expected one (real = %v, expected, %v)", idx, se, expected[idx])
+		}
 	}
 }
 

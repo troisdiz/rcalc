@@ -2,6 +2,7 @@ package rcalc
 
 import (
 	"github.com/shopspring/decimal"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
@@ -20,17 +21,10 @@ func TestAddApply(t *testing.T) {
 	stack.Push(&i1)
 	stack.Push(&i2)
 	err := addOp.Apply(nil, &stack)
-	if err != nil {
-		t.Error(err)
-	} else {
+	if assert.NoError(t, err) {
 		i3, err := stack.Pop()
-		if err != nil {
-			t.Error(err)
-		} else {
-			if !i3.asNumericElt().value.Equals(decimal.NewFromInt(8)) {
-				t.Errorf("3+5 should be 8 and not %d", i3.asNumericElt().value.IntPart())
-			}
+		if assert.NoError(t, err) {
+			assert.Equal(t, decimal.NewFromInt(8), i3.asNumericElt().value, "3+5 should be 8 and not %d", i3.asNumericElt().value.IntPart())
 		}
 	}
-
 }
