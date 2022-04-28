@@ -29,14 +29,11 @@ func CreateSystemInstance() *SystemInstance {
 	}
 }
 
-var EXIT_ACTION = ActionDesc{
-	opCode: "quit",
-	nbArgs: 0,
-	checkTypeFn: func(elts ...StackElt) (bool, error) {
-		return true, nil
-	},
-	applyFn: func(system System, elts ...StackElt) []StackElt {
+var EXIT_ACTION = NewOperationDesc(
+	"quit",
+	0,
+	func(elts ...StackElt) (bool, error) { return true, nil },
+	func(system System, elts ...StackElt) []StackElt {
 		system.exit()
 		return nil
-	},
-}
+	})

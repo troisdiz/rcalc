@@ -31,22 +31,12 @@ func CheckFirstInt(elts ...StackElt) (bool, error) {
 	return true, nil
 }
 
-func NewStackOp(opCode string, nbArgs int, fn OpApplyFn) ActionDesc {
-	return ActionDesc{
-		opCode:      opCode,
-		nbArgs:      nbArgs,
-		checkTypeFn: CheckNoop,
-		applyFn:     OpToActionFn(fn),
-	}
+func NewStackOp(opCode string, nbArgs int, fn OpApplyFn) OperationDesc {
+	return NewOperationDesc(opCode, nbArgs, CheckNoop, OpToActionFn(fn))
 }
 
-func NewStackOpWithtypeCheck(opCode string, nbArgs int, checkFn CheckTypeFn, fn OpApplyFn) ActionDesc {
-	return ActionDesc{
-		opCode:      opCode,
-		nbArgs:      nbArgs,
-		checkTypeFn: checkFn,
-		applyFn:     OpToActionFn(fn),
-	}
+func NewStackOpWithtypeCheck(opCode string, nbArgs int, checkFn CheckTypeFn, fn OpApplyFn) OperationDesc {
+	return NewOperationDesc(opCode, nbArgs, checkFn, OpToActionFn(fn))
 }
 
 // Tooling for Numeric (Decimal) functions
@@ -73,13 +63,8 @@ func A1R1NumericApplyFn(f A1R1NumericFn) OpApplyFn {
 	}
 }
 
-func NewA1R1NumericOp(opCode string, decimalFunc A1R1NumericFn) ActionDesc {
-	return ActionDesc{
-		opCode:      opCode,
-		nbArgs:      1,
-		checkTypeFn: CheckAllNumerics,
-		applyFn:     OpToActionFn(A1R1NumericApplyFn(decimalFunc)),
-	}
+func NewA1R1NumericOp(opCode string, decimalFunc A1R1NumericFn) OperationDesc {
+	return NewOperationDesc(opCode, 1, CheckAllNumerics, OpToActionFn(A1R1NumericApplyFn(decimalFunc)))
 }
 
 type A2R1NumericFn func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal
@@ -92,13 +77,8 @@ func A2R1NumericApplyFn(f A2R1NumericFn) OpApplyFn {
 	}
 }
 
-func NewA2R1NumericOp(opCode string, decimalFunc A2R1NumericFn) ActionDesc {
-	return ActionDesc{
-		opCode:      opCode,
-		nbArgs:      2,
-		checkTypeFn: CheckAllNumerics,
-		applyFn:     OpToActionFn(A2R1NumericApplyFn(decimalFunc)),
-	}
+func NewA2R1NumericOp(opCode string, decimalFunc A2R1NumericFn) OperationDesc {
+	return NewOperationDesc(opCode, 2, CheckAllNumerics, OpToActionFn(A2R1NumericApplyFn(decimalFunc)))
 }
 
 func GetEltAsBoolean(elts []StackElt, idx int) bool {
@@ -126,13 +106,8 @@ func A1R1BooleanApplyFn(f A1R1BooleanFn) OpApplyFn {
 	}
 }
 
-func NewA1R1BooleanOp(opCode string, booleanFunc A1R1BooleanFn) ActionDesc {
-	return ActionDesc{
-		opCode:      opCode,
-		nbArgs:      1,
-		checkTypeFn: CheckAllBooleans,
-		applyFn:     OpToActionFn(A1R1BooleanApplyFn(booleanFunc)),
-	}
+func NewA1R1BooleanOp(opCode string, booleanFunc A1R1BooleanFn) OperationDesc {
+	return NewOperationDesc(opCode, 1, CheckAllBooleans, OpToActionFn(A1R1BooleanApplyFn(booleanFunc)))
 }
 
 type A2R1BooleanFn func(b1 bool, b2 bool) bool
@@ -145,20 +120,14 @@ func A2R1BooleanApplyFn(f A2R1BooleanFn) OpApplyFn {
 	}
 }
 
-func NewA2R1BooleanOp(opCode string, booleanFunc A2R1BooleanFn) ActionDesc {
-	return ActionDesc{
-		opCode:      opCode,
-		nbArgs:      2,
-		checkTypeFn: CheckAllBooleans,
-		applyFn:     OpToActionFn(A2R1BooleanApplyFn(booleanFunc)),
-	}
+func NewA2R1BooleanOp(opCode string, booleanFunc A2R1BooleanFn) OperationDesc {
+	return NewOperationDesc(opCode, 2, CheckAllBooleans, OpToActionFn(A2R1BooleanApplyFn(booleanFunc)))
 }
 
-var VersionOp = ActionDesc{
-	opCode:      "VERSION",
-	nbArgs:      0,
-	checkTypeFn: func(elts ...StackElt) (bool, error) { return true, nil },
-	applyFn: OpToActionFn(func(elts ...StackElt) []StackElt {
+var VersionOp = NewOperationDesc(
+	"VERSION",
+	0,
+	func(elts ...StackElt) (bool, error) { return true, nil },
+	OpToActionFn(func(elts ...StackElt) []StackElt {
 		return []StackElt{CreateNumericStackElt(decimal.Zero)}
-	}),
-}
+	}))

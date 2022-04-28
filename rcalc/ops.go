@@ -25,7 +25,7 @@ var powOp = NewA2R1NumericOp("^", func(num1 decimal.Decimal, num2 decimal.Decima
 })
 
 var ArithmeticPackage = ActionPackage{
-	[]*ActionDesc{&addOp, &subOp, &mulOp, &divOp, &powOp},
+	[]*OperationDesc{&addOp, &subOp, &mulOp, &divOp, &powOp},
 }
 
 // Trigonometry package
@@ -55,7 +55,7 @@ var arcTanOp = NewA1R1NumericOp("atan", func(num decimal.Decimal) decimal.Decima
 })
 
 var TrigonometricPackage = ActionPackage{
-	[]*ActionDesc{
+	[]*OperationDesc{
 		&sinOp, &cosOp, &tanOp,
 		&arcSinOp, &arcCosOp, &arcTanOp,
 	},
@@ -83,7 +83,7 @@ var xandOp = NewA2R1BooleanOp("xand", func(b bool, b2 bool) bool {
 })
 
 var BooleanLogicPackage = ActionPackage{
-	[]*ActionDesc{
+	[]*OperationDesc{
 		&negOp, &andOp, &orOp, &xorOp, &xandOp,
 	},
 }
@@ -119,7 +119,7 @@ var dupNOp = NewStackOpWithtypeCheck("dupn", 1, CheckFirstInt, func(elts ...Stac
 */
 
 var StackPackage = ActionPackage{
-	[]*ActionDesc{
+	[]*OperationDesc{
 		&dupOp,
 		&dup2Op,
 		&dropOp,
