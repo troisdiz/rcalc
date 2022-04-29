@@ -5,9 +5,6 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-type CheckTypeFn func(elts ...StackElt) (bool, error)
-type OpApplyFn func(elts ...StackElt) []StackElt
-
 func OpToActionFn(opFn OpApplyFn) ActionApplyFn {
 	return func(system System, elts ...StackElt) []StackElt {
 		return opFn(elts...)

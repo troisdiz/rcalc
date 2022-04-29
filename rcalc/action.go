@@ -20,13 +20,14 @@ func (op *ActionCommonDesc) OpCode() string {
 // OperationDesc implementation of Action interface
 type OperationCommonDesc struct {
 	ActionCommonDesc
+	nbArgs int
 }
 
+type CheckTypeFn func(elts ...StackElt) (bool, error)
 type ActionApplyFn func(system System, elts ...StackElt) []StackElt
 
 type OperationDesc struct {
 	OperationCommonDesc
-	nbArgs      int
 	checkTypeFn CheckTypeFn
 	applyFn     ActionApplyFn
 }
@@ -37,12 +38,14 @@ func NewOperationDesc(opCode string, nbArgs int, checkTypeFn CheckTypeFn, applyF
 			ActionCommonDesc: ActionCommonDesc{
 				opCode: opCode,
 			},
+			nbArgs: nbArgs,
 		},
-		nbArgs:      nbArgs,
 		checkTypeFn: checkTypeFn,
 		applyFn:     applyFn,
 	}
 }
+
+type OpApplyFn func(elts ...StackElt) []StackElt
 
 func (op *OperationDesc) String() string {
 	return fmt.Sprintf("Action(opCode = %s, nbArgs = %d)", op.opCode, op.nbArgs)
