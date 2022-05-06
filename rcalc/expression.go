@@ -54,7 +54,7 @@ func (e *ExprElement) asStackElt() StackElt {
 func ParseExpression(registry *ActionRegistry, input string) ([]*ExprElement, error) {
 	var result []*ExprElement
 
-	for _, exprEltStr := range strings.Split(input, " ") {
+	for _, exprEltStr := range strings.Split(strings.TrimSpace(input), " ") {
 		trimmedElt := strings.TrimSpace(exprEltStr)
 		parsedElt, err := parseExpressionElt(registry, trimmedElt)
 		if err != nil {
