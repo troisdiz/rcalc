@@ -17,6 +17,36 @@ func (op *ActionCommonDesc) OpCode() string {
 	return op.opCode
 }
 
+// ActionDesc implementation of Action interface
+type ActionApplyFn func(system System, stack *Stack) error
+
+type ActionDesc struct {
+	ActionCommonDesc
+	nbArgs        int
+	actionApplyFn ActionApplyFn
+}
+
+func NewActionDesc(opCode string, nbArgs int, checkTypeFn CheckTypeFn, applyFn ActionApplyFn) ActionDesc {
+	return ActionDesc{
+		ActionCommonDesc: ActionCommonDesc{
+			opCode: opCode,
+		},
+		nbArgs:        nbArgs,
+		actionApplyFn: applyFn,
+	}
+}
+func (a *ActionDesc) NbArgs() int {
+	return a.nbArgs
+}
+
+func (a *ActionDesc) CheckTypes(elts ...StackElt) (bool, error) {
+	return CheckNoop(elts...)
+}
+
+func (a *ActionDesc) Apply(system System, stack *Stack) error {
+	return a.actionApplyFn(system, stack)
+}
+
 // OperationDesc implementation of Action interface
 type OperationCommonDesc struct {
 	ActionCommonDesc
@@ -24,15 +54,15 @@ type OperationCommonDesc struct {
 }
 
 type CheckTypeFn func(elts ...StackElt) (bool, error)
-type ActionApplyFn func(system System, elts ...StackElt) []StackElt
+type OperationApplyFn func(system System, elts ...StackElt) []StackElt
 
 type OperationDesc struct {
 	OperationCommonDesc
 	checkTypeFn CheckTypeFn
-	applyFn     ActionApplyFn
+	applyFn     OperationApplyFn
 }
 
-func NewOperationDesc(opCode string, nbArgs int, checkTypeFn CheckTypeFn, applyFn ActionApplyFn) OperationDesc {
+func NewOperationDesc(opCode string, nbArgs int, checkTypeFn CheckTypeFn, applyFn OperationApplyFn) OperationDesc {
 	return OperationDesc{
 		OperationCommonDesc: OperationCommonDesc{
 			ActionCommonDesc: ActionCommonDesc{
@@ -44,8 +74,6 @@ func NewOperationDesc(opCode string, nbArgs int, checkTypeFn CheckTypeFn, applyF
 		applyFn:     applyFn,
 	}
 }
-
-type OpApplyFn func(elts ...StackElt) []StackElt
 
 func (op *OperationDesc) String() string {
 	return fmt.Sprintf("Action(opCode = %s, nbArgs = %d)", op.opCode, op.nbArgs)
@@ -71,27 +99,37 @@ func (op *OperationDesc) Apply(system System, stack *Stack) error {
 	return nil
 }
 
-type ActionRegistry struct {
-	actionDescs map[string]*OperationDesc
+type PureOperationApplyFn func(elts ...StackElt) []StackElt
+
+func OpToActionFn(opFn PureOperationApplyFn) OperationApplyFn {
+	return func(system System, elts ...StackElt) []StackElt {
+		return opFn(elts...)
+	}
 }
 
-func (reg *ActionRegistry) Register(aDesc *OperationDesc) {
-	reg.actionDescs[aDesc.opCode] = aDesc
+/* Registry stuff */
+
+type ActionRegistry struct {
+	actionDescs map[string]Action
+}
+
+func (reg *ActionRegistry) Register(aDesc Action) {
+	reg.actionDescs[aDesc.OpCode()] = aDesc
 }
 
 type ActionPackage struct {
-	actions []*OperationDesc
+	actions []Action
 }
 
 func (reg *ActionRegistry) RegisterActions(aPackage *ActionPackage) {
 	for _, aDesc := range aPackage.actions {
-		reg.actionDescs[aDesc.opCode] = aDesc
+		reg.actionDescs[aDesc.OpCode()] = aDesc
 	}
 }
 
 func initRegistry() *ActionRegistry {
 	reg := ActionRegistry{
-		actionDescs: map[string]*OperationDesc{},
+		actionDescs: map[string]Action{},
 	}
 	reg.RegisterActions(&ArithmeticPackage)
 	reg.RegisterActions(&TrigonometricPackage)
@@ -107,7 +145,7 @@ func (reg *ActionRegistry) ContainsOpCode(opCode string) bool {
 	return ok
 }
 
-func (reg *ActionRegistry) GetAction(opCode string) *OperationDesc {
+func (reg *ActionRegistry) GetAction(opCode string) Action {
 	actionDesc, ok := reg.actionDescs[opCode]
 	if !ok {
 		return nil

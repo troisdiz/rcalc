@@ -29,7 +29,7 @@ func (e *ExprElement) String() string {
 	return fmt.Sprintf("ExprElt(%d, %s)", e.eltType, eltStr)
 }
 
-func createActionExprElt(action *OperationDesc) *ExprElement {
+func createActionExprElt(action Action) *ExprElement {
 	return &ExprElement{
 		eltType: ACTION_EXPR_TYPE,
 		elt:     action,

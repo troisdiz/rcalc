@@ -53,6 +53,14 @@ func CreateNumericStackElt(value decimal.Decimal) StackElt {
 	return &result
 }
 
+func CreateNumericStackEltFromInt(value int) StackElt {
+	var result = NumericStackElt{
+		fType: TYPE_NUMERIC,
+		value: decimal.NewFromInt(int64(value)),
+	}
+	return &result
+}
+
 type BooleanStackElt struct {
 	fType Type
 	value bool
@@ -163,4 +171,8 @@ func (s *Stack) Get(level int) (StackElt, error) {
 func (s *Stack) Push(elt StackElt) {
 	s.elts = append(s.elts, elt)
 	// fmt.Printf("After Push : len = %d\n", len(s.elts))
+}
+
+func (s *Stack) PushN(elts []StackElt) {
+	s.elts = append(s.elts, elts...)
 }

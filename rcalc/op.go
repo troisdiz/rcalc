@@ -5,12 +5,6 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func OpToActionFn(opFn OpApplyFn) ActionApplyFn {
-	return func(system System, elts ...StackElt) []StackElt {
-		return opFn(elts...)
-	}
-}
-
 func CheckNoop(elts ...StackElt) (bool, error) {
 	return true, nil
 }
@@ -28,12 +22,16 @@ func CheckFirstInt(elts ...StackElt) (bool, error) {
 	return true, nil
 }
 
-func NewStackOp(opCode string, nbArgs int, fn OpApplyFn) OperationDesc {
+func NewStackOp(opCode string, nbArgs int, fn PureOperationApplyFn) OperationDesc {
 	return NewOperationDesc(opCode, nbArgs, CheckNoop, OpToActionFn(fn))
 }
 
-func NewStackOpWithtypeCheck(opCode string, nbArgs int, checkFn CheckTypeFn, fn OpApplyFn) OperationDesc {
+func NewStackOpWithtypeCheck(opCode string, nbArgs int, checkFn CheckTypeFn, fn PureOperationApplyFn) OperationDesc {
 	return NewOperationDesc(opCode, nbArgs, checkFn, OpToActionFn(fn))
+}
+
+func NewRawStackOpWithCheck(opCode string, nbArgs int, checkFn CheckTypeFn, fn ActionApplyFn) ActionDesc {
+	return NewActionDesc(opCode, nbArgs, checkFn, fn)
 }
 
 // Tooling for Numeric (Decimal) functions
@@ -53,7 +51,7 @@ func CheckAllNumerics(elts ...StackElt) (bool, error) {
 
 type A1R1NumericFn func(num1 decimal.Decimal) decimal.Decimal
 
-func A1R1NumericApplyFn(f A1R1NumericFn) OpApplyFn {
+func A1R1NumericApplyFn(f A1R1NumericFn) PureOperationApplyFn {
 	return func(elts ...StackElt) []StackElt {
 		elt := GetEltAsNumeric(elts, 0)
 		return []StackElt{CreateNumericStackElt(f(elt))}
@@ -66,7 +64,7 @@ func NewA1R1NumericOp(opCode string, decimalFunc A1R1NumericFn) OperationDesc {
 
 type A2R1NumericFn func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal
 
-func A2R1NumericApplyFn(f A2R1NumericFn) OpApplyFn {
+func A2R1NumericApplyFn(f A2R1NumericFn) PureOperationApplyFn {
 	return func(elts ...StackElt) []StackElt {
 		elt1 := GetEltAsNumeric(elts, 1)
 		elt2 := GetEltAsNumeric(elts, 0)
@@ -96,7 +94,7 @@ func CheckAllBooleans(elts ...StackElt) (bool, error) {
 
 type A1R1BooleanFn func(num1 bool) bool
 
-func A1R1BooleanApplyFn(f A1R1BooleanFn) OpApplyFn {
+func A1R1BooleanApplyFn(f A1R1BooleanFn) PureOperationApplyFn {
 	return func(elts ...StackElt) []StackElt {
 		elt := GetEltAsBoolean(elts, 0)
 		return []StackElt{CreateBooleanStackElt(f(elt))}
@@ -109,7 +107,7 @@ func NewA1R1BooleanOp(opCode string, booleanFunc A1R1BooleanFn) OperationDesc {
 
 type A2R1BooleanFn func(b1 bool, b2 bool) bool
 
-func A2R1BooleanApplyFn(f A2R1BooleanFn) OpApplyFn {
+func A2R1BooleanApplyFn(f A2R1BooleanFn) PureOperationApplyFn {
 	return func(elts ...StackElt) []StackElt {
 		elt := GetEltAsBoolean(elts, 1)
 		elt2 := GetEltAsBoolean(elts, 0)

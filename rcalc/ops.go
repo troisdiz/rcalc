@@ -25,7 +25,7 @@ var powOp = NewA2R1NumericOp("^", func(num1 decimal.Decimal, num2 decimal.Decima
 })
 
 var ArithmeticPackage = ActionPackage{
-	[]*OperationDesc{&addOp, &subOp, &mulOp, &divOp, &powOp},
+	[]Action{&addOp, &subOp, &mulOp, &divOp, &powOp},
 }
 
 // Trigonometry package
@@ -55,7 +55,7 @@ var arcTanOp = NewA1R1NumericOp("atan", func(num decimal.Decimal) decimal.Decima
 })
 
 var TrigonometricPackage = ActionPackage{
-	[]*OperationDesc{
+	[]Action{
 		&sinOp, &cosOp, &tanOp,
 		&arcSinOp, &arcCosOp, &arcTanOp,
 	},
@@ -83,7 +83,7 @@ var xandOp = NewA2R1BooleanOp("xand", func(b bool, b2 bool) bool {
 })
 
 var BooleanLogicPackage = ActionPackage{
-	[]*OperationDesc{
+	[]Action{
 		&negOp, &andOp, &orOp, &xorOp, &xandOp,
 	},
 }
@@ -110,20 +110,34 @@ var swapOp = NewStackOp("swap", 2, func(elts ...StackElt) []StackElt {
 	return []StackElt{elts[0], elts[1]}
 })
 
-// rot, roll, pick, depth
-/*
-var dupNOp = NewStackOpWithtypeCheck("dupn", 1, CheckFirstInt, func(elts ...StackElt) []StackElt {
-	var result []StackElt = make([]StackElt, elts[0].asNumericElt().value.IntPart())
-	return result
+// rot, roll, pick
+
+var dupNOp = NewRawStackOpWithCheck("dupn", 1, CheckFirstInt, func(system System, stack *Stack) error {
+	n, err := stack.Pop()
+	if err != nil {
+		return err
+	}
+	stackElts, err := stack.PopN(int(n.asNumericElt().value.IntPart()))
+	if err != nil {
+		return err
+	}
+	stack.PushN(stackElts)
+	return nil
 })
-*/
+
+var depthAct = NewRawStackOpWithCheck("depth", 0, CheckNoop, func(system System, stack *Stack) error {
+	stack.Push(CreateNumericStackEltFromInt(stack.Size()))
+	return nil
+})
 
 var StackPackage = ActionPackage{
-	[]*OperationDesc{
+	[]Action{
 		&dupOp,
 		&dup2Op,
 		&dropOp,
 		&drop2Op,
 		&swapOp,
+		&dupNOp,
+		&depthAct,
 	},
 }
