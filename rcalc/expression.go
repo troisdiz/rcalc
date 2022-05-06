@@ -22,14 +22,14 @@ func (e *ExprElement) String() string {
 	var eltStr string
 	switch e.eltType {
 	case ACTION_EXPR_TYPE:
-		eltStr = fmt.Sprint(e.elt.(*ActionDesc))
+		eltStr = fmt.Sprint(e.elt.(*OperationDesc))
 	case STACK_ELT_EXPR_TYPE:
 		eltStr = fmt.Sprint(e.elt.(StackElt))
 	}
 	return fmt.Sprintf("ExprElt(%d, %s)", e.eltType, eltStr)
 }
 
-func createActionExprElt(action *ActionDesc) *ExprElement {
+func createActionExprElt(action Action) *ExprElement {
 	return &ExprElement{
 		eltType: ACTION_EXPR_TYPE,
 		elt:     action,

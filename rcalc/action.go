@@ -2,68 +2,139 @@ package rcalc
 
 import "fmt"
 
-type ActionApplyFn func(system System, elts ...StackElt) []StackElt
-
 type Action interface {
 	OpCode() string
 	NbArgs() int
 	CheckTypes(elts ...StackElt) (bool, error)
-	Apply(system System, elts ...StackElt) []StackElt
+	Apply(system System, stack *Stack) error
 }
 
-// ActionDesc implementation of Action interface
-type ActionDesc struct {
-	opCode      string
-	nbArgs      int
-	checkTypeFn CheckTypeFn
-	applyFn     ActionApplyFn
+type ActionCommonDesc struct {
+	opCode string
 }
 
-func (op *ActionDesc) String() string {
-	return fmt.Sprintf("Action(opCode = %s, nbArgs = %d)", op.opCode, op.nbArgs)
-}
-
-func (op *ActionDesc) OpCode() string {
+func (op *ActionCommonDesc) OpCode() string {
 	return op.opCode
 }
 
-func (op *ActionDesc) NbArgs() int {
+// ActionDesc implementation of Action interface
+type ActionApplyFn func(system System, stack *Stack) error
+
+type ActionDesc struct {
+	ActionCommonDesc
+	nbArgs        int
+	actionApplyFn ActionApplyFn
+}
+
+func NewActionDesc(opCode string, nbArgs int, checkTypeFn CheckTypeFn, applyFn ActionApplyFn) ActionDesc {
+	return ActionDesc{
+		ActionCommonDesc: ActionCommonDesc{
+			opCode: opCode,
+		},
+		nbArgs:        nbArgs,
+		actionApplyFn: applyFn,
+	}
+}
+func (a *ActionDesc) NbArgs() int {
+	return a.nbArgs
+}
+
+func (a *ActionDesc) CheckTypes(elts ...StackElt) (bool, error) {
+	return CheckNoop(elts...)
+}
+
+func (a *ActionDesc) Apply(system System, stack *Stack) error {
+	return a.actionApplyFn(system, stack)
+}
+
+// OperationDesc implementation of Action interface
+type OperationCommonDesc struct {
+	ActionCommonDesc
+	nbArgs int
+}
+
+type CheckTypeFn func(elts ...StackElt) (bool, error)
+type OperationApplyFn func(system System, elts ...StackElt) []StackElt
+
+type OperationDesc struct {
+	OperationCommonDesc
+	checkTypeFn CheckTypeFn
+	applyFn     OperationApplyFn
+}
+
+func NewOperationDesc(opCode string, nbArgs int, checkTypeFn CheckTypeFn, applyFn OperationApplyFn) OperationDesc {
+	return OperationDesc{
+		OperationCommonDesc: OperationCommonDesc{
+			ActionCommonDesc: ActionCommonDesc{
+				opCode: opCode,
+			},
+			nbArgs: nbArgs,
+		},
+		checkTypeFn: checkTypeFn,
+		applyFn:     applyFn,
+	}
+}
+
+func (op *OperationDesc) String() string {
+	return fmt.Sprintf("Action(opCode = %s, nbArgs = %d)", op.opCode, op.nbArgs)
+}
+
+func (op *OperationDesc) NbArgs() int {
 	return op.nbArgs
 }
 
-func (op *ActionDesc) CheckTypes(elts ...StackElt) (bool, error) {
+func (op *OperationDesc) CheckTypes(elts ...StackElt) (bool, error) {
 	return op.checkTypeFn(elts...)
 }
 
-func (op *ActionDesc) Apply(system System, elts ...StackElt) []StackElt {
-	return op.applyFn(system, elts...)
+func (op *OperationDesc) Apply(system System, stack *Stack) error {
+	inputs, err := stack.PopN(op.NbArgs())
+	if err != nil {
+		return err
+	}
+	results := op.applyFn(system, inputs...)
+	for _, elt := range results {
+		stack.Push(elt)
+	}
+	return nil
 }
+
+type PureOperationApplyFn func(elts ...StackElt) []StackElt
+
+func OpToActionFn(opFn PureOperationApplyFn) OperationApplyFn {
+	return func(system System, elts ...StackElt) []StackElt {
+		return opFn(elts...)
+	}
+}
+
+/* Registry stuff */
 
 type ActionRegistry struct {
-	actionDescs map[string]*ActionDesc
+	actionDescs map[string]Action
 }
 
-func (reg *ActionRegistry) Register(aDesc *ActionDesc) {
-	reg.actionDescs[aDesc.opCode] = aDesc
+func (reg *ActionRegistry) Register(aDesc Action) {
+	reg.actionDescs[aDesc.OpCode()] = aDesc
 }
 
 type ActionPackage struct {
-	actions []*ActionDesc
+	actions []Action
 }
 
 func (reg *ActionRegistry) RegisterActions(aPackage *ActionPackage) {
 	for _, aDesc := range aPackage.actions {
-		reg.actionDescs[aDesc.opCode] = aDesc
+		reg.actionDescs[aDesc.OpCode()] = aDesc
 	}
 }
 
 func initRegistry() *ActionRegistry {
 	reg := ActionRegistry{
-		actionDescs: map[string]*ActionDesc{},
+		actionDescs: map[string]Action{},
 	}
 	reg.RegisterActions(&ArithmeticPackage)
 	reg.RegisterActions(&TrigonometricPackage)
 	reg.RegisterActions(&BooleanLogicPackage)
+	reg.RegisterActions(&StackPackage)
 	reg.Register(&VersionOp)
 	reg.Register(&EXIT_ACTION)
 	return &reg
@@ -74,7 +145,7 @@ func (reg *ActionRegistry) ContainsOpCode(opCode string) bool {
 	return ok
 }
 
-func (reg *ActionRegistry) GetAction(opCode string) *ActionDesc {
+func (reg *ActionRegistry) GetAction(opCode string) Action {
 	actionDesc, ok := reg.actionDescs[opCode]
 	if !ok {
 		return nil

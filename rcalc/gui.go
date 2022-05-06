@@ -2,9 +2,11 @@ package rcalc
 
 import "fmt"
 
-func DisplayStack(s Stack, message string, minElts int) {
+func DisplayStack(s Stack, message string, minElts int, clearTerminal bool) {
 	// Clear terminal
-	fmt.Print("\033c")
+	if clearTerminal {
+		fmt.Print("\033c")
+	}
 	// Message display zone
 	fmt.Printf("I: %s\n", message)
 	stackSize := s.Size()

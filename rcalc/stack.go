@@ -53,6 +53,14 @@ func CreateNumericStackElt(value decimal.Decimal) StackElt {
 	return &result
 }
 
+func CreateNumericStackEltFromInt(value int) StackElt {
+	var result = NumericStackElt{
+		fType: TYPE_NUMERIC,
+		value: decimal.NewFromInt(int64(value)),
+	}
+	return &result
+}
+
 type BooleanStackElt struct {
 	fType Type
 	value bool
@@ -87,6 +95,7 @@ func CreateBooleanStackElt(value bool) StackElt {
 }
 
 type Stack struct {
+	// Storge of the stack, top element at index 0, bottom at length-1 (end of array)
 	elts []StackElt
 }
 
@@ -123,14 +132,31 @@ func (s *Stack) Pop() (StackElt, error) {
 	}
 }
 
-func (s *Stack) Peek(n int) ([]StackElt, error) {
+func (s *Stack) PopN(n int) ([]StackElt, error) {
 	if n == 0 {
 		return []StackElt{}, nil
 	} else if s.Size() < n {
 		return nil, fmt.Errorf("stack contains %d elements but %d were needed", s.Size(), n)
 	} else {
-		index := len(s.elts) - 1
-		return s.elts[index-n+1 : index], nil
+		index := len(s.elts)
+		result := make([]StackElt, n)
+		copy(result, s.elts[index-n:index])
+		s.elts = s.elts[0 : index-n]
+		return result, nil
+	}
+}
+
+func (s *Stack) PeekN(n int) ([]StackElt, error) {
+	if n == 0 {
+		return []StackElt{}, nil
+	} else if s.Size() < n {
+		return nil, fmt.Errorf("stack contains %d elements but %d were needed", s.Size(), n)
+	} else {
+		index := len(s.elts)
+		result := make([]StackElt, n)
+		// this copy is a bit conservative (operations could modify the slice we give them)
+		copy(result, s.elts[index-n:index])
+		return result, nil
 	}
 }
 
@@ -145,4 +171,8 @@ func (s *Stack) Get(level int) (StackElt, error) {
 func (s *Stack) Push(elt StackElt) {
 	s.elts = append(s.elts, elt)
 	// fmt.Printf("After Push : len = %d\n", len(s.elts))
+}
+
+func (s *Stack) PushN(elts []StackElt) {
+	s.elts = append(s.elts, elts...)
 }
