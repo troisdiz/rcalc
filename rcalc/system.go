@@ -1,5 +1,48 @@
 package rcalc
 
+type MemoryNode struct {
+	name string
+}
+
+func (node *MemoryNode) Name() string {
+	return node.name
+}
+
+type MemoryVariable struct {
+	MemoryNode
+	value StackElt
+}
+
+func (variable *MemoryVariable) Value() StackElt {
+	return variable.value
+}
+
+type MemoryFolder struct {
+	MemoryNode
+	subFolders []MemoryFolder
+	variables  []MemoryVariable
+}
+
+func (folder *MemoryFolder) SubFolders() []MemoryFolder {
+	return folder.subFolders
+}
+
+func (folder *MemoryFolder) SubVariables() []MemoryVariable {
+	return folder.variables
+}
+
+type InternalMemory struct {
+	memoryRoot *MemoryFolder
+}
+
+func NewInternalMemory() *InternalMemory {
+	return &InternalMemory{memoryRoot: &MemoryFolder{
+		MemoryNode: MemoryNode{name: "ROOT"},
+		subFolders: nil,
+		variables:  nil,
+	}}
+}
+
 /**
 Access to non stack items : memory, exit function, etc
 */
