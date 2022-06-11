@@ -6,6 +6,12 @@ import (
 	"testing"
 )
 
+func debugLex(name string, input string) *Lexer {
+	lexer := Lex(name, input)
+	lexer.debugMode = true
+	return lexer
+}
+
 func TestParseStackEltExpr(t *testing.T) {
 	var s string = "3"
 	var registry *ActionRegistry = initRegistry()
@@ -36,7 +42,7 @@ func TestParseAddition(t *testing.T) {
 }
 
 func lexForTest(txt string) []LexItem {
-	lex := Lex("Test", txt)
+	lex := debugLex("Test", txt)
 
 	var items []LexItem
 
@@ -47,18 +53,22 @@ func lexForTest(txt string) []LexItem {
 }
 
 func TestLexerInteger(t *testing.T) {
-	txt := " 123 7.9 456e29 "
+	txt := " 123 7.9 456e29 -2 +3.5"
 	items := lexForTest(txt)
 	for _, it := range items {
 		fmt.Printf("%v\n", it)
 	}
-	assert.Len(t, items, 3, "2 lexItems should be returned")
+	assert.Len(t, items, 5, "Wrong number of lexItems have been returned")
 	assert.Equal(t, items[0].typ, lexItemNumber)
 	assert.Equal(t, items[0].val, "123")
 	assert.Equal(t, items[1].typ, lexItemNumber)
 	assert.Equal(t, items[1].val, "7.9")
 	assert.Equal(t, items[2].typ, lexItemNumber)
 	assert.Equal(t, items[2].val, "456e29")
+	assert.Equal(t, items[3].typ, lexItemNumber)
+	assert.Equal(t, items[3].val, "-2")
+	assert.Equal(t, items[4].typ, lexItemNumber)
+	assert.Equal(t, items[4].val, "+3.5")
 }
 
 func TestLexerIdentifier(t *testing.T) {

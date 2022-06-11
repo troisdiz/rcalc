@@ -38,8 +38,10 @@ func TestParse2Numbers(t *testing.T) {
 }
 
 func TestParseAddNumbers(t *testing.T) {
-	var txt string = "3 4.5 +"
+	var txt string = "3 4.5 + -"
 	var registry *ActionRegistry = initRegistry()
+
+	fmt.Printf("Text to parse: \"%s\"\n", txt)
 
 	lex := Lex("Test", txt)
 	elt, err := ParseToActions(lex, registry)
@@ -47,7 +49,7 @@ func TestParseAddNumbers(t *testing.T) {
 		fmt.Printf("%v\n", elt)
 	}
 
-	if assert.Len(t, elt, 3) {
+	if assert.Len(t, elt, 4) {
 		assert.IsType(t, elt[0], &DecimalPutOnStackActionDesc{})
 		assert.IsType(t, elt[1], &DecimalPutOnStackActionDesc{})
 	}

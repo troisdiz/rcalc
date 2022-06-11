@@ -54,13 +54,14 @@ func (it LexItem) String() string {
 
 // Lexer holds the state of the scanner.
 type Lexer struct {
-	name  string       // used only for error reports.
-	input string       // the string being scanned.
-	state stateFn      // current state
-	start int          // start position of this LexItem.
-	pos   int          // current position in the input.
-	width int          // width of last rune read from input.
-	items chan LexItem // channel of scanned items.
+	name      string       // used only for error reports.
+	input     string       // the string being scanned.
+	state     stateFn      // current state
+	start     int          // start position of this LexItem.
+	pos       int          // current position in the input.
+	width     int          // width of last rune read from input.
+	items     chan LexItem // channel of scanned items.
+	debugMode bool         // debug mode print debug messages
 }
 
 func (l *Lexer) emit(t LexItemType) {
@@ -76,7 +77,9 @@ func (l *Lexer) next() (r rune) {
 	}
 	r, l.width = utf8.DecodeRuneInString(l.input[l.pos:])
 	l.pos += l.width
-	//fmt.Printf("Next char is #%s#\n", string(r))
+	if l.debugMode {
+		fmt.Printf("Next char is #%s#\n", string(r))
+	}
 	return r
 }
 
@@ -88,6 +91,9 @@ func (l *Lexer) ignore() {
 // backup steps back one rune.
 // Can be called only once per call of next.
 func (l *Lexer) backup() {
+	if l.debugMode {
+		fmt.Printf("Backup\n")
+	}
 	l.pos -= l.width
 }
 
@@ -209,8 +215,8 @@ func lexBlank(l *Lexer) stateFn {
 		case next == quoteMeta:
 			return lexIdentifier
 		// + and - => can be number or action
-		/*case next == '+' || next == '-':
-		return lexStartWithPlusMinus*/
+		case next == '+' || next == '-':
+			return lexStartWithPlusMinus
 		case unicode.IsDigit(next):
 			return lexNumber
 		case unicode.IsLetter(next):
@@ -222,6 +228,17 @@ func lexBlank(l *Lexer) stateFn {
 	}
 	l.emit(lexItemEOF) // Useful to make EOF a token.
 	return nil         // Stop the run loop.
+}
+
+func lexStartWithPlusMinus(l *Lexer) stateFn {
+	if unicode.IsDigit(l.peek()) {
+		return lexNumber
+	} else if l.peek() == ' ' || l.pos == len(l.input) {
+		l.emit(lexItemAction)
+		return lexBlank
+	} else {
+		return l.errorf("+ or - without a number")
+	}
 }
 
 func (l *Lexer) scanNumber() bool {
