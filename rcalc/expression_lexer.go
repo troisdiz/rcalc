@@ -13,7 +13,7 @@ const (
 	lexItemError LexItemType = iota // error occurred;
 	// value is text of error
 	lexItemEOF
-	itemBlank
+	// itemBlank
 	lexItemNumber
 	lexItemIdentifier
 	lexItemKeywword
@@ -105,6 +105,11 @@ func (l *Lexer) peek() rune {
 	return r
 }
 
+func (l *Lexer) peekAndTestOrEOF(valid string) bool {
+	r := l.peek()
+	return (r == eof) || strings.ContainsRune(valid, r)
+}
+
 // accept consumes the next rune
 // if it's from the valid set.
 func (l *Lexer) accept(valid string) bool {
@@ -122,12 +127,22 @@ func (l *Lexer) acceptFunc(fn validFn) bool {
 	return false
 }
 
+/*
 // acceptRun consumes a run of runes from the valid set.
 func (l *Lexer) acceptRun(valid string) {
 	for strings.ContainsRune(valid, l.next()) {
 	}
 	l.backup()
 }
+
+func (l *Lexer) acceptTestOrEnd(valid string) bool {
+	if l.peek() == eof {
+		return true
+	} else {
+		return l.accept(valid)
+	}
+}
+*/
 
 //validFn
 type validFn func(r rune) bool
@@ -168,7 +183,7 @@ func (l *Lexer) NextItem() LexItem {
 	// panic("not reached")
 }
 
-// lex creates a new scanner for the input string.
+// Lex creates a new scanner for the input string.
 func Lex(name string, input string) *Lexer {
 	l := &Lexer{
 		name:  name,
@@ -177,10 +192,6 @@ func Lex(name string, input string) *Lexer {
 		items: make(chan LexItem, 2), // Two items sufficient.
 	}
 	return l
-}
-
-func isAlphaValidFn(r rune) bool {
-	return unicode.IsLetter(r)
 }
 
 func isNumericValidFn(r rune) bool {
@@ -233,7 +244,7 @@ func lexBlank(l *Lexer) stateFn {
 func lexStartWithPlusMinus(l *Lexer) stateFn {
 	if unicode.IsDigit(l.peek()) {
 		return lexNumber
-	} else if l.peek() == ' ' || l.pos == len(l.input) {
+	} else if l.peekAndTestOrEOF(" ") {
 		l.emit(lexItemAction)
 		return lexBlank
 	} else {
@@ -283,7 +294,9 @@ Loop:
 		}
 	}
 	l.emit(lexItemIdentifier)
-	fmt.Println("lexIdentifier -> lexBlank")
+	if l.debugMode {
+		fmt.Println("lexIdentifier -> lexBlank")
+	}
 	return lexBlank
 }
 
