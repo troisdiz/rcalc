@@ -24,43 +24,34 @@ func Run() {
 		// interpret cmd
 		var cmds = input.Text()
 
-		var expressions []*ExprElement
-		var err error
-
+		// Message to display above (temp way of doing this)
 		message = ""
 
-		expressions, err = ParseExpression(Registry, cmds)
-		if err != nil {
-			message = err.Error()
+		lexer := Lex("InteractiveShell", cmds)
+		actions, parse_err := ParseToActions(lexer, Registry)
+		if parse_err != nil {
+			message = parse_err.Error()
 		} else {
-
-			for _, expr := range expressions {
-				switch expr.eltType {
-				case ACTION_EXPR_TYPE:
-					action := expr.asAction()
-					if stack.Size() < action.NbArgs() {
-						fmt.Printf("Not enough args on stack (%d vs %d)\n", stack.Size(), action.NbArgs())
+			for _, action := range actions {
+				if stack.Size() < action.NbArgs() {
+					fmt.Printf("Not enough args on stack (%d vs %d)\n", stack.Size(), action.NbArgs())
+					message = fmt.Sprintf("Not enough args on stack: only %d/%d available", action.NbArgs(), stack.Size())
+					break
+				} else {
+					// TODO Handle error
+					typesOK, _ := checkTypesForAction(&stack, action)
+					if !typesOK {
+						message = "Bad types on stack"
+						break
 					} else {
-						typesOK, err := checkTypesForAction(&stack, action)
-						if err != nil {
-							panic(fmt.Sprintf("Error while checking types of %s : %v", action.OpCode(), err))
-						} else {
-							if !typesOK {
-								message = "Bad types on stack"
-							} else {
-								applyErr := action.Apply(system, &stack)
-								if applyErr != nil {
-									message = applyErr.Error()
-								}
-							}
+						applyErr := action.Apply(system, &stack)
+						if applyErr != nil {
+							message = applyErr.Error()
 						}
 					}
-					if system.shouldStop() {
-						return
-					}
-				case STACK_ELT_EXPR_TYPE:
-					ste := expr.asStackElt()
-					stack.Push(ste)
+				}
+				if system.shouldStop() {
+					return
 				}
 			}
 		}

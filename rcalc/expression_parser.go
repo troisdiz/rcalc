@@ -37,7 +37,11 @@ func (a *DecimalPutOnStackActionDesc) Apply(system System, stack *Stack) error {
 }
 
 func (a *DecimalPutOnStackActionDesc) OpCode() string {
-	return "__hidden__"
+	return "__hidden__" + "PutOnStack"
+}
+
+func (a *DecimalPutOnStackActionDesc) String() string {
+	return fmt.Sprintf("%s(%s)", a.OpCode(), a.number.String())
 }
 
 func ParseToActions(lexer *Lexer, registry *ActionRegistry, ) ([]Action, error) {

@@ -54,3 +54,18 @@ func TestParseAddNumbers(t *testing.T) {
 		assert.IsType(t, elt[1], &DecimalPutOnStackActionDesc{})
 	}
 }
+
+func TestParseActionInRegistry(t *testing.T) {
+	var txt string = "quit"
+	var registry *ActionRegistry = initRegistry()
+
+	lex := Lex("Test", txt)
+	elt, err := ParseToActions(lex, registry)
+	if assert.NoError(t, err, "Parse error : %s", err) {
+		fmt.Println(elt)
+	}
+
+	if assert.Len(t, elt, 1) {
+		assert.Equal(t, elt[0], &EXIT_ACTION)
+	}
+}

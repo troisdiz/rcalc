@@ -289,7 +289,7 @@ Loop:
 
 func lexAction(l *Lexer) stateFn {
 	l.acceptRunFunc(isActionValidFn)
-	if l.accept(" ") {
+	if l.accept(" ") || l.pos == len(l.input) {
 		l.backup()
 		itemStr := l.input[l.start:l.pos]
 		if _, ok := keyWords[itemStr]; ok {
