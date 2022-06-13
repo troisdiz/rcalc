@@ -7,12 +7,12 @@ import (
 )
 
 func TestAddApply(t *testing.T) {
-	var i1 = NumericStackElt{
+	var i1 = NumericVariable{
 		fType: TYPE_NUMERIC,
 		value: decimal.NewFromInt(3),
 	}
 
-	var i2 = NumericStackElt{
+	var i2 = NumericVariable{
 		fType: TYPE_NUMERIC,
 		value: decimal.NewFromInt(5),
 	}
@@ -24,7 +24,7 @@ func TestAddApply(t *testing.T) {
 	if assert.NoError(t, err) {
 		i3, err := stack.Pop()
 		if assert.NoError(t, err) {
-			assert.Equal(t, decimal.NewFromInt(8), i3.asNumericElt().value, "3+5 should be 8 and not %d", i3.asNumericElt().value.IntPart())
+			assert.Equal(t, decimal.NewFromInt(8), i3.asNumericVar().value, "3+5 should be 8 and not %d", i3.asNumericVar().value.IntPart())
 		}
 	}
 }

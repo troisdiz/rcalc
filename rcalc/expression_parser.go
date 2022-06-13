@@ -27,12 +27,12 @@ func (a *DecimalPutOnStackActionDesc) NbArgs() int {
 	return 0
 }
 
-func (a *DecimalPutOnStackActionDesc) CheckTypes(elts ...StackElt) (bool, error) {
+func (a *DecimalPutOnStackActionDesc) CheckTypes(elts ...Variable) (bool, error) {
 	return true, nil
 }
 
 func (a *DecimalPutOnStackActionDesc) Apply(system System, stack *Stack) error {
-	stack.Push(CreateNumericStackElt(a.number))
+	stack.Push(CreateNumericVariable(a.number))
 	return nil
 }
 

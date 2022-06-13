@@ -5,7 +5,7 @@ import "fmt"
 type Action interface {
 	OpCode() string
 	NbArgs() int
-	CheckTypes(elts ...StackElt) (bool, error)
+	CheckTypes(elts ...Variable) (bool, error)
 	Apply(system System, stack *Stack) error
 }
 
@@ -39,7 +39,7 @@ func (a *ActionDesc) NbArgs() int {
 	return a.nbArgs
 }
 
-func (a *ActionDesc) CheckTypes(elts ...StackElt) (bool, error) {
+func (a *ActionDesc) CheckTypes(elts ...Variable) (bool, error) {
 	return CheckNoop(elts...)
 }
 
@@ -53,8 +53,8 @@ type OperationCommonDesc struct {
 	nbArgs int
 }
 
-type CheckTypeFn func(elts ...StackElt) (bool, error)
-type OperationApplyFn func(system System, elts ...StackElt) []StackElt
+type CheckTypeFn func(elts ...Variable) (bool, error)
+type OperationApplyFn func(system System, elts ...Variable) []Variable
 
 type OperationDesc struct {
 	OperationCommonDesc
@@ -83,7 +83,7 @@ func (op *OperationDesc) NbArgs() int {
 	return op.nbArgs
 }
 
-func (op *OperationDesc) CheckTypes(elts ...StackElt) (bool, error) {
+func (op *OperationDesc) CheckTypes(elts ...Variable) (bool, error) {
 	return op.checkTypeFn(elts...)
 }
 
@@ -99,10 +99,10 @@ func (op *OperationDesc) Apply(system System, stack *Stack) error {
 	return nil
 }
 
-type PureOperationApplyFn func(elts ...StackElt) []StackElt
+type PureOperationApplyFn func(elts ...Variable) []Variable
 
 func OpToActionFn(opFn PureOperationApplyFn) OperationApplyFn {
-	return func(system System, elts ...StackElt) []StackElt {
+	return func(system System, elts ...Variable) []Variable {
 		return opFn(elts...)
 	}
 }

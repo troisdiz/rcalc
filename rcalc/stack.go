@@ -13,81 +13,81 @@ const (
 	TYPE_STR     Type = 2
 )
 
-type StackElt interface {
+type Variable interface {
 	getType() Type
-	asNumericElt() NumericStackElt
-	asBooleanElt() BooleanStackElt
+	asNumericVar() NumericVariable
+	asBooleanVar() BooleanVariable
 	display() string
 }
 
-type NumericStackElt struct {
+type NumericVariable struct {
 	fType Type
 	value decimal.Decimal
 }
 
-func (se *NumericStackElt) String() string {
-	return fmt.Sprintf("NumericStackElt(%v)", se.value)
+func (se *NumericVariable) String() string {
+	return fmt.Sprintf("NumericVariable(%v)", se.value)
 }
 
-func (se *NumericStackElt) asNumericElt() NumericStackElt {
+func (se *NumericVariable) asNumericVar() NumericVariable {
 	return *se
 }
 
-func (se *NumericStackElt) asBooleanElt() BooleanStackElt {
+func (se *NumericVariable) asBooleanVar() BooleanVariable {
 	panic("This is a Numeric and not boolean element")
 }
 
-func (se *NumericStackElt) getType() Type {
+func (se *NumericVariable) getType() Type {
 	return se.fType
 }
 
-func (se *NumericStackElt) display() string {
+func (se *NumericVariable) display() string {
 	return se.value.String()
 }
 
-func CreateNumericStackElt(value decimal.Decimal) StackElt {
-	var result = NumericStackElt{
+func CreateNumericVariable(value decimal.Decimal) Variable {
+	var result = NumericVariable{
 		fType: TYPE_NUMERIC,
 		value: value,
 	}
 	return &result
 }
 
-func CreateNumericStackEltFromInt(value int) StackElt {
-	var result = NumericStackElt{
+func CreateNumericVariableFromInt(value int) Variable {
+	var result = NumericVariable{
 		fType: TYPE_NUMERIC,
 		value: decimal.NewFromInt(int64(value)),
 	}
 	return &result
 }
 
-type BooleanStackElt struct {
+type BooleanVariable struct {
 	fType Type
 	value bool
 }
 
-func (se *BooleanStackElt) String() string {
-	return fmt.Sprintf("BooleanStackElt(%v) type = %d", se.value, se.fType)
+func (se *BooleanVariable) String() string {
+	return fmt.Sprintf("BooleanVariable(%v) type = %d", se.value, se.fType)
 }
 
-func (se *BooleanStackElt) asNumericElt() NumericStackElt {
+func (se *BooleanVariable) asNumericVar() NumericVariable {
 	panic("This is a Boolean and not Numeric element")
 }
 
-func (se *BooleanStackElt) asBooleanElt() BooleanStackElt {
+func (se *BooleanVariable) asBooleanVar() BooleanVariable {
 	return *se
 }
 
-func (se *BooleanStackElt) getType() Type {
+func (se *BooleanVariable) getType() Type {
 	return se.fType
 }
 
-func (se *BooleanStackElt) display() string {
+func (se *BooleanVariable) display() string {
 	return fmt.Sprintf("%t", se.value)
 }
 
-func CreateBooleanStackElt(value bool) StackElt {
-	var result = BooleanStackElt{
+func CreateBooleanVariable(value bool) Variable {
+	var result = BooleanVariable{
 		fType: TYPE_BOOL,
 		value: value,
 	}
@@ -96,7 +96,7 @@ func CreateBooleanStackElt(value bool) StackElt {
 
 type Stack struct {
 	// Storge of the stack, top element at index 0, bottom at length-1 (end of array)
-	elts []StackElt
+	elts []Variable
 }
 
 func CreateStack() Stack {
@@ -121,7 +121,7 @@ func (s *Stack) IsEmpty() bool {
 	return len(s.elts) == 0
 }
 
-func (s *Stack) Pop() (StackElt, error) {
+func (s *Stack) Pop() (Variable, error) {
 	if s.IsEmpty() {
 		return nil, fmt.Errorf("empty stack")
 	} else {
@@ -132,35 +132,35 @@ func (s *Stack) Pop() (StackElt, error) {
 	}
 }
 
-func (s *Stack) PopN(n int) ([]StackElt, error) {
+func (s *Stack) PopN(n int) ([]Variable, error) {
 	if n == 0 {
-		return []StackElt{}, nil
+		return []Variable{}, nil
 	} else if s.Size() < n {
 		return nil, fmt.Errorf("stack contains %d elements but %d were needed", s.Size(), n)
 	} else {
 		index := len(s.elts)
-		result := make([]StackElt, n)
+		result := make([]Variable, n)
 		copy(result, s.elts[index-n:index])
 		s.elts = s.elts[0 : index-n]
 		return result, nil
 	}
 }
 
-func (s *Stack) PeekN(n int) ([]StackElt, error) {
+func (s *Stack) PeekN(n int) ([]Variable, error) {
 	if n == 0 {
-		return []StackElt{}, nil
+		return []Variable{}, nil
 	} else if s.Size() < n {
 		return nil, fmt.Errorf("stack contains %d elements but %d were needed", s.Size(), n)
 	} else {
 		index := len(s.elts)
-		result := make([]StackElt, n)
+		result := make([]Variable, n)
 		// this copy is a bit conservative (operations could modify the slice we give them)
 		copy(result, s.elts[index-n:index])
 		return result, nil
 	}
 }
 
-func (s *Stack) Get(level int) (StackElt, error) {
+func (s *Stack) Get(level int) (Variable, error) {
 	if level < s.Size() {
 		return s.elts[len(s.elts)-level-1], nil
 	} else {
@@ -168,11 +168,11 @@ func (s *Stack) Get(level int) (StackElt, error) {
 	}
 }
 
-func (s *Stack) Push(elt StackElt) {
+func (s *Stack) Push(elt Variable) {
 	s.elts = append(s.elts, elt)
 	// fmt.Printf("After Push : len = %d\n", len(s.elts))
 }
 
-func (s *Stack) PushN(elts []StackElt) {
+func (s *Stack) PushN(elts []Variable) {
 	s.elts = append(s.elts, elts...)
 }
