@@ -19,32 +19,32 @@ func (p *Program) Run(stack *Stack, system System) error {
 	return nil
 }
 
-type DecimalPutOnStackActionDesc struct {
-	number decimal.Decimal
+type VariablePutOnStackActionDesc struct {
+	value Variable
 }
 
-func (a *DecimalPutOnStackActionDesc) NbArgs() int {
+func (a *VariablePutOnStackActionDesc) NbArgs() int {
 	return 0
 }
 
-func (a *DecimalPutOnStackActionDesc) CheckTypes(elts ...StackElt) (bool, error) {
+func (a *VariablePutOnStackActionDesc) CheckTypes(elts ...Variable) (bool, error) {
 	return true, nil
 }
 
-func (a *DecimalPutOnStackActionDesc) Apply(system System, stack *Stack) error {
-	stack.Push(CreateNumericStackElt(a.number))
+func (a *VariablePutOnStackActionDesc) Apply(system System, stack *Stack) error {
+	stack.Push(a.value)
 	return nil
 }
 
-func (a *DecimalPutOnStackActionDesc) OpCode() string {
+func (a *VariablePutOnStackActionDesc) OpCode() string {
 	return "__hidden__" + "PutOnStack"
 }
 
-func (a *DecimalPutOnStackActionDesc) String() string {
-	return fmt.Sprintf("%s(%s)", a.OpCode(), a.number.String())
+func (a *VariablePutOnStackActionDesc) String() string {
+	return fmt.Sprintf("%s(%s)", a.OpCode(), a.value.String())
 }
 
-func ParseToActions(lexer *Lexer, registry *ActionRegistry, ) ([]Action, error) {
+func ParseToActions(lexer *Lexer, registry *ActionRegistry) ([]Action, error) {
 	var result []Action
 	for lextItem := lexer.NextItem(); lextItem.typ != lexItemEOF; lextItem = lexer.NextItem() {
 		switch lextItem.typ {
@@ -53,11 +53,15 @@ func ParseToActions(lexer *Lexer, registry *ActionRegistry, ) ([]Action, error) 
 			if err != nil {
 				return nil, err
 			}
-			result = append(result, &DecimalPutOnStackActionDesc{number: number})
+			result = append(result, &VariablePutOnStackActionDesc{value: CreateNumericVariable(number)})
 		case lexItemAction:
 			if registry.ContainsOpCode(lextItem.val) {
 				result = append(result, registry.GetAction(lextItem.val))
 			}
+		case lexItemIdentifier:
+			l := len(lextItem.val)
+			variable := CreateIdentifierVariable(lextItem.val[1 : l-1])
+			result = append(result, &VariablePutOnStackActionDesc{value: variable})
 		default:
 			fmt.Printf("Ignore %v for now\n", lextItem)
 		}

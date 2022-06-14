@@ -19,7 +19,7 @@ func DisplayStack(s Stack, message string, minElts int, clearTerminal bool) {
 	}
 }
 
-func displayStackLevel(level int, elt StackElt) {
+func displayStackLevel(level int, elt Variable) {
 	var value string = ""
 	if elt != nil {
 		value = elt.display()

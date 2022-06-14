@@ -48,7 +48,11 @@ func TestLexerIdentifier(t *testing.T) {
 	for _, it := range items {
 		fmt.Printf("%v\n", it)
 	}
-	assert.Len(t, items, 1, "1 lexItem should be returned")
+	if assert.Len(t, items, 1, "1 lexItem should be returned") {
+		assert.Equal(t, items[0].typ, lexItemIdentifier)
+		assert.Equal(t, items[0].val, "'ab'")
+	}
+
 }
 
 func TestLexerActionKeyword(t *testing.T) {

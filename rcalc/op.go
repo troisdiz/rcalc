@@ -5,16 +5,16 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func CheckNoop(elts ...StackElt) (bool, error) {
+func CheckNoop(elts ...Variable) (bool, error) {
 	return true, nil
 }
 
-func CheckFirstInt(elts ...StackElt) (bool, error) {
+func CheckFirstInt(elts ...Variable) (bool, error) {
 
 	if elts[0].getType() != TYPE_NUMERIC {
 		return false, nil
 	} else {
-		v := elts[0].asNumericElt().value
+		v := elts[0].asNumericVar().value
 		if !v.IsInteger() {
 			return false, fmt.Errorf("%v is not an integer", v)
 		}
@@ -36,11 +36,11 @@ func NewRawStackOpWithCheck(opCode string, nbArgs int, checkFn CheckTypeFn, fn A
 
 // Tooling for Numeric (Decimal) functions
 
-func GetEltAsNumeric(elts []StackElt, idx int) decimal.Decimal {
-	return elts[idx].asNumericElt().value
+func GetEltAsNumeric(elts []Variable, idx int) decimal.Decimal {
+	return elts[idx].asNumericVar().value
 }
 
-func CheckAllNumerics(elts ...StackElt) (bool, error) {
+func CheckAllNumerics(elts ...Variable) (bool, error) {
 	for _, e := range elts {
 		if e.getType() != TYPE_NUMERIC {
 			return false, nil
@@ -52,9 +52,9 @@ func CheckAllNumerics(elts ...StackElt) (bool, error) {
 type A1R1NumericFn func(num1 decimal.Decimal) decimal.Decimal
 
 func A1R1NumericApplyFn(f A1R1NumericFn) PureOperationApplyFn {
-	return func(elts ...StackElt) []StackElt {
+	return func(elts ...Variable) []Variable {
 		elt := GetEltAsNumeric(elts, 0)
-		return []StackElt{CreateNumericStackElt(f(elt))}
+		return []Variable{CreateNumericVariable(f(elt))}
 	}
 }
 
@@ -65,10 +65,10 @@ func NewA1R1NumericOp(opCode string, decimalFunc A1R1NumericFn) OperationDesc {
 type A2R1NumericFn func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal
 
 func A2R1NumericApplyFn(f A2R1NumericFn) PureOperationApplyFn {
-	return func(elts ...StackElt) []StackElt {
+	return func(elts ...Variable) []Variable {
 		elt1 := GetEltAsNumeric(elts, 1)
 		elt2 := GetEltAsNumeric(elts, 0)
-		return []StackElt{CreateNumericStackElt(f(elt1, elt2))}
+		return []Variable{CreateNumericVariable(f(elt1, elt2))}
 	}
 }
 
@@ -76,11 +76,11 @@ func NewA2R1NumericOp(opCode string, decimalFunc A2R1NumericFn) OperationDesc {
 	return NewOperationDesc(opCode, 2, CheckAllNumerics, OpToActionFn(A2R1NumericApplyFn(decimalFunc)))
 }
 
-func GetEltAsBoolean(elts []StackElt, idx int) bool {
-	return elts[idx].asBooleanElt().value
+func GetEltAsBoolean(elts []Variable, idx int) bool {
+	return elts[idx].asBooleanVar().value
 }
 
-func CheckAllBooleans(elts ...StackElt) (bool, error) {
+func CheckAllBooleans(elts ...Variable) (bool, error) {
 	fmt.Printf("CheckAllBooleans %v\n", elts)
 	for _, e := range elts {
 		if e.getType() != TYPE_BOOL {
@@ -95,9 +95,9 @@ func CheckAllBooleans(elts ...StackElt) (bool, error) {
 type A1R1BooleanFn func(num1 bool) bool
 
 func A1R1BooleanApplyFn(f A1R1BooleanFn) PureOperationApplyFn {
-	return func(elts ...StackElt) []StackElt {
+	return func(elts ...Variable) []Variable {
 		elt := GetEltAsBoolean(elts, 0)
-		return []StackElt{CreateBooleanStackElt(f(elt))}
+		return []Variable{CreateBooleanVariable(f(elt))}
 	}
 }
 
@@ -108,10 +108,10 @@ func NewA1R1BooleanOp(opCode string, booleanFunc A1R1BooleanFn) OperationDesc {
 type A2R1BooleanFn func(b1 bool, b2 bool) bool
 
 func A2R1BooleanApplyFn(f A2R1BooleanFn) PureOperationApplyFn {
-	return func(elts ...StackElt) []StackElt {
+	return func(elts ...Variable) []Variable {
 		elt := GetEltAsBoolean(elts, 1)
 		elt2 := GetEltAsBoolean(elts, 0)
-		return []StackElt{CreateBooleanStackElt(f(elt, elt2))}
+		return []Variable{CreateBooleanVariable(f(elt, elt2))}
 	}
 }
 
@@ -122,7 +122,7 @@ func NewA2R1BooleanOp(opCode string, booleanFunc A2R1BooleanFn) OperationDesc {
 var VersionOp = NewOperationDesc(
 	"VERSION",
 	0,
-	func(elts ...StackElt) (bool, error) { return true, nil },
-	OpToActionFn(func(elts ...StackElt) []StackElt {
-		return []StackElt{CreateNumericStackElt(decimal.Zero)}
+	func(elts ...Variable) (bool, error) { return true, nil },
+	OpToActionFn(func(elts ...Variable) []Variable {
+		return []Variable{CreateNumericVariable(decimal.Zero)}
 	}))

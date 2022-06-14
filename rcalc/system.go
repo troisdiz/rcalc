@@ -10,10 +10,10 @@ func (node *MemoryNode) Name() string {
 
 type MemoryVariable struct {
 	MemoryNode
-	value StackElt
+	value Variable
 }
 
-func (variable *MemoryVariable) Value() StackElt {
+func (variable *MemoryVariable) Value() Variable {
 	return variable.value
 }
 
@@ -73,8 +73,8 @@ func CreateSystemInstance() *SystemInstance {
 var EXIT_ACTION = NewOperationDesc(
 	"quit",
 	0,
-	func(elts ...StackElt) (bool, error) { return true, nil },
-	func(system System, elts ...StackElt) []StackElt {
+	func(elts ...Variable) (bool, error) { return true, nil },
+	func(system System, elts ...Variable) []Variable {
 		system.exit()
 		return nil
 	})
