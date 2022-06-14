@@ -7,19 +7,13 @@ import (
 )
 
 func TestAddApply(t *testing.T) {
-	var i1 = NumericVariable{
-		fType: TYPE_NUMERIC,
-		value: decimal.NewFromInt(3),
-	}
+	var i1 = CreateNumericVariableFromInt(3)
 
-	var i2 = NumericVariable{
-		fType: TYPE_NUMERIC,
-		value: decimal.NewFromInt(5),
-	}
+	var i2 = CreateNumericVariableFromInt(5)
 
 	stack := CreateStack()
-	stack.Push(&i1)
-	stack.Push(&i2)
+	stack.Push(i1)
+	stack.Push(i2)
 	err := addOp.Apply(nil, &stack)
 	if assert.NoError(t, err) {
 		i3, err := stack.Pop()

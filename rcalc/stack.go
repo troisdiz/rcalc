@@ -8,20 +8,47 @@ import (
 type Type int
 
 const (
-	TYPE_NUMERIC Type = 0
-	TYPE_BOOL    Type = 1
-	TYPE_STR     Type = 2
+	TYPE_NUMERIC    Type = 0
+	TYPE_BOOL       Type = 1
+	TYPE_STR        Type = 2
+	TYPE_IDENTIFIER Type = 3
 )
 
 type Variable interface {
 	getType() Type
 	asNumericVar() NumericVariable
 	asBooleanVar() BooleanVariable
+	asIdentifierVar() IdentifierVariable
 	display() string
+	String() string
+}
+
+type CommonVariable struct {
+	fType Type
+}
+
+func (se *CommonVariable) getType() Type {
+	return se.fType
+}
+
+func (se *CommonVariable) asNumericVar() NumericVariable {
+	panic("This is not a Numeric variable")
+}
+
+func (se *CommonVariable) asBooleanVar() BooleanVariable {
+	panic("This is not a Boolean variable")
+}
+
+func (se *CommonVariable) asIdentifierVar() IdentifierVariable {
+	panic("This is not an Indentifier variable")
+}
+
+func (se *CommonVariable) String() string {
+	return fmt.Sprintf("[CommonVariable] t=%d", se.fType)
 }
 
 type NumericVariable struct {
-	fType Type
+	CommonVariable
 	value decimal.Decimal
 }
 
@@ -33,36 +60,28 @@ func (se *NumericVariable) asNumericVar() NumericVariable {
 	return *se
 }
 
-func (se *NumericVariable) asBooleanVar() BooleanVariable {
-	panic("This is a Numeric and not boolean element")
-}
-
-func (se *NumericVariable) getType() Type {
-	return se.fType
-}
-
 func (se *NumericVariable) display() string {
 	return se.value.String()
 }
 
 func CreateNumericVariable(value decimal.Decimal) Variable {
 	var result = NumericVariable{
-		fType: TYPE_NUMERIC,
-		value: value,
+		CommonVariable: CommonVariable{fType: TYPE_NUMERIC},
+		value:          value,
 	}
 	return &result
 }
 
 func CreateNumericVariableFromInt(value int) Variable {
 	var result = NumericVariable{
-		fType: TYPE_NUMERIC,
-		value: decimal.NewFromInt(int64(value)),
+		CommonVariable: CommonVariable{fType: TYPE_NUMERIC},
+		value:          decimal.NewFromInt(int64(value)),
 	}
 	return &result
 }
 
 type BooleanVariable struct {
-	fType Type
+	CommonVariable
 	value bool
 }
 
@@ -70,16 +89,8 @@ func (se *BooleanVariable) String() string {
 	return fmt.Sprintf("BooleanVariable(%v) type = %d", se.value, se.fType)
 }
 
-func (se *BooleanVariable) asNumericVar() NumericVariable {
-	panic("This is a Boolean and not Numeric element")
-}
-
 func (se *BooleanVariable) asBooleanVar() BooleanVariable {
 	return *se
-}
-
-func (se *BooleanVariable) getType() Type {
-	return se.fType
 }
 
 func (se *BooleanVariable) display() string {
@@ -88,8 +99,33 @@ func (se *BooleanVariable) display() string {
 
 func CreateBooleanVariable(value bool) Variable {
 	var result = BooleanVariable{
-		fType: TYPE_BOOL,
-		value: value,
+		CommonVariable: CommonVariable{fType: TYPE_BOOL},
+		value:          value,
+	}
+	return &result
+}
+
+type IdentifierVariable struct {
+	CommonVariable
+	value string
+}
+
+func (se *IdentifierVariable) String() string {
+	return fmt.Sprintf("IdentifierVariable(%v) type = %d", se.value, se.fType)
+}
+
+func (se *IdentifierVariable) asIdentifierVar() IdentifierVariable {
+	return *se
+}
+
+func (se *IdentifierVariable) display() string {
+	return fmt.Sprintf("'%s'", se.value)
+}
+
+func CreateIdentifierVariable(value string) Variable {
+	var result = IdentifierVariable{
+		CommonVariable: CommonVariable{fType: TYPE_BOOL},
+		value:          value,
 	}
 	return &result
 }

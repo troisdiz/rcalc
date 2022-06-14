@@ -14,18 +14,12 @@ func TestEmptyStack(t *testing.T) {
 
 func TestPeekN(t *testing.T) {
 	var s Stack = CreateStack()
-	se1 := NumericVariable{
-		fType: TYPE_NUMERIC,
-		value: decimal.NewFromInt(2),
-	}
-	s.Push(&se1)
-	se2 := NumericVariable{
-		fType: TYPE_NUMERIC,
-		value: decimal.NewFromInt(7),
-	}
-	s.Push(&se2)
+	se1 := CreateNumericVariableFromInt(2)
+	s.Push(se1)
+	se2 := CreateNumericVariableFromInt(7)
+	s.Push(se2)
 	peeked, _ := s.PeekN(2)
-	expected := []Variable{&se1, &se2}
+	expected := []Variable{se1, se2}
 	assert.False(t, s.IsEmpty(), "Stack should NOT be empty after Push and Pop (current size %d)", s.Size())
 
 	if assert.Len(t, peeked, len(expected), "Peeked array length is %d and not %d", len(peeked), len(expected)) {
@@ -37,15 +31,12 @@ func TestPeekN(t *testing.T) {
 
 func TestPushAndPop(t *testing.T) {
 	var s Stack = CreateStack()
-	se := NumericVariable{
-		fType: TYPE_NUMERIC,
-		value: decimal.NewFromInt(2),
-	}
-	s.Push(&se)
+	se := CreateNumericVariableFromInt(2)
+	s.Push(se)
 	popped, _ := s.Pop()
 
 	assert.True(t, s.IsEmpty(), "Stack should be empty after Push and Pop")
-	assert.Equal(t, Variable(&se), popped, "Popped elt is not the inserted one")
+	assert.Equal(t, Variable(se), popped, "Popped elt is not the inserted one")
 }
 
 func TestPushAndPopN(t *testing.T) {
@@ -76,17 +67,11 @@ func TestPushAndPopNAndSize(t *testing.T) {
 
 func TestPushAndSize(t *testing.T) {
 	var s Stack = CreateStack()
-	se := NumericVariable{
-		fType: TYPE_NUMERIC,
-		value: decimal.NewFromInt(2),
-	}
-	s.Push(&se)
+	se := CreateNumericVariableFromInt(2)
+	s.Push(se)
 	// fmt.Printf("Size after 1 Push %d / %d\n", s.Size(), len(s.elts))
-	se2 := NumericVariable{
-		fType: TYPE_NUMERIC,
-		value: decimal.NewFromInt(2),
-	}
-	s.Push(&se2)
+	se2 := CreateNumericVariableFromInt(2)
+	s.Push(se2)
 
 	assert.Equal(t, 2, s.Size(), "Stack Size must be 2 and id %d", s.Size())
 }
