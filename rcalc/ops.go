@@ -141,3 +141,30 @@ var StackPackage = ActionPackage{
 		&depthAct,
 	},
 }
+
+var storeAct = NewActionDesc("sto", 2, CheckNoop, func(system System, stack *Stack) error {
+
+	// TODO check arg types
+	name, _ := stack.Pop()
+	value, _ := stack.Pop()
+	memory := system.Memory()
+	rootFolder := memory.getRoot()
+	return memory.createVariable(name.asIdentifierVar().value, rootFolder, value)
+})
+
+var loadAct = NewActionDesc("load", 1, CheckNoop, func(system System, stack *Stack) error {
+
+	stack.Pop()
+	memory := system.Memory()
+	rootFolder := memory.getRoot()
+	value := rootFolder.variables[0].value
+	stack.Push(value)
+	return nil
+})
+
+var MemoryPackage = ActionPackage{
+	[]Action{
+		&storeAct,
+		&loadAct,
+	},
+}

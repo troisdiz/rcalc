@@ -1,51 +1,9 @@
 package rcalc
 
-type MemoryNode struct {
-	name string
-}
-
-func (node *MemoryNode) Name() string {
-	return node.name
-}
-
-type MemoryVariable struct {
-	MemoryNode
-	value Variable
-}
-
-func (variable *MemoryVariable) Value() Variable {
-	return variable.value
-}
-
-type MemoryFolder struct {
-	MemoryNode
-	subFolders []MemoryFolder
-	variables  []MemoryVariable
-}
-
-func (folder *MemoryFolder) SubFolders() []MemoryFolder {
-	return folder.subFolders
-}
-
-func (folder *MemoryFolder) SubVariables() []MemoryVariable {
-	return folder.variables
-}
-
-type InternalMemory struct {
-	memoryRoot *MemoryFolder
-}
-
-func NewInternalMemory() *InternalMemory {
-	return &InternalMemory{memoryRoot: &MemoryFolder{
-		MemoryNode: MemoryNode{name: "ROOT"},
-		subFolders: nil,
-		variables:  nil,
-	}}
-}
-
 // System Access to non stack items : memory, exit function, etc
 type System interface {
 	exit()
+	Memory() Memory
 }
 
 type SystemInternal interface {
@@ -54,6 +12,7 @@ type SystemInternal interface {
 
 type SystemInstance struct {
 	shouldStopMarker bool
+	memory           Memory
 }
 
 func (s *SystemInstance) shouldStop() bool {
@@ -64,9 +23,14 @@ func (s *SystemInstance) exit() {
 	s.shouldStopMarker = true
 }
 
+func (s *SystemInstance) Memory() Memory {
+	return s.memory
+}
+
 func CreateSystemInstance() *SystemInstance {
 	return &SystemInstance{
 		shouldStopMarker: false,
+		memory:           NewInternalMemory(),
 	}
 }
 
