@@ -3,7 +3,8 @@ package rcalc
 import "fmt"
 
 type MemoryNode struct {
-	name string
+	parentFolder *MemoryNode
+	name         string
 }
 
 func (node *MemoryNode) Name() string {
@@ -21,9 +22,8 @@ func (variable *MemoryVariable) Value() Variable {
 
 type MemoryFolder struct {
 	MemoryNode
-	parentFolder *MemoryFolder
-	subFolders   []*MemoryFolder
-	variables    []*MemoryVariable
+	subFolders []*MemoryFolder
+	variables  []*MemoryVariable
 }
 
 func (folder *MemoryFolder) SubFolders() []*MemoryFolder {
@@ -35,11 +35,40 @@ func (folder *MemoryFolder) SubVariables() []*MemoryVariable {
 }
 
 type InternalMemory struct {
-	memoryRoot *MemoryFolder
+	memoryRoot    *MemoryFolder
+	currentFolder *MemoryFolder
+}
+
+func (m *InternalMemory) getCurrentFolder() *MemoryFolder {
+	return m.currentFolder
+}
+
+func (m *InternalMemory) getPath(node *MemoryNode) []string {
+	var result []string
+
+	for n := node; n.parentFolder != nil; n = n.parentFolder {
+		result = append(result, n.Name())
+	}
+
+	resultLen := len(result)
+	for i := 0; i < resultLen/2; i++ {
+		result[i], result[resultLen-1-i] = result[resultLen-1-i], result[i]
+	}
+	return result
+}
+
+func (m *InternalMemory) resolvePath(path []string) *MemoryNode {
+	//TODO implement me
+	panic("implement me")
 }
 
 type Memory interface {
 	getRoot() *MemoryFolder
+	getCurrentFolder() *MemoryFolder
+	//setCurrentFolder(f *MemoryFolder) error
+
+	getPath(node *MemoryNode) []string
+	resolvePath(path []string) *MemoryNode
 
 	createFolder(folderName string, parent *MemoryFolder) error
 	createVariable(variableName string, parent *MemoryFolder, value Variable) error
@@ -78,9 +107,10 @@ func (im *InternalMemory) listVariables(parent *MemoryFolder) ([]*MemoryVariable
 
 func NewInternalMemory() *InternalMemory {
 	return &InternalMemory{memoryRoot: &MemoryFolder{
-		MemoryNode:   MemoryNode{name: "ROOT"},
-		parentFolder: nil,
-		subFolders:   nil,
-		variables:    nil,
+		MemoryNode: MemoryNode{
+			name:         "HOME",
+			parentFolder: nil},
+		subFolders: nil,
+		variables:  nil,
 	}}
 }

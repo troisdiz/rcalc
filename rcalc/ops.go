@@ -154,17 +154,48 @@ var storeAct = NewActionDesc("sto", 2, CheckNoop, func(system System, stack *Sta
 
 var loadAct = NewActionDesc("load", 1, CheckNoop, func(system System, stack *Stack) error {
 
-	stack.Pop()
+	variable, err := stack.Pop()
+	if err != nil {
+		return err
+	}
+	idAsString := variable.asIdentifierVar().value
 	memory := system.Memory()
 	rootFolder := memory.getRoot()
-	value := rootFolder.variables[0].value
-	stack.Push(value)
+	for _, varName := range rootFolder.variables {
+		if varName.name == idAsString {
+			stack.Push(varName.value)
+			break
+		}
+	}
 	return nil
 })
+
+var crdirAct = NewActionDesc("crdir", 1, CheckNoop, func(system System, stack *Stack) error {
+	variable, err := stack.Pop()
+	if err != nil {
+		return err
+	}
+	folderNameAsStr := variable.asIdentifierVar().value
+	memory := system.Memory()
+	currentFolder := memory.getCurrentFolder()
+	err = memory.createFolder(folderNameAsStr, currentFolder)
+	return err
+})
+
+var purgeAct = NewActionDesc("purge", 1, CheckNoop, func(system System, stack *Stack) error {
+	return nil
+})
+
+// UPDIR to go upper dir
+// eval dirname => goto inside dirname
+// { HOME TOTO } goes to TOTO
+// RCL recall ?
+// PURGE / PGDIR (only empty / delete recursively)
 
 var MemoryPackage = ActionPackage{
 	[]Action{
 		&storeAct,
 		&loadAct,
+		&crdirAct,
 	},
 }
