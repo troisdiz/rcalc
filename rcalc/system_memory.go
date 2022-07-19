@@ -26,6 +26,9 @@ type MemoryFolder struct {
 	variables  []*MemoryVariable
 }
 
+func (folder *MemoryFolder) AsMemoryNode() *MemoryNode {
+	return &folder.MemoryNode
+}
 func (folder *MemoryFolder) SubFolders() []*MemoryFolder {
 	return folder.subFolders
 }
@@ -85,8 +88,17 @@ func (im *InternalMemory) getRoot() *MemoryFolder {
 }
 
 func (im *InternalMemory) createFolder(folderName string, parent *MemoryFolder) error {
-	//TODO implement me
-	panic("implement me")
+	if parent == nil {
+		return fmt.Errorf("parent folder is nil")
+	}
+	newFolder := &MemoryFolder{
+		MemoryNode: MemoryNode{
+			parentFolder: parent.AsMemoryNode(),
+			name:         folderName,
+		},
+	}
+	parent.subFolders = append(parent.SubFolders(), newFolder)
+	return nil
 }
 
 func (im *InternalMemory) createVariable(variableName string, parent *MemoryFolder, value Variable) error {
@@ -106,11 +118,15 @@ func (im *InternalMemory) listVariables(parent *MemoryFolder) ([]*MemoryVariable
 }
 
 func NewInternalMemory() *InternalMemory {
-	return &InternalMemory{memoryRoot: &MemoryFolder{
+	homeFolder := &MemoryFolder{
 		MemoryNode: MemoryNode{
 			name:         "HOME",
 			parentFolder: nil},
 		subFolders: nil,
 		variables:  nil,
-	}}
+	}
+	return &InternalMemory{
+		memoryRoot:    homeFolder,
+		currentFolder: homeFolder,
+	}
 }

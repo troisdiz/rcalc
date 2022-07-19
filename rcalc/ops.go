@@ -182,9 +182,11 @@ var crdirAct = NewActionDesc("crdir", 1, CheckNoop, func(system System, stack *S
 	return err
 })
 
+/*
 var purgeAct = NewActionDesc("purge", 1, CheckNoop, func(system System, stack *Stack) error {
 	return nil
 })
+*/
 
 // UPDIR to go upper dir
 // eval dirname => goto inside dirname
