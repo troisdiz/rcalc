@@ -3,6 +3,7 @@ package rcalc
 import (
 	"fmt"
 	"github.com/shopspring/decimal"
+	"strings"
 )
 
 func CheckNoop(elts ...Variable) (bool, error) {
@@ -20,6 +21,27 @@ func CheckFirstInt(elts ...Variable) (bool, error) {
 		}
 	}
 	return true, nil
+}
+
+func CheckGen(types []Type) CheckTypeFn {
+	return func(elts ...Variable) (bool, error) {
+		var errors []string
+
+		for idx, varType := range types {
+
+			observedType := elts[idx].getType()
+			if varType == TYPE_GENERIC {
+				break
+			} else if observedType != varType {
+				errors = append(errors, fmt.Sprintf("Type error at level %d, expected: %v, found: %v", idx+1, observedType, varType))
+			}
+		}
+		if len(errors) == 0 {
+			return true, nil
+		} else {
+			return false, fmt.Errorf("%s", strings.Join(errors, "\n"))
+		}
+	}
 }
 
 func NewStackOp(opCode string, nbArgs int, fn PureOperationApplyFn) OperationDesc {

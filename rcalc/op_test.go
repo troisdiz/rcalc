@@ -22,3 +22,21 @@ func TestAddApply(t *testing.T) {
 		}
 	}
 }
+
+func TestCheckGenOk(t *testing.T) {
+	i1 := CreateNumericVariableFromInt(5)
+	i2 := CreateBooleanVariable(true)
+
+	ok, err := CheckGen([]Type{TYPE_NUMERIC, TYPE_BOOL})(i1, i2)
+	assert.True(t, ok)
+	assert.NoError(t, err)
+}
+
+func TestCheckGenGeneric(t *testing.T) {
+	i1 := CreateNumericVariableFromInt(5)
+	i2 := CreateBooleanVariable(true)
+
+	ok, err := CheckGen([]Type{TYPE_NUMERIC, TYPE_GENERIC})(i1, i2)
+	assert.True(t, ok)
+	assert.NoError(t, err)
+}
