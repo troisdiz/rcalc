@@ -73,8 +73,8 @@ type Memory interface {
 	getPath(node *MemoryNode) []string
 	resolvePath(path []string) *MemoryNode
 
-	createFolder(folderName string, parent *MemoryFolder) error
-	createVariable(variableName string, parent *MemoryFolder, value Variable) error
+	createFolder(folderName string, parent *MemoryFolder) (*MemoryFolder, error)
+	createVariable(variableName string, parent *MemoryFolder, value Variable) (*MemoryVariable, error)
 	listVariables(parent *MemoryFolder) ([]*MemoryVariable, error)
 	/*
 		cd(path string)
@@ -87,9 +87,9 @@ func (im *InternalMemory) getRoot() *MemoryFolder {
 	return im.memoryRoot
 }
 
-func (im *InternalMemory) createFolder(folderName string, parent *MemoryFolder) error {
+func (im *InternalMemory) createFolder(folderName string, parent *MemoryFolder) (*MemoryFolder, error) {
 	if parent == nil {
-		return fmt.Errorf("parent folder is nil")
+		return nil, fmt.Errorf("parent folder is nil")
 	}
 	newFolder := &MemoryFolder{
 		MemoryNode: MemoryNode{
@@ -98,19 +98,19 @@ func (im *InternalMemory) createFolder(folderName string, parent *MemoryFolder) 
 		},
 	}
 	parent.subFolders = append(parent.SubFolders(), newFolder)
-	return nil
+	return newFolder, nil
 }
 
-func (im *InternalMemory) createVariable(variableName string, parent *MemoryFolder, value Variable) error {
+func (im *InternalMemory) createVariable(variableName string, parent *MemoryFolder, value Variable) (*MemoryVariable, error) {
 	if parent == nil {
-		return fmt.Errorf("Cannot create memory variable with nil parent folder")
+		return nil, fmt.Errorf("Cannot create memory variable with nil parent folder")
 	}
 	memVar := &MemoryVariable{
 		MemoryNode: MemoryNode{name: variableName},
 		value:      value,
 	}
 	parent.variables = append(parent.variables, memVar)
-	return nil
+	return memVar, nil
 }
 
 func (im *InternalMemory) listVariables(parent *MemoryFolder) ([]*MemoryVariable, error) {

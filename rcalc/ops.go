@@ -142,33 +142,39 @@ var StackPackage = ActionPackage{
 	},
 }
 
-var storeAct = NewActionDesc("sto", 2, CheckNoop, func(system System, stack *Stack) error {
+var storeAct = NewActionDesc("sto",
+	2,
+	CheckGen([]Type{TYPE_IDENTIFIER, TYPE_GENERIC}),
+	func(system System, stack *Stack) error {
 
-	// TODO check arg types
-	name, _ := stack.Pop()
-	value, _ := stack.Pop()
-	memory := system.Memory()
-	rootFolder := memory.getRoot()
-	return memory.createVariable(name.asIdentifierVar().value, rootFolder, value)
-})
-
-var loadAct = NewActionDesc("load", 1, CheckNoop, func(system System, stack *Stack) error {
-
-	variable, err := stack.Pop()
-	if err != nil {
+		name, _ := stack.Pop()
+		value, _ := stack.Pop()
+		memory := system.Memory()
+		rootFolder := memory.getRoot()
+		_, err := memory.createVariable(name.asIdentifierVar().value, rootFolder, value)
 		return err
-	}
-	idAsString := variable.asIdentifierVar().value
-	memory := system.Memory()
-	rootFolder := memory.getRoot()
-	for _, varName := range rootFolder.variables {
-		if varName.name == idAsString {
-			stack.Push(varName.value)
-			break
+	})
+
+var loadAct = NewActionDesc("load",
+	1,
+	CheckGen([]Type{TYPE_IDENTIFIER}),
+	func(system System, stack *Stack) error {
+
+		variable, err := stack.Pop()
+		if err != nil {
+			return err
 		}
-	}
-	return nil
-})
+		idAsString := variable.asIdentifierVar().value
+		memory := system.Memory()
+		rootFolder := memory.getRoot()
+		for _, varName := range rootFolder.variables {
+			if varName.name == idAsString {
+				stack.Push(varName.value)
+				break
+			}
+		}
+		return nil
+	})
 
 var crdirAct = NewActionDesc("crdir", 1, CheckNoop, func(system System, stack *Stack) error {
 	variable, err := stack.Pop()
@@ -178,7 +184,7 @@ var crdirAct = NewActionDesc("crdir", 1, CheckNoop, func(system System, stack *S
 	folderNameAsStr := variable.asIdentifierVar().value
 	memory := system.Memory()
 	currentFolder := memory.getCurrentFolder()
-	err = memory.createFolder(folderNameAsStr, currentFolder)
+	_, err = memory.createFolder(folderNameAsStr, currentFolder)
 	return err
 })
 

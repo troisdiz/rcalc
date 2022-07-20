@@ -8,10 +8,11 @@ import (
 type Type int
 
 const (
-	TYPE_NUMERIC    Type = 0
-	TYPE_BOOL       Type = 1
-	TYPE_STR        Type = 2
-	TYPE_IDENTIFIER Type = 3
+	TYPE_GENERIC    Type = 0
+	TYPE_NUMERIC    Type = 1
+	TYPE_BOOL       Type = 2
+	TYPE_STR        Type = 3
+	TYPE_IDENTIFIER Type = 4
 )
 
 type Variable interface {
