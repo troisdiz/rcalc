@@ -13,6 +13,7 @@ const (
 	TYPE_BOOL       Type = 2
 	TYPE_STR        Type = 3
 	TYPE_IDENTIFIER Type = 4
+	TYPE_LIST       Type = 5
 )
 
 type Variable interface {
@@ -20,6 +21,7 @@ type Variable interface {
 	asNumericVar() NumericVariable
 	asBooleanVar() BooleanVariable
 	asIdentifierVar() IdentifierVariable
+	asListVariable() ListVariable
 	display() string
 	String() string
 }
@@ -42,6 +44,10 @@ func (se *CommonVariable) asBooleanVar() BooleanVariable {
 
 func (se *CommonVariable) asIdentifierVar() IdentifierVariable {
 	panic("This is not an Indentifier variable")
+}
+
+func (se *CommonVariable) asListVariable() ListVariable {
+	panic("This is not a List variable")
 }
 
 func (se *CommonVariable) String() string {
@@ -126,6 +132,28 @@ func (se *IdentifierVariable) display() string {
 func CreateIdentifierVariable(value string) Variable {
 	var result = IdentifierVariable{
 		CommonVariable: CommonVariable{fType: TYPE_BOOL},
+		value:          value,
+	}
+	return &result
+}
+
+type ListVariable struct {
+	CommonVariable
+	value []Variable
+}
+
+func (l *ListVariable) display() string {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (l *ListVariable) asListVariable() ListVariable {
+	return *l
+}
+
+func CreateListVariable(value []Variable) Variable {
+	var result = ListVariable{
+		CommonVariable: CommonVariable{fType: TYPE_LIST},
 		value:          value,
 	}
 	return &result

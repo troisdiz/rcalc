@@ -52,7 +52,6 @@ func TestLexerIdentifier(t *testing.T) {
 		assert.Equal(t, items[0].typ, lexItemIdentifier)
 		assert.Equal(t, items[0].val, "'ab'")
 	}
-
 }
 
 func TestLexerActionKeyword(t *testing.T) {
@@ -62,4 +61,23 @@ func TestLexerActionKeyword(t *testing.T) {
 		fmt.Printf("%v\n", it)
 	}
 	assert.Len(t, items, 2, "1 lexItem should be returned")
+}
+
+func TestLexerList(t *testing.T) {
+	txt := " {'ab'} "
+	items := lexForTest(txt)
+	fmt.Println("Lex Items: start")
+	for _, it := range items {
+		fmt.Printf("%v\n", it)
+	}
+	fmt.Println("Lex Items: end")
+
+	if assert.Len(t, items, 3, "1 lexItem should be returned") {
+		assert.Equal(t, items[0].typ, lexItemOpenCurlyBrace)
+		assert.Equal(t, items[0].val, "{")
+		assert.Equal(t, items[1].typ, lexItemIdentifier)
+		assert.Equal(t, items[1].val, "'ab'")
+		assert.Equal(t, items[2].typ, lexItemCloseCurlyBrace)
+		assert.Equal(t, items[2].val, "}")
+	}
 }

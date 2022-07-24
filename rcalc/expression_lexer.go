@@ -2,6 +2,8 @@ package rcalc
 
 import (
 	"fmt"
+	"reflect"
+	"runtime"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -18,10 +20,14 @@ const (
 	lexItemIdentifier
 	lexItemKeywword
 	lexItemAction
+	lexItemOpenCurlyBrace
+	lexItemCloseCurlyBrace
 )
 
 const (
-	quoteMeta rune = '\''
+	quoteMeta           rune = '\''
+	curlyBraceOpenMeta  rune = '{'
+	curlyBraceCloseMeta rune = '}'
 )
 
 const eof = -1
@@ -29,11 +35,13 @@ const eof = -1
 var itemTypeByNames = []string{
 	"lexItemError",
 	"lexItemEOF",
-	"itemBlank",
+	// "itemBlank",
 	"lexItemNumber",
 	"lexItemIdentifier",
 	"lexItemKeywword",
 	"lexItemAction",
+	"lexItemOpenCurlyBrace",
+	"lexItemCloseCurlyBrace",
 }
 
 var keyWords = map[string]bool{
@@ -169,6 +177,12 @@ func (l *Lexer) errorf(format string, args ...interface{}) stateFn {
 	return nil
 }
 
+func getStateName(s stateFn) string {
+	stateName := runtime.FuncForPC(reflect.ValueOf(s).Pointer()).Name()
+	items := strings.Split(stateName, ".")
+	return items[len(items)-1]
+}
+
 // NextItem returns the next LexItem from the input.
 func (l *Lexer) NextItem() LexItem {
 
@@ -177,7 +191,12 @@ func (l *Lexer) NextItem() LexItem {
 		case item := <-l.items:
 			return item
 		default:
+			prevState := l.state
 			l.state = l.state(l)
+			if l.debugMode {
+				// From https://stackoverflow.com/questions/7052693/how-to-get-the-name-of-a-function-in-go
+				fmt.Printf("%s => %s\n", getStateName(prevState), getStateName(l.state))
+			}
 		}
 	}
 	// panic("not reached")
@@ -225,7 +244,11 @@ func lexBlank(l *Lexer) stateFn {
 			continue
 		case next == quoteMeta:
 			return lexIdentifier
-		// + and - => can be number or action
+		case next == curlyBraceOpenMeta:
+			return lexStartList
+		case next == curlyBraceCloseMeta:
+			return lexStopList
+			// + and - => can be number or action
 		case next == '+' || next == '-':
 			return lexStartWithPlusMinus
 		case unicode.IsDigit(next):
@@ -239,6 +262,16 @@ func lexBlank(l *Lexer) stateFn {
 	}
 	l.emit(lexItemEOF) // Useful to make EOF a token.
 	return nil         // Stop the run loop.
+}
+
+func lexStartList(l *Lexer) stateFn {
+	l.emit(lexItemOpenCurlyBrace)
+	return lexBlank
+}
+
+func lexStopList(l *Lexer) stateFn {
+	l.emit(lexItemCloseCurlyBrace)
+	return lexBlank
 }
 
 func lexStartWithPlusMinus(l *Lexer) stateFn {
@@ -294,9 +327,6 @@ Loop:
 		}
 	}
 	l.emit(lexItemIdentifier)
-	if l.debugMode {
-		fmt.Println("lexIdentifier -> lexBlank")
-	}
 	return lexBlank
 }
 
