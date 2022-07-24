@@ -2,7 +2,9 @@ package rcalc
 
 import (
 	"fmt"
+	"github.com/antlr/antlr4/runtime/Go/antlr"
 	"github.com/shopspring/decimal"
+	parser "troisdizaines.com/rcalc/rcalc/parser/grammar"
 )
 
 type Program struct {
@@ -44,7 +46,8 @@ func (a *VariablePutOnStackActionDesc) String() string {
 	return fmt.Sprintf("%s(%s)", a.OpCode(), a.value.String())
 }
 
-func ParseToActions(lexer *Lexer, registry *ActionRegistry) ([]Action, error) {
+func ParseToActions(cmds string, lexerName string, registry *ActionRegistry) ([]Action, error) {
+	lexer := Lex(lexerName, cmds)
 	var result []Action
 	for lextItem := lexer.NextItem(); lextItem.typ != lexItemEOF; lextItem = lexer.NextItem() {
 		switch lextItem.typ {
@@ -67,4 +70,25 @@ func ParseToActions(lexer *Lexer, registry *ActionRegistry) ([]Action, error) {
 		}
 	}
 	return result, nil
+}
+
+type RcalcParserListener struct {
+	*parser.BaseRcalcListener
+}
+
+func ParseToActions2(cmds string, lexerName string, registry *ActionRegistry) ([]Action, error) {
+
+	is := antlr.NewInputStream(cmds)
+
+	// Create the Lexer
+	lexer := parser.NewRcalcLexer(is)
+	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
+
+	// Create the Parser
+	p := parser.NewRcalcParser(stream)
+
+	// Finally parse the expression (by walking the tree)
+	var listener RcalcParserListener
+	antlr.ParseTreeWalkerDefault.Walk(&listener, p.Start())
+	return nil, fmt.Errorf("to be implemented")
 }
