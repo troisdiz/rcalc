@@ -11,7 +11,7 @@ SRCS=$(shell $(FIND) rcalc main -iname '*.go' -type f)
 
 GRAMMAR_SRC=grammar/Rcalc.g4
 GRAMMAR_OUTPUT_DIR=rcalc/parser
-GRAMMAR_WITNESS=$(GRAMMAR_OUTPUT_DIR)/grammar/Rcalc.tokens
+GRAMMAR_WITNESS=$(GRAMMAR_OUTPUT_DIR)/Rcalc.tokens
 
 all: $(TARGET)
 
@@ -22,7 +22,7 @@ lint: $(GRAMMAR_WITNESS)
 	golangci-lint run ./...
 
 $(GRAMMAR_WITNESS): $(GRAMMAR_SRC)
-	antlr -Dlanguage=Go -o $(GRAMMAR_OUTPUT_DIR) -package parser grammar/Rcalc.g4
+	antlr -Dlanguage=Go -Werror -o $(GRAMMAR_OUTPUT_DIR) -Xexact-output-dir -package parser grammar/Rcalc.g4
 
 $(TARGET): $(GRAMMAR_WITNESS) $(SRCS)
 	go build -o $(TARGET) main/main.go

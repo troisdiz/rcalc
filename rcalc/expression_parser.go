@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 	"github.com/shopspring/decimal"
-	parser "troisdizaines.com/rcalc/rcalc/parser/grammar"
+	parser "troisdizaines.com/rcalc/rcalc/parser"
 )
 
 type Program struct {
