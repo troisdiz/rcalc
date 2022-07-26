@@ -10,8 +10,7 @@ func TestParseNumbers(t *testing.T) {
 	var txt string = "3"
 	var registry *ActionRegistry = initRegistry()
 
-	lex := Lex("Test", txt)
-	elt, err := ParseToActions(lex, registry)
+	elt, err := ParseToActions(txt, "Test", registry)
 	if assert.NoError(t, err, "Parse error : %s", err) {
 		fmt.Println(elt)
 	}
@@ -25,8 +24,7 @@ func TestParse2Numbers(t *testing.T) {
 	var txt string = "3 4.5"
 	var registry *ActionRegistry = initRegistry()
 
-	lex := Lex("Test", txt)
-	elt, err := ParseToActions(lex, registry)
+	elt, err := ParseToActions(txt, "Test", registry)
 	if assert.NoError(t, err, "Parse error : %s", err) {
 		fmt.Println(elt)
 	}
@@ -43,8 +41,7 @@ func TestParseAddNumbers(t *testing.T) {
 
 	fmt.Printf("Text to parse: \"%s\"\n", txt)
 
-	lex := Lex("Test", txt)
-	elt, err := ParseToActions(lex, registry)
+	elt, err := ParseToActions(txt, "Test", registry)
 	if assert.NoError(t, err, "Parse error : %s", err) {
 		fmt.Printf("%v\n", elt)
 	}
@@ -59,8 +56,7 @@ func TestParseActionInRegistry(t *testing.T) {
 	var txt string = "quit"
 	var registry *ActionRegistry = initRegistry()
 
-	lex := Lex("Test", txt)
-	elt, err := ParseToActions(lex, registry)
+	elt, err := ParseToActions(txt, "Test", registry)
 	if assert.NoError(t, err, "Parse error : %s", err) {
 		fmt.Println(elt)
 	}
@@ -74,8 +70,7 @@ func TestParseIdentifier(t *testing.T) {
 	var txt string = "'ab' 'cd' 'de'"
 	var registry *ActionRegistry = initRegistry()
 
-	lex := Lex("Test", txt)
-	elt, err := ParseToActions(lex, registry)
+	elt, err := ParseToActions(txt, "Test", registry)
 	if assert.NoError(t, err, "Parse error : %s", err) {
 		fmt.Println(elt)
 	}
@@ -84,5 +79,27 @@ func TestParseIdentifier(t *testing.T) {
 		assert.Equal(t, elt[0], &VariablePutOnStackActionDesc{
 			value: CreateIdentifierVariable("ab"),
 		})
+	}
+}
+
+func TestAntlrIdentifierParser(t *testing.T) {
+	var txt string = "'ab' 'cd' 'de'"
+	var registry *ActionRegistry = initRegistry()
+	actions, err := ParseToActions2(txt, "", registry)
+	if assert.NoError(t, err, "Parse error: %s", err) {
+		assert.Len(t, actions, 3)
+	}
+}
+
+func TestAntlrParseActionInRegistry(t *testing.T) {
+	var txt string = "quit sto"
+	var registry *ActionRegistry = initRegistry()
+
+	elt, err := ParseToActions2(txt, "Test", registry)
+	if assert.NoError(t, err, "Parse error : %s", err) {
+		fmt.Println(elt)
+		if assert.Len(t, elt, 2) {
+			assert.Equal(t, elt[0], &EXIT_ACTION)
+		}
 	}
 }

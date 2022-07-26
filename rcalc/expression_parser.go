@@ -72,8 +72,51 @@ func ParseToActions(cmds string, lexerName string, registry *ActionRegistry) ([]
 	return result, nil
 }
 
+func parseIdentifier(txt string) (Variable, error) {
+	l := len(txt)
+	return CreateIdentifierVariable(txt[1 : l-1]), nil
+}
+
+func parseAction(txt string, registry *ActionRegistry) (Action, error) {
+	if registry.ContainsOpCode(txt) {
+		return registry.GetAction(txt), nil
+	} else {
+		return nil, fmt.Errorf("unknown action")
+	}
+}
+
 type RcalcParserListener struct {
 	*parser.BaseRcalcListener
+
+	registry *ActionRegistry
+
+	actions []Action
+}
+
+func (l *RcalcParserListener) AddAction(action Action) {
+	l.actions = append(l.actions, action)
+}
+
+// ExitInstrIdentifier is called when production identifier is exited.
+func (l *RcalcParserListener) ExitIdentifier(ctx *parser.IdentifierContext) {
+	fmt.Println("ExitInstrIdentifier")
+	identifier, err := parseIdentifier(ctx.GetText())
+	if err != nil {
+		ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
+	} else {
+		l.AddAction(&VariablePutOnStackActionDesc{value: identifier})
+	}
+}
+
+// ExitInstrActionOrVarCall is called when exiting the InstrActionOrVarCall.
+func (l *RcalcParserListener) ExitAction_or_var_call(ctx *parser.Action_or_var_callContext) {
+	fmt.Println("ExitInstrActionOrVarCall")
+	action, err := parseAction(ctx.GetText(), l.registry)
+	if err != nil {
+		ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
+	} else {
+		l.AddAction(action)
+	}
 }
 
 func ParseToActions2(cmds string, lexerName string, registry *ActionRegistry) ([]Action, error) {
@@ -88,7 +131,7 @@ func ParseToActions2(cmds string, lexerName string, registry *ActionRegistry) ([
 	p := parser.NewRcalcParser(stream)
 
 	// Finally parse the expression (by walking the tree)
-	var listener RcalcParserListener
+	var listener RcalcParserListener = RcalcParserListener{registry: registry}
 	antlr.ParseTreeWalkerDefault.Walk(&listener, p.Start())
-	return nil, fmt.Errorf("to be implemented")
+	return listener.actions, nil
 }

@@ -2,7 +2,8 @@
 grammar Rcalc;
 
 // Tokens
-NUMBER: [0-9]+;
+// NUMBER: [+-]?[0-9]*(.[0-9]+)?([eE][+-]?[0-9]+)?;
+INT_NUMBER: [+-]?[0-9]+;
 ADD: '+';
 SUB: '-';
 MUL: '*';
@@ -28,13 +29,15 @@ WHITESPACE: [ \r\n\t]+ -> skip;
 // Rules
 start : instr+ EOF;
 
+number
+    : INT_NUMBER # NumberInt
+    ;
+
 instr
-    : identifier
-    | action_or_var_call
-    | ADD
-    | SUB
-    | MUL
-    | DIV
+    : identifier                 # InstrIndentifier
+    | action_or_var_call         # InstrActionOrVarCall
+    | op=(ADD | SUB | MUL | DIV) # InstrOp
+    | number                     # InstrNumber
     ;
 
 identifier: QUOTE NAME QUOTE;
