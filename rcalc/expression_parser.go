@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/antlr/antlr4/runtime/Go/antlr"
 	"github.com/shopspring/decimal"
+	"strings"
 	parser "troisdizaines.com/rcalc/rcalc/parser"
 )
 
@@ -72,13 +73,22 @@ func ParseToActions(cmds string, lexerName string, registry *ActionRegistry) ([]
 	return result, nil
 }
 
+func parserNumber(txt string) (Variable, error) {
+	number, err := decimal.NewFromString(txt)
+	if err != nil {
+		return nil, err
+	}
+	return CreateNumericVariable(number), nil
+}
+
 func parseIdentifier(txt string) (Variable, error) {
 	l := len(txt)
 	return CreateIdentifierVariable(txt[1 : l-1]), nil
 }
 
 func parseAction(txt string, registry *ActionRegistry) (Action, error) {
-	if registry.ContainsOpCode(txt) {
+	lowerTxt := strings.ToLower(txt)
+	if registry.ContainsOpCode(lowerTxt) {
 		return registry.GetAction(txt), nil
 	} else {
 		return nil, fmt.Errorf("unknown action")
@@ -95,6 +105,18 @@ type RcalcParserListener struct {
 
 func (l *RcalcParserListener) AddAction(action Action) {
 	l.actions = append(l.actions, action)
+}
+
+// ExitInstrNumber is called when production InstrNumber is exited.
+func (l *RcalcParserListener) ExitInstrNumber(ctx *parser.InstrNumberContext) {
+	fmt.Printf("ExitInstrNumber: %s\n", ctx.GetText())
+	number, err := parserNumber(ctx.GetText())
+	if err != nil {
+		ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
+	} else {
+		l.AddAction(&VariablePutOnStackActionDesc{number})
+	}
+
 }
 
 // ExitInstrIdentifier is called when production identifier is exited.
@@ -117,6 +139,18 @@ func (l *RcalcParserListener) ExitAction_or_var_call(ctx *parser.Action_or_var_c
 	} else {
 		l.AddAction(action)
 	}
+}
+
+// ExitInstrOp is called when production InstrOp is exited.
+func (l *RcalcParserListener) ExitInstrOp(ctx *parser.InstrOpContext) {
+	fmt.Println("ExitInstrOp")
+	action, err := parseAction(ctx.GetText(), l.registry)
+	if err != nil {
+		ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
+	} else {
+		l.AddAction(action)
+	}
+
 }
 
 func ParseToActions2(cmds string, lexerName string, registry *ActionRegistry) ([]Action, error) {

@@ -2,8 +2,10 @@
 grammar Rcalc;
 
 // Tokens
-// NUMBER: [+-]?[0-9]*(.[0-9]+)?([eE][+-]?[0-9]+)?;
-INT_NUMBER: [+-]?[0-9]+;
+DOT: '.' ;
+INT_NUMBER: [+-]?[0-9]+ ;
+DECIMAL_NUMBER: [+-]?[0-9]*DOT[0-9]+ |  [+-]?[0-9]+(DOT[0-9]*)? ;
+SCIENTIFIC_NUMBER: [+-]?[0-9]*(DOT[0-9])?[eE][+-]?[0-9]+ ;
 ADD: '+';
 SUB: '-';
 MUL: '*';
@@ -31,6 +33,8 @@ start : instr+ EOF;
 
 number
     : INT_NUMBER # NumberInt
+    | DECIMAL_NUMBER # NumberDecimal
+    | SCIENTIFIC_NUMBER # NumberScientific
     ;
 
 instr
