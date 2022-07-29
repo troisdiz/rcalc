@@ -81,8 +81,8 @@ func (l *RcalcParserListener) AddAction(action Action) {
 	l.actions = append(l.actions, action)
 }
 
-// ExitInstrNumber is called when production InstrNumber is exited.
-func (l *RcalcParserListener) ExitInstrNumber(ctx *parser.InstrNumberContext) {
+// ExitVariableNumber is called when production InstrNumber is exited.
+func (l *RcalcParserListener) ExitVariableNumber(ctx *parser.VariableNumberContext) {
 	fmt.Printf("ExitInstrNumber: %s\n", ctx.GetText())
 	number, err := parserNumber(ctx.GetText())
 	if err != nil {
@@ -94,7 +94,7 @@ func (l *RcalcParserListener) ExitInstrNumber(ctx *parser.InstrNumberContext) {
 }
 
 // ExitIdentifier is called when production identifier is exited.
-func (l *RcalcParserListener) ExitIdentifier(ctx *parser.IdentifierContext) {
+func (l *RcalcParserListener) ExitVariableIdentifier(ctx *parser.VariableIdentifierContext) {
 	fmt.Println("ExitInstrIdentifier")
 	identifier, err := parseIdentifier(ctx.GetText())
 	if err != nil {
