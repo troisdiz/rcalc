@@ -27,8 +27,7 @@ func Run() {
 		// Message to display above (temp way of doing this)
 		message = ""
 
-		lexer := Lex("InteractiveShell", cmds)
-		actions, parse_err := ParseToActions(lexer, Registry)
+		actions, parse_err := ParseToActions(cmds, "InteractiveShell", Registry)
 		if parse_err != nil {
 			message = parse_err.Error()
 		} else {

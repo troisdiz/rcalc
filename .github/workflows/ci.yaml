@@ -10,11 +10,21 @@ jobs:
       - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
       - name: Check out repository code
         uses: actions/checkout@v3
-      - name: Compile
+      - name: Setup Go
         uses: actions/setup-go@v3
         with:
           go-version: '>=1.17.0'
-      - run: go version
+      - name: Display Go version
+        run: go version
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin' # See 'Supported distributions' for available options
+          java-version: '17'
+      - name: Install Antlr4
+        uses: StoneMoe/setup-antlr4@v4.10.1
+      - name: Generate source from antlr grammar
+        run: make generate
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:

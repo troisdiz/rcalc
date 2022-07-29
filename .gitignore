@@ -17,3 +17,5 @@
 # Golang
 .idea
 
+# Generated parser
+rcalc/parser/
