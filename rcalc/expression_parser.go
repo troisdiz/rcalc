@@ -105,7 +105,7 @@ func (l *RcalcParserListener) ExitIdentifier(ctx *parser.IdentifierContext) {
 }
 
 // ExitInstrActionOrVarCall is called when exiting the InstrActionOrVarCall.
-func (l *RcalcParserListener) ExitAction_or_var_call(ctx *parser.Action_or_var_callContext) {
+func (l *RcalcParserListener) ExitInstrActionOrVarCall(ctx *parser.InstrActionOrVarCallContext) {
 	fmt.Println("ExitInstrActionOrVarCall")
 	action, err := parseAction(ctx.GetText(), l.registry)
 	if err != nil {
@@ -127,7 +127,7 @@ func (l *RcalcParserListener) ExitInstrOp(ctx *parser.InstrOpContext) {
 
 }
 
-func ParseToActions2(cmds string, lexerName string, registry *ActionRegistry) ([]Action, error) {
+func ParseToActions(cmds string, lexerName string, registry *ActionRegistry) ([]Action, error) {
 
 	is := antlr.NewInputStream(cmds)
 

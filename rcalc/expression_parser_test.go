@@ -21,7 +21,7 @@ func TestAntlrParse2Numbers(t *testing.T) {
 	var txt string = "37 4.5 -0.4 +.58"
 	var registry *ActionRegistry = initRegistry()
 
-	elt, err := ParseToActions2(txt, "Test", registry)
+	elt, err := ParseToActions(txt, "Test", registry)
 	if assert.NoError(t, err, "Parse error : %s", err) {
 		fmt.Println(elt)
 		if assert.Len(t, elt, 4) {
@@ -36,7 +36,7 @@ func TestAntlrParse2Numbers(t *testing.T) {
 func TestAntlrIdentifierParser(t *testing.T) {
 	var txt string = "'ab' 'cd' 'de'"
 	var registry *ActionRegistry = initRegistry()
-	actions, err := ParseToActions2(txt, "", registry)
+	actions, err := ParseToActions(txt, "", registry)
 	if assert.NoError(t, err, "Parse error: %s", err) {
 		assert.Len(t, actions, 3)
 	}
@@ -46,7 +46,7 @@ func TestAntlrParseActionInRegistry(t *testing.T) {
 	var txt string = "quit sto"
 	var registry *ActionRegistry = initRegistry()
 
-	elt, err := ParseToActions2(txt, "Test", registry)
+	elt, err := ParseToActions(txt, "Test", registry)
 	if assert.NoError(t, err, "Parse error : %s", err) {
 		fmt.Println(elt)
 		if assert.Len(t, elt, 2) {
