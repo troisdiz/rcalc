@@ -47,32 +47,6 @@ func (a *VariablePutOnStackActionDesc) String() string {
 	return fmt.Sprintf("%s(%s)", a.OpCode(), a.value.String())
 }
 
-func ParseToActions(cmds string, lexerName string, registry *ActionRegistry) ([]Action, error) {
-	lexer := Lex(lexerName, cmds)
-	var result []Action
-	for lextItem := lexer.NextItem(); lextItem.typ != lexItemEOF; lextItem = lexer.NextItem() {
-		switch lextItem.typ {
-		case lexItemNumber:
-			number, err := decimal.NewFromString(lextItem.val)
-			if err != nil {
-				return nil, err
-			}
-			result = append(result, &VariablePutOnStackActionDesc{value: CreateNumericVariable(number)})
-		case lexItemAction:
-			if registry.ContainsOpCode(lextItem.val) {
-				result = append(result, registry.GetAction(lextItem.val))
-			}
-		case lexItemIdentifier:
-			l := len(lextItem.val)
-			variable := CreateIdentifierVariable(lextItem.val[1 : l-1])
-			result = append(result, &VariablePutOnStackActionDesc{value: variable})
-		default:
-			fmt.Printf("Ignore %v for now\n", lextItem)
-		}
-	}
-	return result, nil
-}
-
 func parserNumber(txt string) (Variable, error) {
 	number, err := decimal.NewFromString(txt)
 	if err != nil {
@@ -119,7 +93,7 @@ func (l *RcalcParserListener) ExitInstrNumber(ctx *parser.InstrNumberContext) {
 
 }
 
-// ExitInstrIdentifier is called when production identifier is exited.
+// ExitIdentifier is called when production identifier is exited.
 func (l *RcalcParserListener) ExitIdentifier(ctx *parser.IdentifierContext) {
 	fmt.Println("ExitInstrIdentifier")
 	identifier, err := parseIdentifier(ctx.GetText())
