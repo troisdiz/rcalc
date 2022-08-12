@@ -2,7 +2,6 @@ package rcalc
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 )
 
@@ -27,27 +26,19 @@ func Run() {
 		// Message to display above (temp way of doing this)
 		message = ""
 
-		actions, parse_err := ParseToActions(cmds, "InteractiveShell", Registry)
-		if parse_err != nil {
-			message = parse_err.Error()
+		actions, parseErr := ParseToActions(cmds, "InteractiveShell", Registry)
+		if parseErr != nil {
+			message = parseErr.Error()
 		} else {
+			runtimeContext := CreateRuntimeContext(system, &stack)
 			for _, action := range actions {
-				if stack.Size() < action.NbArgs() {
-					fmt.Printf("Not enough args on stack (%d vs %d)\n", stack.Size(), action.NbArgs())
-					message = fmt.Sprintf("Not enough args on stack: only %d/%d available", action.NbArgs(), stack.Size())
+				err := runtimeContext.RunAction(action)
+				if err != nil {
+					message = err.Error()
+					// in case of error, stop evaluation
 					break
 				} else {
-					// TODO Handle error
-					typesOK, _ := checkTypesForAction(&stack, action)
-					if !typesOK {
-						message = "Bad types on stack"
-						break
-					} else {
-						applyErr := action.Apply(system, &stack)
-						if applyErr != nil {
-							message = applyErr.Error()
-						}
-					}
+					message = ""
 				}
 				if system.shouldStop() {
 					return
