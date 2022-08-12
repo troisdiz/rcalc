@@ -69,16 +69,99 @@ func parseAction(txt string, registry *ActionRegistry) (Action, error) {
 	}
 }
 
+type ParseContext interface {
+	GetParent() ParseContext
+	SetParent(ctx ParseContext)
+
+	AddAction(action Action)
+	AddIdentifier(id string)
+
+	BackFromChild(child ParseContext)
+	CreateFinalAction() Action
+}
+
+type BaseParseContext struct {
+	parent         ParseContext
+	actions        []Action
+	idDeclarations []string
+}
+
+func (pc *BaseParseContext) CreateFinalAction() Action {
+	panic("CreateFinalAction must be implemented by sub structures")
+}
+
+func (pc *BaseParseContext) GetParent() ParseContext {
+	return pc.parent
+}
+
+func (pc *BaseParseContext) SetParent(ctx ParseContext) {
+	pc.parent = ctx
+}
+
+func (pc *BaseParseContext) BackFromChild(child ParseContext) {
+	pc.AddAction(child.CreateFinalAction())
+}
+
+func (pc *BaseParseContext) AddAction(action Action) {
+	pc.actions = append(pc.actions, action)
+}
+
+func (pc *BaseParseContext) AddIdentifier(id string) {
+	pc.idDeclarations = append(pc.idDeclarations, id)
+}
+
+func (pc *BaseParseContext) GetActions() []Action {
+	return pc.actions
+}
+
+type StartEndLoopContext struct {
+	BaseParseContext
+
+	actions []Action
+}
+
+func (pc *StartEndLoopContext) AddAction(action Action) {
+	pc.actions = append(pc.actions, action)
+}
+
+func (pc *StartEndLoopContext) CreateFinalAction() Action {
+	return &StartNextLoopActionDesc{actions: pc.actions}
+}
+
 type RcalcParserListener struct {
 	*parser.BaseRcalcListener
 
 	registry *ActionRegistry
 
-	actions []Action
+	rootPc    *BaseParseContext
+	currentPc ParseContext
+}
+
+func CreateRcalcParserListener(registry *ActionRegistry) *RcalcParserListener {
+	rootPc := &BaseParseContext{
+		parent:  nil,
+		actions: nil,
+	}
+	return &RcalcParserListener{
+		registry:  registry,
+		rootPc:    rootPc,
+		currentPc: rootPc,
+	}
 }
 
 func (l *RcalcParserListener) AddAction(action Action) {
-	l.actions = append(l.actions, action)
+	l.currentPc.AddAction(action)
+}
+
+func (l *RcalcParserListener) StartNewContext(ctx ParseContext) {
+	ctx.SetParent(l.currentPc)
+	l.currentPc = ctx
+}
+
+func (l *RcalcParserListener) BackToParentContext() {
+	oldCurrent := l.currentPc
+	l.currentPc = l.currentPc.GetParent()
+	l.currentPc.BackFromChild(oldCurrent)
 }
 
 // ExitVariableNumber is called when production InstrNumber is exited.
@@ -93,7 +176,7 @@ func (l *RcalcParserListener) ExitVariableNumber(ctx *parser.VariableNumberConte
 
 }
 
-// ExitIdentifier is called when production identifier is exited.
+// ExitVariableIdentifier is called when production identifier is exited.
 func (l *RcalcParserListener) ExitVariableIdentifier(ctx *parser.VariableIdentifierContext) {
 	fmt.Println("ExitInstrIdentifier")
 	identifier, err := parseIdentifier(ctx.GetText())
@@ -124,7 +207,19 @@ func (l *RcalcParserListener) ExitInstrOp(ctx *parser.InstrOpContext) {
 	} else {
 		l.AddAction(action)
 	}
+}
 
+// EnterInstrStartNextLoop is called when production InstrStartNextLoop is entered.
+func (l *RcalcParserListener) EnterInstrStartNextLoop(ctx *parser.InstrStartNextLoopContext) {
+	loopContext := &StartEndLoopContext{
+		actions: nil,
+	}
+	l.StartNewContext(loopContext)
+}
+
+// ExitInstrStartNextLoop is called when production InstrStartNextLoop is exited.
+func (l *RcalcParserListener) ExitInstrStartNextLoop(ctx *parser.InstrStartNextLoopContext) {
+	l.BackToParentContext()
 }
 
 func ParseToActions(cmds string, lexerName string, registry *ActionRegistry) ([]Action, error) {
@@ -139,7 +234,7 @@ func ParseToActions(cmds string, lexerName string, registry *ActionRegistry) ([]
 	p := parser.NewRcalcParser(stream)
 
 	// Finally parse the expression (by walking the tree)
-	var listener RcalcParserListener = RcalcParserListener{registry: registry}
-	antlr.ParseTreeWalkerDefault.Walk(&listener, p.Start())
-	return listener.actions, nil
+	var listener *RcalcParserListener = CreateRcalcParserListener(registry)
+	antlr.ParseTreeWalkerDefault.Walk(listener, p.Start())
+	return listener.rootPc.GetActions(), nil
 }

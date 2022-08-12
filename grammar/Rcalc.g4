@@ -23,6 +23,10 @@ BRACKET_CLOSE: ']';
 PROG_OPEN: '<<';
 PROG_CLOSE: '>>';
 
+KW_START: 'start';
+KW_FOR: 'for';
+KW_NEXT: 'next';
+
 NAME: [a-zA-Z][a-zA-Z0-9]*;
 
 WHITESPACE: [ \r\n\t]+ -> skip;
@@ -34,7 +38,13 @@ instr
     : action_or_var_call         # InstrActionOrVarCall
     | op=(ADD | SUB | MUL | DIV) # InstrOp
     | variable                   # InstrVariable
+    | start_next_loop            # InstrStartNextLoop
+    | for_next_loop              # InstrForNextLoop
     ;
+
+start_next_loop: KW_START instr+ KW_NEXT ;
+for_next_loop: KW_FOR action_or_var_call instr+ KW_NEXT ;
+
 
 variable
     : number     # VariableNumber
