@@ -16,6 +16,7 @@ func TestStartNextLoop(t *testing.T) {
 	stack.Push(end)
 
 	system := CreateSystemInstance()
+	runtimeContext := CreateRuntimeContext(system, &stack)
 
 	var actions []Action = make([]Action, 3)
 	actions[0] = &dupOp
@@ -24,7 +25,7 @@ func TestStartNextLoop(t *testing.T) {
 
 	loop := CreateStartNextLoopAction(actions)
 
-	err := loop.Apply(system, &stack)
+	err := loop.Apply(runtimeContext)
 	if assert.NoError(t, err, "Loop should work") {
 		if assert.Equal(t, stack.Size(), 4) {
 			for i := 1; i <= 3; i++ {

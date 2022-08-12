@@ -32,7 +32,7 @@ func (rt *RuntimeContext) RunAction(action Action) error {
 		if !typesOK {
 			return err
 		} else {
-			applyErr := action.Apply(rt.system, rt.stack)
+			applyErr := action.Apply(rt)
 			if applyErr != nil {
 				return applyErr
 			}

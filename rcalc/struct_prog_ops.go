@@ -19,8 +19,8 @@ func (a *StartNextLoopActionDesc) CheckTypes(elts ...Variable) (bool, error) {
 	return true, nil
 }
 
-func (a *StartNextLoopActionDesc) Apply(system System, stack *Stack) error {
-	boundaries, err := stack.PopN(2)
+func (a *StartNextLoopActionDesc) Apply(runtimeContext *RuntimeContext) error {
+	boundaries, err := runtimeContext.stack.PopN(2)
 	if err != nil {
 		return err
 	}
@@ -28,7 +28,7 @@ func (a *StartNextLoopActionDesc) Apply(system System, stack *Stack) error {
 	end := boundaries[1].asNumericVar().value.IntPart()
 	for i := start; i <= end; i++ {
 		for _, action := range a.actions {
-			err = action.Apply(system, stack)
+			err = action.Apply(runtimeContext)
 			if err != nil {
 				return err
 			}

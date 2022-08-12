@@ -8,20 +8,6 @@ import (
 	parser "troisdizaines.com/rcalc/rcalc/parser"
 )
 
-type Program struct {
-	actions []Action
-}
-
-func (p *Program) Run(stack *Stack, system System) error {
-	for _, action := range p.actions {
-		err := action.Apply(system, stack)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 type VariablePutOnStackActionDesc struct {
 	value Variable
 }
@@ -34,8 +20,8 @@ func (a *VariablePutOnStackActionDesc) CheckTypes(elts ...Variable) (bool, error
 	return true, nil
 }
 
-func (a *VariablePutOnStackActionDesc) Apply(system System, stack *Stack) error {
-	stack.Push(a.value)
+func (a *VariablePutOnStackActionDesc) Apply(runtimeContext *RuntimeContext) error {
+	runtimeContext.stack.Push(a.value)
 	return nil
 }
 
