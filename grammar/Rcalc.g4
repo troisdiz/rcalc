@@ -43,8 +43,9 @@ instr
     ;
 
 start_next_loop: KW_START instr+ KW_NEXT ;
-for_next_loop: KW_FOR action_or_var_call instr+ KW_NEXT ;
+for_next_loop: KW_FOR variableDeclaration instr+ KW_NEXT ;
 
+variableDeclaration: NAME #DeclarationVariable;
 
 variable
     : number     # VariableNumber

@@ -3,9 +3,10 @@ package rcalc
 import "fmt"
 
 type RuntimeContext struct {
-	system    System
-	stack     *Stack
-	rootScope *Scope
+	system       System
+	stack        *Stack
+	rootScope    *Scope
+	currentScope *Scope
 }
 
 func CreateRuntimeContext(system System, stack *Stack) *RuntimeContext {
@@ -63,4 +64,26 @@ func (s *Scope) SetVariableValue(varName string, value Variable) error {
 	// TODO: should we check for shadowing ?
 	s.variables[varName] = value
 	return nil
+}
+
+func (rt *RuntimeContext) GetVariableValue(varName string) (Variable, error) {
+	return rt.currentScope.GetVariableValue(varName)
+}
+
+func (rt *RuntimeContext) SetVariableValue(varName string, value Variable) error {
+	return rt.currentScope.SetVariableValue(varName, value)
+}
+
+func (rt *RuntimeContext) EnterNewScope() {
+	newScope := &Scope{
+		parent:    rt.currentScope,
+		rt:        rt,
+		variables: nil,
+	}
+	rt.currentScope = newScope
+}
+
+func (rt *RuntimeContext) LeaveScope() {
+	rt.currentScope.rt = nil
+	rt.currentScope = rt.currentScope.parent
 }

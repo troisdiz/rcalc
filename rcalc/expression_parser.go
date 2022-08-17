@@ -102,16 +102,21 @@ func (pc *BaseParseContext) GetActions() []Action {
 
 type StartEndLoopContext struct {
 	BaseParseContext
-
-	actions []Action
-}
-
-func (pc *StartEndLoopContext) AddAction(action Action) {
-	pc.actions = append(pc.actions, action)
 }
 
 func (pc *StartEndLoopContext) CreateFinalAction() Action {
-	return &StartNextLoopActionDesc{actions: pc.actions}
+	return &StartNextLoopActionDesc{actions: pc.BaseParseContext.actions}
+}
+
+type ForNextLoopContext struct {
+	BaseParseContext
+}
+
+func (pc *ForNextLoopContext) CreateFinalAction() Action {
+	return &ForNextLoopActionDesc{
+		varName: pc.BaseParseContext.idDeclarations[0],
+		actions: pc.BaseParseContext.actions,
+	}
 }
 
 type RcalcParserListener struct {
@@ -137,6 +142,10 @@ func CreateRcalcParserListener(registry *ActionRegistry) *RcalcParserListener {
 
 func (l *RcalcParserListener) AddAction(action Action) {
 	l.currentPc.AddAction(action)
+}
+
+func (l *RcalcParserListener) AddVarName(varName string) {
+	l.currentPc.AddIdentifier(varName)
 }
 
 func (l *RcalcParserListener) StartNewContext(ctx ParseContext) {
@@ -178,8 +187,22 @@ func (l *RcalcParserListener) ExitInstrActionOrVarCall(ctx *parser.InstrActionOr
 	fmt.Println("ExitInstrActionOrVarCall")
 	action, err := parseAction(ctx.GetText(), l.registry)
 	if err != nil {
-		ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
+		//ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
+		l.AddAction(&VariableEvaluationActionDesc{varName: ctx.GetText()})
 	} else {
+		l.AddAction(action)
+	}
+}
+
+// ExitDeclarationVariable is called when exiting the DeclarationVariable production.
+func (l *RcalcParserListener) ExitDeclarationVariable(ctx *parser.DeclarationVariableContext) {
+	fmt.Println("ExitInstrActionOrVarCall")
+	action, err := parseAction(ctx.GetText(), l.registry)
+	if err != nil {
+		//ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
+		l.AddVarName(ctx.GetText())
+	} else {
+		//TODO we should raise error here
 		l.AddAction(action)
 	}
 }
@@ -197,14 +220,23 @@ func (l *RcalcParserListener) ExitInstrOp(ctx *parser.InstrOpContext) {
 
 // EnterInstrStartNextLoop is called when production InstrStartNextLoop is entered.
 func (l *RcalcParserListener) EnterInstrStartNextLoop(ctx *parser.InstrStartNextLoopContext) {
-	loopContext := &StartEndLoopContext{
-		actions: nil,
-	}
+	loopContext := &StartEndLoopContext{}
 	l.StartNewContext(loopContext)
 }
 
 // ExitInstrStartNextLoop is called when production InstrStartNextLoop is exited.
 func (l *RcalcParserListener) ExitInstrStartNextLoop(ctx *parser.InstrStartNextLoopContext) {
+	l.BackToParentContext()
+}
+
+// EnterInstrForNextLoop is called when exiting the InstrForNextLoop production.
+func (l *RcalcParserListener) EnterInstrForNextLoop(c *parser.InstrForNextLoopContext) {
+	loopContext := &ForNextLoopContext{}
+	l.StartNewContext(loopContext)
+}
+
+// ExitInstrForNextLoop is called when exiting the InstrForNextLoop production.
+func (l *RcalcParserListener) ExitInstrForNextLoop(c *parser.InstrForNextLoopContext) {
 	l.BackToParentContext()
 }
 
