@@ -8,31 +8,6 @@ import (
 	parser "troisdizaines.com/rcalc/rcalc/parser"
 )
 
-type VariablePutOnStackActionDesc struct {
-	value Variable
-}
-
-func (a *VariablePutOnStackActionDesc) NbArgs() int {
-	return 0
-}
-
-func (a *VariablePutOnStackActionDesc) CheckTypes(elts ...Variable) (bool, error) {
-	return true, nil
-}
-
-func (a *VariablePutOnStackActionDesc) Apply(runtimeContext *RuntimeContext) error {
-	runtimeContext.stack.Push(a.value)
-	return nil
-}
-
-func (a *VariablePutOnStackActionDesc) OpCode() string {
-	return "__hidden__" + "PutOnStack"
-}
-
-func (a *VariablePutOnStackActionDesc) String() string {
-	return fmt.Sprintf("%s(%s)", a.OpCode(), a.value.String())
-}
-
 func parserNumber(txt string) (Variable, error) {
 	number, err := decimal.NewFromString(txt)
 	if err != nil {
