@@ -215,6 +215,35 @@ func (l *RcalcParserListener) ExitInstrForNextLoop(c *parser.InstrForNextLoopCon
 	l.BackToParentContext()
 }
 
+type RcalcParserErrorListener struct {
+	messages []string
+}
+
+func (el *RcalcParserErrorListener) HasErrors() bool {
+	return len(el.messages) > 0
+
+}
+
+func (el *RcalcParserErrorListener) SyntaxError(recognizer antlr.Recognizer, offendingSymbol interface{}, line, column int, msg string, e antlr.RecognitionException) {
+	message := fmt.Sprintf("SyntaxError (%d, %d) : %s", line, column, msg)
+	el.messages = append(el.messages, message)
+}
+
+func (el *RcalcParserErrorListener) ReportAmbiguity(recognizer antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex int, exact bool, ambigAlts *antlr.BitSet, configs antlr.ATNConfigSet) {
+	message := fmt.Sprintf("ReportAmbiguity")
+	el.messages = append(el.messages, message)
+}
+
+func (el *RcalcParserErrorListener) ReportAttemptingFullContext(recognizer antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex int, conflictingAlts *antlr.BitSet, configs antlr.ATNConfigSet) {
+	message := fmt.Sprintf("ReportAttemptingFullContext")
+	el.messages = append(el.messages, message)
+}
+
+func (el *RcalcParserErrorListener) ReportContextSensitivity(recognizer antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex, prediction int, configs antlr.ATNConfigSet) {
+	message := fmt.Sprintf("ReportContextSensitivity")
+	el.messages = append(el.messages, message)
+}
+
 func ParseToActions(cmds string, lexerName string, registry *ActionRegistry) ([]Action, error) {
 
 	is := antlr.NewInputStream(cmds)
@@ -226,8 +255,16 @@ func ParseToActions(cmds string, lexerName string, registry *ActionRegistry) ([]
 	// Create the Parser
 	p := parser.NewRcalcParser(stream)
 
+	// Error Listener
+	el := &RcalcParserErrorListener{}
+
 	// Finally parse the expression (by walking the tree)
 	var listener *RcalcParserListener = CreateRcalcParserListener(registry)
+	//p.RemoveErrorListeners()
+	p.AddErrorListener(el)
 	antlr.ParseTreeWalkerDefault.Walk(listener, p.Start())
+	if el.HasErrors() {
+		return nil, fmt.Errorf("There are %d error(s)", len(el.messages))
+	}
 	return listener.rootPc.GetActions(), nil
 }
