@@ -230,17 +230,17 @@ func (el *RcalcParserErrorListener) SyntaxError(recognizer antlr.Recognizer, off
 }
 
 func (el *RcalcParserErrorListener) ReportAmbiguity(recognizer antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex int, exact bool, ambigAlts *antlr.BitSet, configs antlr.ATNConfigSet) {
-	message := fmt.Sprintf("ReportAmbiguity")
+	message := "ReportAmbiguity"
 	el.messages = append(el.messages, message)
 }
 
 func (el *RcalcParserErrorListener) ReportAttemptingFullContext(recognizer antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex int, conflictingAlts *antlr.BitSet, configs antlr.ATNConfigSet) {
-	message := fmt.Sprintf("ReportAttemptingFullContext")
+	message := "ReportAttemptingFullContext"
 	el.messages = append(el.messages, message)
 }
 
 func (el *RcalcParserErrorListener) ReportContextSensitivity(recognizer antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex, prediction int, configs antlr.ATNConfigSet) {
-	message := fmt.Sprintf("ReportContextSensitivity")
+	message := "ReportContextSensitivity"
 	el.messages = append(el.messages, message)
 }
 
