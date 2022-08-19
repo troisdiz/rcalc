@@ -90,16 +90,7 @@ func TestAntlrParseForNextLoopError(t *testing.T) {
 	var txt string = "1 3 for i 1"
 	var registry *ActionRegistry = initRegistry()
 
-	elt, err := ParseToActions(txt, "Test", registry)
-	if assert.NoError(t, err, "Parse error : %s", err) {
-		fmt.Println(elt)
-		if assert.Len(t, elt, 3) {
-			assert.IsType(t, &ForNextLoopActionDesc{}, elt[2])
-			forNextLoopActionDesc := elt[2].(*ForNextLoopActionDesc)
-			loopActions := forNextLoopActionDesc.actions
-			if assert.Len(t, loopActions, 1) {
-				assert.IsType(t, &VariablePutOnStackActionDesc{}, loopActions[0])
-			}
-		}
-	}
+	_, err := ParseToActions(txt, "Test", registry)
+
+	assert.Errorf(t, err, "")
 }
