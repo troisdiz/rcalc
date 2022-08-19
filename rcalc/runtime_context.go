@@ -78,7 +78,7 @@ func (rt *RuntimeContext) EnterNewScope() {
 	newScope := &Scope{
 		parent:    rt.currentScope,
 		rt:        rt,
-		variables: nil,
+		variables: make(map[string]Variable),
 	}
 	rt.currentScope = newScope
 }
