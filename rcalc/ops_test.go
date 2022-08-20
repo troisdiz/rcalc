@@ -14,8 +14,8 @@ func TestCrDirAction(t *testing.T) {
 	stack.Push(id1)
 
 	system := CreateSystemInstance()
-
-	err := crdirAct.Apply(system, &stack)
+	runtimeContext := CreateRuntimeContext(system, &stack)
+	err := crdirAct.Apply(runtimeContext)
 	assert.NoError(t, err, "Creation of folder should work")
 	rootFolder := system.Memory().getRoot()
 	subFolders := rootFolder.subFolders
