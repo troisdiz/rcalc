@@ -107,7 +107,7 @@ var drop2Op = NewStackOp("drop2", 2, func(elts ...Variable) []Variable {
 })
 
 var swapOp = NewStackOp("swap", 2, func(elts ...Variable) []Variable {
-	return []Variable{elts[0], elts[1]}
+	return []Variable{elts[1], elts[0]}
 })
 
 // rot, roll, pick
