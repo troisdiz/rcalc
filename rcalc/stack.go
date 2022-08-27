@@ -3,6 +3,7 @@ package rcalc
 import (
 	"fmt"
 	"github.com/shopspring/decimal"
+	"strings"
 )
 
 type Type int
@@ -13,6 +14,7 @@ const (
 	TYPE_BOOL       Type = 2
 	TYPE_STR        Type = 3
 	TYPE_IDENTIFIER Type = 4
+	TYPE_PROGRAM    Type = 5
 )
 
 type Variable interface {
@@ -20,6 +22,7 @@ type Variable interface {
 	asNumericVar() NumericVariable
 	asBooleanVar() BooleanVariable
 	asIdentifierVar() IdentifierVariable
+	asProgramVar() *ProgramVariable
 	display() string
 	String() string
 }
@@ -41,7 +44,11 @@ func (se *CommonVariable) asBooleanVar() BooleanVariable {
 }
 
 func (se *CommonVariable) asIdentifierVar() IdentifierVariable {
-	panic("This is not an Indentifier variable")
+	panic("This is not an Identifier variable")
+}
+
+func (se *CommonVariable) asProgramVar() *ProgramVariable {
+	panic("This is not a Program variable")
 }
 
 func (se *CommonVariable) String() string {
@@ -129,6 +136,33 @@ func CreateIdentifierVariable(value string) Variable {
 		value:          value,
 	}
 	return &result
+}
+
+type ProgramVariable struct {
+	CommonVariable
+	actions []Action
+}
+
+func (p *ProgramVariable) display() string {
+
+	actionStr := []string{}
+	for _, action := range p.actions {
+		actionStr = append(actionStr, action.Display())
+	}
+	return fmt.Sprintf(" << %s >>", strings.Join(actionStr, " "))
+}
+
+func (p *ProgramVariable) asProgramVar() *ProgramVariable {
+	return p
+}
+
+func CreateProgramVariable(actions []Action) *ProgramVariable {
+	return &ProgramVariable{
+		CommonVariable: CommonVariable{
+			fType: TYPE_PROGRAM,
+		},
+		actions: actions,
+	}
 }
 
 type Stack struct {

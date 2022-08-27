@@ -94,6 +94,15 @@ func (pc *ForNextLoopContext) CreateFinalAction() Action {
 	}
 }
 
+type ProgramContext struct {
+	BaseParseContext
+}
+
+func (pc *ProgramContext) CreateFinalAction() Action {
+	progVar := CreateProgramVariable(pc.actions)
+	return &VariablePutOnStackActionDesc{value: progVar}
+}
+
 type RcalcParserListener struct {
 	*parser.BaseRcalcListener
 
@@ -214,6 +223,20 @@ func (l *RcalcParserListener) EnterInstrForNextLoop(c *parser.InstrForNextLoopCo
 func (l *RcalcParserListener) ExitInstrForNextLoop(c *parser.InstrForNextLoopContext) {
 	l.BackToParentContext()
 }
+
+// EnterInstrProgramDeclaration is called when entering the InstrProgramDeclaration production.
+func (l *RcalcParserListener) EnterInstrProgramDeclaration(c *parser.InstrProgramDeclarationContext) {
+	l.StartNewContext(&ProgramContext{})
+}
+
+// ExitInstrProgramDeclaration is called when entering the InstrProgramDeclaration production.
+func (l *RcalcParserListener) ExitInstrProgramDeclaration(c *parser.InstrProgramDeclarationContext) {
+	//programContext := l.currentPc
+	l.BackToParentContext()
+	//l.AddAction(programContext.CreateFinalAction())
+}
+
+/* Error Reporting */
 
 type RcalcParserErrorListener struct {
 	messages []string

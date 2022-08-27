@@ -7,6 +7,7 @@ type Action interface {
 	NbArgs() int
 	CheckTypes(elts ...Variable) (bool, error)
 	Apply(runtimeContext *RuntimeContext) error
+	Display() string
 }
 
 type ActionCommonDesc struct {
@@ -45,6 +46,10 @@ func (a *ActionDesc) CheckTypes(elts ...Variable) (bool, error) {
 
 func (a *ActionDesc) Apply(runtimeContext *RuntimeContext) error {
 	return a.actionApplyFn(runtimeContext.system, runtimeContext.stack)
+}
+
+func (a *ActionDesc) Display() string {
+	return a.OpCode()
 }
 
 // OperationDesc implementation of Action interface
@@ -97,6 +102,10 @@ func (op *OperationDesc) Apply(runtimeContext *RuntimeContext) error {
 		runtimeContext.stack.Push(elt)
 	}
 	return nil
+}
+
+func (op *OperationDesc) Display() string {
+	return op.opCode
 }
 
 type PureOperationApplyFn func(elts ...Variable) []Variable

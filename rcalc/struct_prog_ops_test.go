@@ -27,7 +27,7 @@ func TestStartNextLoop(t *testing.T) {
 
 	err := loop.Apply(runtimeContext)
 	if assert.NoError(t, err, "Loop should work") {
-		if assert.Equal(t, stack.Size(), 4) {
+		if assert.Equal(t, 4, stack.Size()) {
 			for i := 1; i <= 3; i++ {
 				value, err := stack.Get(4 - i)
 				if assert.NoError(t, err) {
@@ -36,5 +36,37 @@ func TestStartNextLoop(t *testing.T) {
 			}
 		}
 	}
+}
 
+func TestVariableDeclarationProgram(t *testing.T) {
+	var v1 = CreateNumericVariableFromInt(4)
+	var v2 = CreateNumericVariableFromInt(2)
+
+	stack := CreateStack()
+	stack.Push(v1)
+	stack.Push(v2)
+
+	system := CreateSystemInstance()
+	runtimeContext := CreateRuntimeContext(system, &stack)
+
+	programVariable := CreateProgramVariable([]Action{
+		&VariableEvaluationActionDesc{varName: "i"},
+		&VariableEvaluationActionDesc{varName: "j"},
+		&divOp, // use division such that is not commutative and this checks the order or arguments
+	})
+
+	varDecl := &VariableDeclarationActionDesc{
+		varNames:        []string{"i", "j"},
+		programVariable: programVariable,
+	}
+
+	err := varDecl.Apply(runtimeContext)
+	if assert.NoError(t, err, "Error while running action") {
+		if assert.Equal(t, 1, stack.Size()) {
+			value, err := stack.PeekN(1)
+			if assert.NoError(t, err, "No element on stack") {
+				assert.Equal(t, int64(2), value[0].asNumericVar().value.IntPart())
+			}
+		}
+	}
 }

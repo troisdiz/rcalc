@@ -40,10 +40,17 @@ instr
     | variable                   # InstrVariable
     | start_next_loop            # InstrStartNextLoop
     | for_next_loop              # InstrForNextLoop
+    | program_declaration        # InstrProgramDeclaration
+    | local_var_creation         # InstrLocalVarCreation
     ;
 
 start_next_loop: KW_START instr+ KW_NEXT ;
 for_next_loop: KW_FOR variableDeclaration instr+ KW_NEXT ;
+program_declaration: PROG_OPEN instr+ PROG_CLOSE ;
+local_var_creation
+    : '->' variableDeclaration+ program_declaration # LocalVarCreationProgram
+//    | '->' variableDeclaration+ identifier          # LocalVarCreationAlgebraicExpr
+    ;
 
 variableDeclaration: NAME #DeclarationVariable;
 
@@ -55,8 +62,8 @@ variable
     ;
 
 number
-    : INT_NUMBER # NumberInt
-    | DECIMAL_NUMBER # NumberDecimal
+    : INT_NUMBER        # NumberInt
+    | DECIMAL_NUMBER    # NumberDecimal
     | SCIENTIFIC_NUMBER # NumberScientific
     ;
 
