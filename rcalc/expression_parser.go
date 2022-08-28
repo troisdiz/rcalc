@@ -39,6 +39,8 @@ type ParseContext interface {
 
 	BackFromChild(child ParseContext)
 	CreateFinalAction() Action
+
+	TokenVisited(token int)
 }
 
 type BaseParseContext struct {
@@ -46,6 +48,8 @@ type BaseParseContext struct {
 	actions        []Action
 	idDeclarations []string
 }
+
+func (pc *BaseParseContext) TokenVisited(token int) {}
 
 func (pc *BaseParseContext) CreateFinalAction() Action {
 	panic("CreateFinalAction must be implemented by sub structures")
@@ -73,6 +77,37 @@ func (pc *BaseParseContext) AddIdentifier(id string) {
 
 func (pc *BaseParseContext) GetActions() []Action {
 	return pc.actions
+}
+
+type IfThenElseContext struct {
+	BaseParseContext // to avoid reimplementing the interface
+
+	actions       [][]Action
+	currentAction int
+}
+
+func (i *IfThenElseContext) AddAction(action Action) {
+	i.actions[i.currentAction] = append(i.actions[i.currentAction], action)
+}
+
+func (i *IfThenElseContext) TokenVisited(token int) {
+	switch token {
+	case parser.RcalcLexerKW_IF:
+		i.actions = make([][]Action, 3)
+		i.currentAction = 0
+	case parser.RcalcLexerKW_THEN:
+		i.currentAction = 1
+	case parser.RcalcLexerKW_ELSE:
+		i.currentAction = 2
+	}
+}
+
+func (i *IfThenElseContext) CreateFinalAction() Action {
+	return &IfThenElseActionDesc{
+		ifActions:   i.actions[0],
+		thenActions: i.actions[1],
+		elseActions: i.actions[2],
+	}
 }
 
 type StartEndLoopContext struct {
@@ -143,6 +178,10 @@ func (l *RcalcParserListener) BackToParentContext() {
 	l.currentPc.BackFromChild(oldCurrent)
 }
 
+func (l *RcalcParserListener) TokenVisited(token int) {
+	l.currentPc.TokenVisited(token)
+}
+
 // ExitVariableNumber is called when production InstrNumber is exited.
 func (l *RcalcParserListener) ExitVariableNumber(ctx *parser.VariableNumberContext) {
 	fmt.Printf("ExitInstrNumber: %s\n", ctx.GetText())
@@ -200,6 +239,21 @@ func (l *RcalcParserListener) ExitInstrOp(ctx *parser.InstrOpContext) {
 	} else {
 		l.AddAction(action)
 	}
+}
+
+func (l *RcalcParserListener) VisitTerminal(node antlr.TerminalNode) {
+	l.TokenVisited(node.GetSymbol().GetTokenType())
+	//fmt.Printf("VisitTerminal : #%s# / #%d#\n", node.GetSymbol().GetText(), node.GetSymbol().GetTokenType())
+}
+
+// EnterInstIfThenElse is called when entering the InstIfThenElse production.
+func (l *RcalcParserListener) EnterInstIfThenElse(c *parser.InstIfThenElseContext) {
+	l.StartNewContext(&IfThenElseContext{})
+}
+
+// ExitInstIfThenElse is called when entering the InstIfThenElse production.
+func (l *RcalcParserListener) ExitInstIfThenElse(c *parser.InstIfThenElseContext) {
+	l.BackToParentContext()
 }
 
 // EnterInstrStartNextLoop is called when production InstrStartNextLoop is entered.

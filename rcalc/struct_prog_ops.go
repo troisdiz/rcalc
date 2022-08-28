@@ -122,6 +122,76 @@ func (a *VariableEvaluationActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
 	}
 }
 
+type IfThenElseActionDesc struct {
+	ifActions   []Action
+	thenActions []Action
+	elseActions []Action
+}
+
+func (a *IfThenElseActionDesc) OpCode() string {
+	return "__hidden__" + "IfThenElse"
+}
+
+func (a *IfThenElseActionDesc) NbArgs() int {
+	return 0
+}
+
+func (a *IfThenElseActionDesc) CheckTypes(elts ...Variable) (bool, error) {
+	return true, nil
+}
+
+func (a *IfThenElseActionDesc) Apply(runtimeContext *RuntimeContext) error {
+	for _, action := range a.ifActions {
+		err := runtimeContext.RunAction(action)
+		if err != nil {
+			return err
+		}
+	}
+	boolVar, err := runtimeContext.stack.Pop()
+	if err != nil {
+		return err
+	}
+	var nextActions []Action
+	if boolVar.asBooleanVar().value {
+		nextActions = a.thenActions
+	} else {
+		nextActions = a.elseActions
+	}
+	for _, action := range nextActions {
+		err := runtimeContext.RunAction(action)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (a *IfThenElseActionDesc) Display() string {
+	ifActionsStr := []string{}
+	for _, action := range a.ifActions {
+		ifActionsStr = append(ifActionsStr, action.Display())
+	}
+	thenActionsStr := []string{}
+	for _, action := range a.thenActions {
+		ifActionsStr = append(thenActionsStr, action.Display())
+	}
+	elseActionsStr := []string{}
+	for _, action := range a.elseActions {
+		ifActionsStr = append(elseActionsStr, action.Display())
+	}
+	if len(elseActionsStr) == 0 {
+
+		return fmt.Sprintf("if %s then %s end",
+			strings.Join(ifActionsStr, " "),
+			strings.Join(thenActionsStr, " "))
+	} else {
+		return fmt.Sprintf("if %s then %s else %s end",
+			strings.Join(ifActionsStr, " "),
+			strings.Join(thenActionsStr, " "),
+			strings.Join(elseActionsStr, " "))
+	}
+}
+
 type StartNextLoopActionDesc struct {
 	actions []Action
 }
