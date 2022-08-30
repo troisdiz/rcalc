@@ -1,0 +1,47 @@
+syntax= "proto3";
+
+option go_package = "troisdizaines.com/rcalc/protostack";
+
+enum VariableType {
+  DEFAULT = 0;
+  NUMBER = 1;
+  BOOLEAN = 2;
+  PROGRAM = 3;
+
+}
+
+message Variable {
+  VariableType type = 1;
+  oneof realVar {
+    NumberVariable number = 2;
+    BooleanVariable bool = 3;
+    ProgramVariable program = 4;
+  }
+}
+
+message NumberVariable {
+  string value = 1;
+}
+
+message BooleanVariable {
+  bool value = 1;
+}
+
+message ProgramVariable {
+  repeated Action actions = 1;
+}
+
+message Action {
+  string opCode = 1;
+
+}
+
+enum ActionType {
+  OPERATION = 0;
+  CUSTOM = 1;
+
+}
+
+message Stack {
+  repeated Variable elements= 1;
+}

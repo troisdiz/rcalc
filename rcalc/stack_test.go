@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/proto"
 	"testing"
+	"troisdizaines.com/rcalc/rcalc/protostack"
 )
 
 func TestEmptyStack(t *testing.T) {
@@ -94,4 +96,22 @@ func TestNumericStackEltType(t *testing.T) {
 func TestBooleanStackEltType(t *testing.T) {
 	bse := CreateBooleanVariable(true)
 	assert.Equal(t, TYPE_BOOL, bse.getType(), "Type should be %d and is %d", TYPE_BOOL, bse.getType())
+}
+
+func TestSaveProtobuf(t *testing.T) {
+	protoStack := protostack.Stack{
+		Elements: nil,
+	}
+	out, err := proto.Marshal(&protoStack)
+	if err != nil {
+		t.Errorf("Seriablization failed")
+	}
+
+	readStack := protostack.Stack{}
+
+	err = proto.Unmarshal(out, &readStack)
+	if err != nil {
+		t.Errorf("Error while reading")
+	}
+
 }
