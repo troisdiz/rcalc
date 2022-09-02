@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/shopspring/decimal"
 	"strings"
+	"troisdizaines.com/rcalc/rcalc/protostack"
 )
 
 type Type int
@@ -165,6 +166,50 @@ func CreateProgramVariable(actions []Action) *ProgramVariable {
 	}
 }
 
+func CreateVariableFromProto(protoVariable *protostack.Variable) (Variable, error) {
+	switch protoVariable.GetType() {
+	case protostack.VariableType_NUMBER:
+		protoNumber := protoVariable.GetNumber()
+		decimalNumber := decimal.NewFromInt(0)
+		err := decimalNumber.UnmarshalBinary(protoNumber.GetValue())
+		if err != nil {
+			return nil, err
+		}
+		return CreateNumericVariable(decimalNumber), nil
+	case protostack.VariableType_BOOLEAN:
+		return CreateBooleanVariable(protoVariable.GetBool().GetValue()), nil
+	case protostack.VariableType_PROGRAM:
+		panic("Unmarshalling of programs not implemented yet")
+	default:
+		return nil, fmt.Errorf("unknown variable type")
+	}
+}
+
+func CreateProtoFromVariable(variable Variable) (*protostack.Variable, error) {
+	switch variable.getType() {
+	case TYPE_NUMERIC:
+		binaryNumber, err := variable.asNumericVar().value.MarshalBinary()
+		if err != nil {
+			return nil, err
+		}
+		protoNumVar := &protostack.NumberVariable{Value: binaryNumber}
+		protoVar := &protostack.Variable{
+			Type:    protostack.VariableType_NUMBER,
+			RealVar: &protostack.Variable_Number{Number: protoNumVar},
+		}
+		return protoVar, nil
+	case TYPE_BOOL:
+		protoBoolVar := &protostack.BooleanVariable{Value: variable.asBooleanVar().value}
+		return &protostack.Variable{
+			Type:    protostack.VariableType_BOOLEAN,
+			RealVar: &protostack.Variable_Bool{Bool: protoBoolVar},
+		}, nil
+	default:
+		return nil, fmt.Errorf("marshalling of programs not implemented yet")
+	}
+
+}
+
 type Stack struct {
 	// Storge of the stack, top element at index 0, bottom at length-1 (end of array)
 	elts []Variable
@@ -173,6 +218,30 @@ type Stack struct {
 func CreateStack() Stack {
 	var s = Stack{}
 	return s
+}
+
+func CreateStackFromProto(protoStack *protostack.Stack) (*Stack, error) {
+	stack := CreateStack()
+	for _, protoElt := range protoStack.Elements {
+		variable, err := CreateVariableFromProto(protoElt)
+		if err != nil {
+			return nil, err
+		}
+		stack.elts = append(stack.elts, variable)
+	}
+	return &stack, nil
+}
+
+func CreateProtoFromStack(stack *Stack) (*protostack.Stack, error) {
+	protoStack := &protostack.Stack{}
+	for _, variable := range stack.elts {
+		protoVar, err := CreateProtoFromVariable(variable)
+		if err != nil {
+			return nil, fmt.Errorf("cannot marshal variable %w", err)
+		}
+		protoStack.Elements = append(protoStack.Elements, protoVar)
+	}
+	return protoStack, nil
 }
 
 func (s *Stack) Size() int {

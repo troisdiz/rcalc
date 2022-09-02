@@ -20,7 +20,7 @@ message Variable {
 }
 
 message NumberVariable {
-  string value = 1;
+  bytes value = 1;
 }
 
 message BooleanVariable {
@@ -32,7 +32,11 @@ message ProgramVariable {
 }
 
 message Action {
-  string opCode = 1;
+  ActionType type = 1;
+  oneof realAction {
+    string opCode = 2;
+
+  }
 
 }
 
