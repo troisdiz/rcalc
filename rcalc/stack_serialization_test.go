@@ -11,7 +11,7 @@ func TestSaveAndReadStack(t *testing.T) {
 	var stack Stack = CreateStack()
 	v1 := CreateNumericVariableFromInt(2)
 	v2 := CreateBooleanVariable(true)
-	v3 := CreateProgramVariable([]Action{})
+	//v3 := CreateProgramVariable([]Action{})
 	(&stack).Push(v1)
 	(&stack).Push(v2)
 	//(&stack).Push(v3)
