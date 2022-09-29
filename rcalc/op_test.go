@@ -14,7 +14,7 @@ func TestAddApply(t *testing.T) {
 	stack := CreateStack()
 	stack.Push(i1)
 	stack.Push(i2)
-	runtimeContext := CreateRuntimeContext(nil, &stack)
+	runtimeContext := CreateRuntimeContext(nil, stack)
 	err := addOp.Apply(runtimeContext)
 	if assert.NoError(t, err) {
 		i3, err := stack.Pop()

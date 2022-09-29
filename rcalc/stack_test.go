@@ -10,12 +10,12 @@ import (
 )
 
 func TestEmptyStack(t *testing.T) {
-	var s Stack = CreateStack()
+	var s *Stack = CreateStack()
 	assert.True(t, s.IsEmpty(), "Stack should be empty on creation")
 }
 
 func TestPeekN(t *testing.T) {
-	var s Stack = CreateStack()
+	var s *Stack = CreateStack()
 	se1 := CreateNumericVariableFromInt(2)
 	s.Push(se1)
 	se2 := CreateNumericVariableFromInt(7)
@@ -32,7 +32,7 @@ func TestPeekN(t *testing.T) {
 }
 
 func TestPushAndPop(t *testing.T) {
-	var s Stack = CreateStack()
+	var s *Stack = CreateStack()
 	se := CreateNumericVariableFromInt(2)
 	s.Push(se)
 	popped, _ := s.Pop()
@@ -42,7 +42,7 @@ func TestPushAndPop(t *testing.T) {
 }
 
 func TestPushAndPopN(t *testing.T) {
-	var s Stack = CreateStack()
+	var s *Stack = CreateStack()
 	var se1, se2 Variable
 	se1 = CreateNumericVariable(decimal.NewFromInt(2))
 	s.Push(se1)
@@ -55,7 +55,7 @@ func TestPushAndPopN(t *testing.T) {
 }
 
 func TestPushAndPopNAndSize(t *testing.T) {
-	var s Stack = CreateStack()
+	var s *Stack = CreateStack()
 	var se1, se2 Variable
 	se1 = CreateNumericVariable(decimal.NewFromInt(2))
 	s.Push(se1)
@@ -68,7 +68,7 @@ func TestPushAndPopNAndSize(t *testing.T) {
 }
 
 func TestPushAndSize(t *testing.T) {
-	var s Stack = CreateStack()
+	var s *Stack = CreateStack()
 	se := CreateNumericVariableFromInt(2)
 	s.Push(se)
 	// fmt.Printf("Size after 1 Push %d / %d\n", s.Size(), len(s.elts))
@@ -79,7 +79,7 @@ func TestPushAndSize(t *testing.T) {
 }
 
 func TestDisplayStack(t *testing.T) {
-	var s Stack = CreateStack()
+	var s *Stack = CreateStack()
 	se := CreateNumericVariable(decimal.NewFromInt(2))
 	s.Push(se)
 	fmt.Printf("Size after 1 Push %d / %d\n", s.Size(), len(s.elts))
@@ -113,5 +113,23 @@ func TestSaveProtobuf(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error while reading")
 	}
+
+}
+
+type StackTestListener struct {
+}
+
+func (sl *StackTestListener) SessionStart(s *Stack) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (sl *StackTestListener) SessionClose(s *Stack) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func TestStackListener(t *testing.T) {
+	// sl := &StackTestListener{}
 
 }

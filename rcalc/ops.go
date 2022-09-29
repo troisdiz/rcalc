@@ -25,7 +25,7 @@ var powOp = NewA2R1NumericOp("^", func(num1 decimal.Decimal, num2 decimal.Decima
 })
 
 var ArithmeticPackage = ActionPackage{
-	[]Action{&addOp, &subOp, &mulOp, &divOp, &powOp},
+	staticActions: []Action{&addOp, &subOp, &mulOp, &divOp, &powOp},
 }
 
 // Trigonometry package
@@ -55,7 +55,7 @@ var arcTanOp = NewA1R1NumericOp("atan", func(num decimal.Decimal) decimal.Decima
 })
 
 var TrigonometricPackage = ActionPackage{
-	[]Action{
+	staticActions: []Action{
 		&sinOp, &cosOp, &tanOp,
 		&arcSinOp, &arcCosOp, &arcTanOp,
 	},
@@ -83,7 +83,7 @@ var xandOp = NewA2R1BooleanOp("xand", func(b bool, b2 bool) bool {
 })
 
 var BooleanLogicPackage = ActionPackage{
-	[]Action{
+	staticActions: []Action{
 		&negOp, &andOp, &orOp, &xorOp, &xandOp,
 	},
 }
@@ -131,7 +131,7 @@ var depthAct = NewRawStackOpWithCheck("depth", 0, CheckNoop, func(system System,
 })
 
 var StackPackage = ActionPackage{
-	[]Action{
+	staticActions: []Action{
 		&dupOp,
 		&dup2Op,
 		&dropOp,
@@ -201,7 +201,7 @@ var purgeAct = NewActionDesc("purge", 1, CheckNoop, func(system System, stack *S
 // PURGE / PGDIR (only empty / delete recursively)
 
 var MemoryPackage = ActionPackage{
-	[]Action{
+	staticActions: []Action{
 		&storeAct,
 		&loadAct,
 		&crdirAct,

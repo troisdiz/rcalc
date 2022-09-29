@@ -166,7 +166,19 @@ func CreateProgramVariable(actions []Action) *ProgramVariable {
 	}
 }
 
-func CreateVariableFromProto(protoVariable *protostack.Variable) (Variable, error) {
+func CreateProtoFromProgram(prg *ProgramVariable) (*protostack.ProgramVariable, error) {
+	protoProgram := &protostack.ProgramVariable{}
+	for _, action := range prg.actions {
+		protoAction, err := action.MarshallFunc()(nil, action)
+		if err != nil {
+			return nil, err
+		}
+		protoProgram.Actions = append(protoProgram.Actions, protoAction)
+	}
+	return protoProgram, nil
+}
+
+func CreateVariableFromProto(reg *ActionRegistry, protoVariable *protostack.Variable) (Variable, error) {
 	switch protoVariable.GetType() {
 	case protostack.VariableType_NUMBER:
 		protoNumber := protoVariable.GetNumber()
@@ -179,10 +191,25 @@ func CreateVariableFromProto(protoVariable *protostack.Variable) (Variable, erro
 	case protostack.VariableType_BOOLEAN:
 		return CreateBooleanVariable(protoVariable.GetBool().GetValue()), nil
 	case protostack.VariableType_PROGRAM:
-		panic("Unmarshalling of programs not implemented yet")
+		return CreateProgramVariableFromProto(reg, protoVariable.GetProgram())
 	default:
 		return nil, fmt.Errorf("unknown variable type")
 	}
+}
+
+func CreateProgramVariableFromProto(
+	reg *ActionRegistry,
+	protoProgramVariable *protostack.ProgramVariable) (*ProgramVariable, error) {
+
+	var actions []Action
+	for _, protoAction := range protoProgramVariable.GetActions() {
+		action, err := reg.CreateActionFromProto(protoAction)
+		if err != nil {
+			return nil, err
+		}
+		actions = append(actions, action)
+	}
+	return CreateProgramVariable(actions), nil
 }
 
 func CreateProtoFromVariable(variable Variable) (*protostack.Variable, error) {
@@ -204,6 +231,15 @@ func CreateProtoFromVariable(variable Variable) (*protostack.Variable, error) {
 			Type:    protostack.VariableType_BOOLEAN,
 			RealVar: &protostack.Variable_Bool{Bool: protoBoolVar},
 		}, nil
+	case TYPE_PROGRAM:
+		protoProgramVar, err := CreateProtoFromProgram(variable.asProgramVar())
+		if err != nil {
+			return nil, err
+		}
+		return &protostack.Variable{
+				Type:    protostack.VariableType_PROGRAM,
+				RealVar: &protostack.Variable_Program{Program: protoProgramVar}},
+			nil
 	default:
 		return nil, fmt.Errorf("marshalling of programs not implemented yet")
 	}
@@ -212,24 +248,31 @@ func CreateProtoFromVariable(variable Variable) (*protostack.Variable, error) {
 
 type Stack struct {
 	// Storge of the stack, top element at index 0, bottom at length-1 (end of array)
-	elts []Variable
+	elts           []Variable
+	onGoingSession bool
+	listeners      []StackSessionListener
 }
 
-func CreateStack() Stack {
+func CreateStack() *Stack {
 	var s = Stack{}
-	return s
+	return &s
 }
 
-func CreateStackFromProto(protoStack *protostack.Stack) (*Stack, error) {
+type StackSessionListener interface {
+	SessionStart(s *Stack)
+	SessionClose(s *Stack)
+}
+
+func CreateStackFromProto(reg *ActionRegistry, protoStack *protostack.Stack) (*Stack, error) {
 	stack := CreateStack()
 	for _, protoElt := range protoStack.Elements {
-		variable, err := CreateVariableFromProto(protoElt)
+		variable, err := CreateVariableFromProto(reg, protoElt)
 		if err != nil {
 			return nil, err
 		}
 		stack.elts = append(stack.elts, variable)
 	}
-	return &stack, nil
+	return stack, nil
 }
 
 func CreateProtoFromStack(stack *Stack) (*protostack.Stack, error) {
@@ -315,4 +358,27 @@ func (s *Stack) Push(elt Variable) {
 
 func (s *Stack) PushN(elts []Variable) {
 	s.elts = append(s.elts, elts...)
+}
+
+func (s *Stack) StartSession() error {
+
+	if s.onGoingSession {
+		return fmt.Errorf("session already ongoing")
+	}
+	s.onGoingSession = true
+	for _, listener := range s.listeners {
+		listener.SessionStart(s)
+	}
+	return nil
+}
+
+func (s *Stack) CloseSession() error {
+	if !s.onGoingSession {
+		return fmt.Errorf("no ongoing session")
+	}
+	for _, listener := range s.listeners {
+		listener.SessionClose(s)
+	}
+	s.onGoingSession = false
+	return nil
 }
