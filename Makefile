@@ -7,7 +7,7 @@ ifeq ($(UNAME_S),Darwin)
 	FIND=gfind
 endif
 
-SRCS=$(shell $(FIND) rcalc main -iname '*.go' -type f)
+SRCS=$(shell $(FIND) rcalc main cmd -iname '*.go' -type f)
 
 GRAMMAR_SRC=grammar/Rcalc.g4
 GRAMMAR_OUTPUT_DIR=rcalc/parser

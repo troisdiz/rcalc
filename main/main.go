@@ -1,7 +1,9 @@
 package main
 
-import "troisdizaines.com/rcalc/rcalc"
+import (
+	"troisdizaines.com/rcalc/cmd"
+)
 
 func main() {
-	rcalc.Run()
+	cmd.Execute()
 }
