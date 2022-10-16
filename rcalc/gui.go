@@ -2,7 +2,7 @@ package rcalc
 
 import "fmt"
 
-func DisplayStack(s Stack, message string, minElts int, clearTerminal bool) {
+func DisplayStack(s *Stack, message string, minElts int, clearTerminal bool) {
 	// Clear terminal
 	if clearTerminal {
 		fmt.Print("\033c")

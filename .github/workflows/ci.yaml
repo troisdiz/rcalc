@@ -23,7 +23,13 @@ jobs:
           java-version: '17'
       - name: Install Antlr4
         uses: StoneMoe/setup-antlr4@v4.10.1
-      - name: Generate source from antlr grammar
+      - name: Install Protoc
+        uses: arduino/setup-protoc@v1
+        with:
+          version: '3.x'
+      - name: Install proto-gen-go
+        run: go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+      - name: Generate source from antlr grammar and protobuf files
         run: make generate
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2

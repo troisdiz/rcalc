@@ -3,11 +3,15 @@ package rcalc
 import (
 	"fmt"
 	"strings"
+	"troisdizaines.com/rcalc/rcalc/protostack"
 )
 
 type VariablePutOnStackActionDesc struct {
 	value Variable
 }
+
+// VariablePutOnStackActionDesc implements Action
+var _ Action = (*VariablePutOnStackActionDesc)(nil)
 
 func (a *VariablePutOnStackActionDesc) NbArgs() int {
 	return 0
@@ -38,6 +42,38 @@ type VariableEvaluationActionDesc struct {
 	varName string
 }
 
+func (a *VariablePutOnStackActionDesc) MarshallFunc() ActionMarshallFunc {
+	return func(reg *ActionRegistry, action Action) (*protostack.Action, error) {
+		variablePutOnStackActionDesc := action.(*VariablePutOnStackActionDesc)
+
+		protoVariable, err := CreateProtoFromVariable(variablePutOnStackActionDesc.value)
+		if err != nil {
+			return nil, err
+		}
+		protoPutVariableOnStackAction := &protostack.PutVariableOnStackAction{Value: protoVariable}
+		protoAction := &protostack.Action_PutVariableOnStackAction{PutVariableOnStackAction: protoPutVariableOnStackAction}
+		return &protostack.Action{
+				Type:       protostack.ActionType_PUT_VARIABLE_ON_STACK,
+				OpCode:     action.OpCode(),
+				RealAction: protoAction},
+			nil
+	}
+}
+
+func (a *VariablePutOnStackActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
+	return func(reg *ActionRegistry, protoAction *protostack.Action) (Action, error) {
+		protoPutVariableOnStackAction := protoAction.GetPutVariableOnStackAction()
+		variableValue, err := CreateVariableFromProto(reg, protoPutVariableOnStackAction.Value)
+		if err != nil {
+			return nil, err
+		}
+		return &VariablePutOnStackActionDesc{value: variableValue}, nil
+	}
+}
+
+// VariableEvaluationActionDesc implements Action
+var _ Action = (*VariableEvaluationActionDesc)(nil)
+
 func (a *VariableEvaluationActionDesc) NbArgs() int {
 	return 0
 }
@@ -67,6 +103,25 @@ func (a *VariableEvaluationActionDesc) Display() string {
 	return a.varName
 }
 
+func (a *VariableEvaluationActionDesc) MarshallFunc() ActionMarshallFunc {
+	return func(reg *ActionRegistry, action Action) (*protostack.Action, error) {
+		protoEvaluationAction := &protostack.VariableEvaluationAction{VarName: a.varName}
+		return &protostack.Action{Type: protostack.ActionType_VARIABLE_EVALUATION,
+				OpCode: action.OpCode(),
+				RealAction: &protostack.Action_VariableEvaluationAction{VariableEvaluationAction: protoEvaluationAction,
+				},
+			},
+			nil
+	}
+}
+
+func (a *VariableEvaluationActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
+	return func(reg *ActionRegistry, protoAction *protostack.Action) (Action, error) {
+		protoVariableEvaluationAction := protoAction.GetVariableEvaluationAction()
+		return &VariableEvaluationActionDesc{varName: protoVariableEvaluationAction.VarName}, nil
+	}
+}
+
 type StartNextLoopActionDesc struct {
 	actions []Action
 }
@@ -74,6 +129,9 @@ type StartNextLoopActionDesc struct {
 func (a *StartNextLoopActionDesc) NbArgs() int {
 	return 2
 }
+
+// StartNextLoopActionDesc  implements Action
+var _ Action = (*StartNextLoopActionDesc)(nil)
 
 func (a *StartNextLoopActionDesc) CheckTypes(elts ...Variable) (bool, error) {
 	for i := 0; i <= 1; i++ {
@@ -118,6 +176,41 @@ func (a *StartNextLoopActionDesc) Display() string {
 	return fmt.Sprintf("start %s next", strings.Join(actionsStr, " "))
 }
 
+func (a *StartNextLoopActionDesc) MarshallFunc() ActionMarshallFunc {
+	return func(reg *ActionRegistry, action Action) (*protostack.Action, error) {
+		var protoActions []*protostack.Action
+		for _, action := range action.(*StartNextLoopActionDesc).actions {
+			protoAction, err := action.MarshallFunc()(reg, action)
+			if err != nil {
+				return nil, err
+			}
+			protoActions = append(protoActions, protoAction)
+		}
+		protoStartNextLoopAction := &protostack.StartNextLoopAction{Actions: protoActions}
+		return &protostack.Action{
+				Type:   protostack.ActionType_START_NEXT,
+				OpCode: action.OpCode(),
+				RealAction: &protostack.Action_StartNextLoopAction{
+					StartNextLoopAction: protoStartNextLoopAction}},
+			nil
+	}
+}
+
+func (a *StartNextLoopActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
+	return func(reg *ActionRegistry, protoAction *protostack.Action) (Action, error) {
+		protoActions := protoAction.GetStartNextLoopAction().GetActions()
+		var actions []Action
+		for _, loopProtoAction := range protoActions {
+			action, err := reg.CreateActionFromProto(loopProtoAction)
+			if err != nil {
+				return nil, err
+			}
+			actions = append(actions, action)
+		}
+		return &StartNextLoopActionDesc{actions: actions}, nil
+	}
+}
+
 func CreateStartNextLoopAction(actions []Action) *StartNextLoopActionDesc {
 	return &StartNextLoopActionDesc{actions: actions}
 }
@@ -126,6 +219,9 @@ type ForNextLoopActionDesc struct {
 	varName string
 	actions []Action
 }
+
+// ForNextLoopActionDesc implements Action
+var _ Action = (*ForNextLoopActionDesc)(nil)
 
 func (a *ForNextLoopActionDesc) OpCode() string {
 	return "__hidden__" + "ForNextLoop"
@@ -183,9 +279,53 @@ func (a *ForNextLoopActionDesc) Display() string {
 	return fmt.Sprintf("for %s %s next", a.varName, strings.Join(actionsStr, " "))
 }
 
+func (a *ForNextLoopActionDesc) MarshallFunc() ActionMarshallFunc {
+	return func(reg *ActionRegistry, action Action) (*protostack.Action, error) {
+		forNextLoopActionDesc := action.(*ForNextLoopActionDesc)
+		var protoActions []*protostack.Action
+		for _, loopAction := range forNextLoopActionDesc.actions {
+			protoLoopAction, err := loopAction.MarshallFunc()(reg, loopAction)
+			if err != nil {
+				return nil, err
+			}
+			protoActions = append(protoActions, protoLoopAction)
+		}
+		protoForNextLoopAction := &protostack.ForNextLoopAction{
+			VarName: forNextLoopActionDesc.varName,
+			Actions: protoActions,
+		}
+		return &protostack.Action{
+			Type:       protostack.ActionType_FOR_NEXT,
+			OpCode:     action.OpCode(),
+			RealAction: &protostack.Action_ForNextLoopAction{ForNextLoopAction: protoForNextLoopAction},
+		}, nil
+	}
+}
+
+func (a *ForNextLoopActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
+	return func(reg *ActionRegistry, protoAction *protostack.Action) (Action, error) {
+		var loopActions []Action
+		protoForNextLoopAction := protoAction.GetForNextLoopAction()
+		for _, protoLoopAction := range protoForNextLoopAction.GetActions() {
+			loopAction, err := reg.CreateActionFromProto(protoLoopAction)
+			if err != nil {
+				return nil, err
+			}
+			loopActions = append(loopActions, loopAction)
+		}
+		return &ForNextLoopActionDesc{
+			varName: protoForNextLoopAction.VarName,
+			actions: loopActions,
+		}, nil
+	}
+}
+
 type EvalProgramActionDesc struct {
 	program *ProgramVariable
 }
+
+// EvalProgramActionDesc implements Action
+var _ Action = (*EvalProgramActionDesc)(nil)
 
 func (e *EvalProgramActionDesc) Display() string {
 	return e.program.display()
@@ -216,10 +356,79 @@ func (e *EvalProgramActionDesc) Apply(runtimeContext *RuntimeContext) error {
 	return nil
 }
 
+func (e *EvalProgramActionDesc) MarshallFunc() ActionMarshallFunc {
+	return func(reg *ActionRegistry, action Action) (*protostack.Action, error) {
+		evalProgActionDesc := action.(*EvalProgramActionDesc)
+		progVar := evalProgActionDesc.program
+		protoProgVar, err := CreateProtoFromVariable(progVar)
+		if err != nil {
+			return nil, err
+		}
+		evalProgramAction := &protostack.EvalProgramAction{ProgramVariable: protoProgVar.GetProgram()}
+		return &protostack.Action{
+				Type:       protostack.ActionType_PROG_EVALUATION,
+				OpCode:     action.OpCode(),
+				RealAction: &protostack.Action_EvalProgramAction{EvalProgramAction: evalProgramAction},
+			},
+			nil
+	}
+}
+
+func (e *EvalProgramActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
+	return func(reg *ActionRegistry, protoAction *protostack.Action) (Action, error) {
+		programVar, err := CreateProgramVariableFromProto(reg, protoAction.GetEvalProgramAction().ProgramVariable)
+		if err != nil {
+			return nil, err
+		}
+		return &EvalProgramActionDesc{program: programVar}, nil
+	}
+}
+
 type VariableDeclarationActionDesc struct {
 	varNames        []string
 	programVariable *ProgramVariable
 }
+
+func (a *VariableDeclarationActionDesc) MarshallFunc() ActionMarshallFunc {
+	return func(reg *ActionRegistry, action Action) (*protostack.Action, error) {
+
+		variableDeclarationActionDesc := action.(*VariableDeclarationActionDesc)
+		progVar := variableDeclarationActionDesc.programVariable
+		protoProgVar, err := CreateProtoFromVariable(progVar)
+		if err != nil {
+			return nil, err
+		}
+		protoVariableDeclaration := &protostack.VariableDeclarationAction{
+			VarNames:        variableDeclarationActionDesc.varNames,
+			ProgramVariable: protoProgVar.GetProgram(),
+		}
+		return &protostack.Action{
+				Type:   protostack.ActionType_VARIABLE_DECLARATION,
+				OpCode: action.OpCode(),
+				RealAction: &protostack.Action_VariableDeclarationAction{
+					VariableDeclarationAction: protoVariableDeclaration,
+				},
+			},
+			nil
+	}
+}
+
+func (a *VariableDeclarationActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
+	return func(reg *ActionRegistry, protoAction *protostack.Action) (Action, error) {
+		programVar, err := CreateProgramVariableFromProto(reg, protoAction.GetVariableDeclarationAction().GetProgramVariable())
+		if err != nil {
+			return nil, err
+		}
+		return &VariableDeclarationActionDesc{
+				varNames:        protoAction.GetVariableDeclarationAction().GetVarNames(),
+				programVariable: programVar,
+			},
+			nil
+	}
+}
+
+// VariableDeclarationActionDesc implements Action
+var _ Action = (*VariableDeclarationActionDesc)(nil)
 
 func (a *VariableDeclarationActionDesc) OpCode() string {
 	return "__hidden__" + "VariableDeclarationProgram"
@@ -257,4 +466,33 @@ func (a *VariableDeclarationActionDesc) Apply(runtimeContext *RuntimeContext) er
 
 func (a *VariableDeclarationActionDesc) Display() string {
 	return fmt.Sprintf("-> %s %s", strings.Join(a.varNames, " "), a.programVariable.display())
+}
+
+/*
+var evalAct := NewActionDesc("eval", 1, CheckNoop, func(system System, stack *Stack) error {
+	v1, err := stack.Pop()
+	if err != nil {
+		return err
+	}
+	switch v1.getType() {
+	case TYPE_NUMERIC | TYPE_BOOL | TYPE_STR :
+		stack.Push(v1)
+	case TYPE_PROGRAM:
+		system.
+
+
+	}
+})
+*/
+
+var StructOpsPackage = ActionPackage{
+	staticActions: []Action{},
+	dynamicActions: []Action{
+		&EvalProgramActionDesc{},
+		&ForNextLoopActionDesc{},
+		&StartNextLoopActionDesc{},
+		&VariableDeclarationActionDesc{},
+		&VariableEvaluationActionDesc{},
+		&VariablePutOnStackActionDesc{},
+	},
 }

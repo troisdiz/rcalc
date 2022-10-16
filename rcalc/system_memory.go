@@ -62,7 +62,7 @@ func (m *InternalMemory) getPath(node *MemoryNode) []string {
 
 func (m *InternalMemory) resolvePath(path []string) *MemoryNode {
 	//TODO implement me
-	panic("implement me")
+	panic("implement me InternalMemory resolvePath")
 }
 
 type Memory interface {

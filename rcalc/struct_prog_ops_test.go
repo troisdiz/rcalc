@@ -16,7 +16,7 @@ func TestStartNextLoop(t *testing.T) {
 	stack.Push(end)
 
 	system := CreateSystemInstance()
-	runtimeContext := CreateRuntimeContext(system, &stack)
+	runtimeContext := CreateRuntimeContext(system, stack)
 
 	var actions []Action = make([]Action, 3)
 	actions[0] = &dupOp
@@ -47,7 +47,7 @@ func TestVariableDeclarationProgram(t *testing.T) {
 	stack.Push(v2)
 
 	system := CreateSystemInstance()
-	runtimeContext := CreateRuntimeContext(system, &stack)
+	runtimeContext := CreateRuntimeContext(system, stack)
 
 	programVariable := CreateProgramVariable([]Action{
 		&VariableEvaluationActionDesc{varName: "i"},

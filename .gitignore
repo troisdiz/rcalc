@@ -19,3 +19,7 @@
 
 # Generated parser
 rcalc/parser/
+
+# Generated proto files
+rcalc/protostack
+

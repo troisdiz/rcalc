@@ -3,11 +3,15 @@ package rcalc
 import (
 	"bufio"
 	"os"
+	"path"
 )
 
-func Run() {
+func Run(stackDataFolder string) {
 
-	var stack = CreateStack()
+	stackDataFilePath := path.Join(stackDataFolder, "stack.protobuf")
+
+	var stack = CreateSaveOnDiskStack(stackDataFilePath)
+
 	var message = ""
 	var system = CreateSystemInstance()
 	for {
@@ -30,7 +34,11 @@ func Run() {
 		if parseErr != nil {
 			message = parseErr.Error()
 		} else {
-			runtimeContext := CreateRuntimeContext(system, &stack)
+			runtimeContext := CreateRuntimeContext(system, stack)
+			err := stack.StartSession()
+			if err != nil {
+				return
+			}
 			for _, action := range actions {
 				err := runtimeContext.RunAction(action)
 				if err != nil {
@@ -41,8 +49,16 @@ func Run() {
 					message = ""
 				}
 				if system.shouldStop() {
+					err := stack.CloseSession()
+					if err != nil {
+						return
+					}
 					return
 				}
+			}
+			err = stack.CloseSession()
+			if err != nil {
+				return
 			}
 		}
 	}

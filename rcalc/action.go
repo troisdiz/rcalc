@@ -1,6 +1,12 @@
 package rcalc
 
-import "fmt"
+import (
+	"fmt"
+	"troisdizaines.com/rcalc/rcalc/protostack"
+)
+
+type ActionMarshallFunc func(reg *ActionRegistry, action Action) (*protostack.Action, error)
+type ActionUnMarshallFunc func(reg *ActionRegistry, protoAction *protostack.Action) (Action, error)
 
 type Action interface {
 	OpCode() string
@@ -8,6 +14,8 @@ type Action interface {
 	CheckTypes(elts ...Variable) (bool, error)
 	Apply(runtimeContext *RuntimeContext) error
 	Display() string
+	MarshallFunc() ActionMarshallFunc
+	UnMarshallFunc() ActionUnMarshallFunc
 }
 
 type ActionCommonDesc struct {
@@ -16,6 +24,29 @@ type ActionCommonDesc struct {
 
 func (op *ActionCommonDesc) OpCode() string {
 	return op.opCode
+}
+func ActionCommonDescMarshalFunction(reg *ActionRegistry, action Action) (*protostack.Action, error) {
+	return &protostack.Action{
+		Type:   protostack.ActionType_OPERATION,
+		OpCode: action.OpCode(),
+	}, nil
+}
+
+func (op *ActionCommonDesc) MarshallFunc() ActionMarshallFunc {
+	return ActionCommonDescMarshalFunction
+}
+
+func ActionCommonDescUnMarshallFunc(reg *ActionRegistry, protoAction *protostack.Action) (Action, error) {
+	protoOpCode := protoAction.OpCode
+	if reg.ContainsOpCode(protoOpCode) {
+		return reg.GetAction(protoOpCode), nil
+	} else {
+		return nil, fmt.Errorf("cannot find action with opcode %s", protoOpCode)
+	}
+}
+
+func (op *ActionCommonDesc) UnMarshallFunc() ActionUnMarshallFunc {
+	return ActionCommonDescUnMarshallFunc
 }
 
 // ActionDesc implementation of Action interface
@@ -26,6 +57,18 @@ type ActionDesc struct {
 	nbArgs        int
 	actionApplyFn ActionApplyFn
 }
+
+func (a *ActionDesc) MarshallFunc() ActionMarshallFunc {
+	//TODO implement me
+	panic("implement me ActionDesc MarshallFunc")
+}
+
+func (a *ActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
+	//TODO implement me
+	panic("implement me ActionDesc UnMarshallFunc")
+}
+
+var _ Action = (*ActionDesc)(nil)
 
 func NewActionDesc(opCode string, nbArgs int, checkTypeFn CheckTypeFn, applyFn ActionApplyFn) ActionDesc {
 	return ActionDesc{
@@ -66,6 +109,8 @@ type OperationDesc struct {
 	checkTypeFn CheckTypeFn
 	applyFn     OperationApplyFn
 }
+
+var _ Action = (*OperationDesc)(nil)
 
 func NewOperationDesc(opCode string, nbArgs int, checkTypeFn CheckTypeFn, applyFn OperationApplyFn) OperationDesc {
 	return OperationDesc{
@@ -108,6 +153,28 @@ func (op *OperationDesc) Display() string {
 	return op.opCode
 }
 
+/*
+func (op *OperationDesc) MarshallFunc() ActionMarshallFunc {
+	return func(reg *ActionRegistry, action Action) (*protostack.Action, error) {
+		op := action.(*OperationDesc)
+		return &protostack.Action{
+			Type:   protostack.ActionType_OPERATION,
+			OpCode: op.OpCode(),
+		}, nil
+	}
+}
+
+func (op *OperationDesc) UnMarshallFunc() ActionUnMarshallFunc {
+	return func(reg *ActionRegistry, protoAction *protostack.Action) (Action, error) {
+		protoOpCode := protoAction.OpCode
+		if reg.ContainsOpCode(protoOpCode) {
+			return reg.GetAction(protoOpCode), nil
+		} else {
+			return nil, fmt.Errorf("cannot find action with opcode %s", protoOpCode)
+		}
+	}
+}*/
+
 type PureOperationApplyFn func(elts ...Variable) []Variable
 
 func OpToActionFn(opFn PureOperationApplyFn) OperationApplyFn {
@@ -119,7 +186,13 @@ func OpToActionFn(opFn PureOperationApplyFn) OperationApplyFn {
 /* Registry stuff */
 
 type ActionRegistry struct {
-	actionDescs map[string]Action
+	actionDescs    map[string]Action
+	dynamicActions map[string]struct {
+		marshalFunc   ActionMarshallFunc
+		unMarshalFunc ActionUnMarshallFunc
+	}
+	// marshallFunctions   map[string]ActionMarshallFunc
+	// unMarshallFunctions map[string]ActionUnMarshallFunc
 }
 
 func (reg *ActionRegistry) Register(aDesc Action) {
@@ -127,24 +200,52 @@ func (reg *ActionRegistry) Register(aDesc Action) {
 }
 
 type ActionPackage struct {
-	actions []Action
+	staticActions  []Action
+	dynamicActions []Action
+}
+
+func (ap *ActionPackage) AddStatic(action Action) {
+	ap.staticActions = append(ap.staticActions, action)
+}
+
+func (ap *ActionPackage) AddDynamic(action Action) {
+	ap.dynamicActions = append(ap.dynamicActions, action)
 }
 
 func (reg *ActionRegistry) RegisterActions(aPackage *ActionPackage) {
-	for _, aDesc := range aPackage.actions {
+	for _, aDesc := range aPackage.staticActions {
 		reg.actionDescs[aDesc.OpCode()] = aDesc
+	}
+	for _, dynAction := range aPackage.dynamicActions {
+		// reg.marshallFunctions[dynAction.OpCode()] = dynAction.MarshallFunc()
+		// reg.unMarshallFunctions[dynAction.OpCode()] = dynAction.UnMarshallFunc()
+
+		reg.dynamicActions[dynAction.OpCode()] = struct {
+			marshalFunc   ActionMarshallFunc
+			unMarshalFunc ActionUnMarshallFunc
+		}{
+			marshalFunc:   dynAction.MarshallFunc(),
+			unMarshalFunc: dynAction.UnMarshallFunc(),
+		}
 	}
 }
 
 func initRegistry() *ActionRegistry {
 	reg := ActionRegistry{
 		actionDescs: map[string]Action{},
+		dynamicActions: map[string]struct {
+			marshalFunc   ActionMarshallFunc
+			unMarshalFunc ActionUnMarshallFunc
+		}{},
+		// marshallFunctions:   map[string]ActionMarshallFunc{},
+		// unMarshallFunctions: map[string]ActionUnMarshallFunc{},
 	}
 	reg.RegisterActions(&ArithmeticPackage)
 	reg.RegisterActions(&TrigonometricPackage)
 	reg.RegisterActions(&BooleanLogicPackage)
 	reg.RegisterActions(&StackPackage)
 	reg.RegisterActions(&MemoryPackage)
+	reg.RegisterActions(&StructOpsPackage)
 	reg.Register(&VersionOp)
 	reg.Register(&EXIT_ACTION)
 	return &reg
@@ -162,6 +263,46 @@ func (reg *ActionRegistry) GetAction(opCode string) Action {
 	} else {
 		return actionDesc
 	}
+}
+
+func (reg *ActionRegistry) GetDynamicActionMarshallFunc(opCode string) ActionMarshallFunc {
+	if dynAction, ok := reg.dynamicActions[opCode]; ok {
+		return dynAction.marshalFunc
+	} else {
+		return nil
+	}
+}
+
+func (reg *ActionRegistry) GetDynamicActionUnMarshallFunc(opCode string) ActionUnMarshallFunc {
+	if dynAction, ok := reg.dynamicActions[opCode]; ok {
+		return dynAction.unMarshalFunc
+	} else {
+		return nil
+	}
+}
+
+func (reg *ActionRegistry) CreateActionFromProto(protoAction *protostack.Action) (Action, error) {
+	if mFuncs, ok := reg.dynamicActions[protoAction.OpCode]; ok {
+		action, err := mFuncs.unMarshalFunc(reg, protoAction)
+		if err != nil {
+			return nil, err
+		}
+		return action, nil
+	} else {
+		action := reg.GetAction(protoAction.OpCode)
+		if action != nil {
+			return action, nil
+		}
+	}
+	return nil, fmt.Errorf("no unMarshallFunction found for type %d / OpCode %s", protoAction.Type, protoAction.OpCode)
+}
+
+func (reg *ActionRegistry) GetDynamicActionOpCodes() []string {
+	result := make([]string, len(reg.dynamicActions))
+	for k := range reg.dynamicActions {
+		result = append(result, k)
+	}
+	return result
 }
 
 var Registry = initRegistry()

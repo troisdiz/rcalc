@@ -1,0 +1,93 @@
+syntax= "proto3";
+
+option go_package = "troisdizaines.com/rcalc/protostack";
+
+enum VariableType {
+  DEFAULT = 0;
+  NUMBER = 1;
+  BOOLEAN = 2;
+  PROGRAM = 3;
+
+}
+
+message Variable {
+  VariableType type = 1;
+  oneof realVar {
+    NumberVariable number = 2;
+    BooleanVariable bool = 3;
+    ProgramVariable program = 4;
+  }
+}
+
+message NumberVariable {
+  bytes value = 1;
+}
+
+message BooleanVariable {
+  bool value = 1;
+}
+
+message ProgramVariable {
+  repeated Action actions = 1;
+}
+
+message Action {
+  ActionType type = 1;
+  string opCode = 2;
+  oneof realAction {
+    PutVariableOnStackAction putVariableOnStackAction = 3;
+    IfThenElseAction ifThenElseAction = 4;
+    StartNextLoopAction startNextLoopAction = 5;
+    ForNextLoopAction ForNextLoopAction = 6;
+    VariableDeclarationAction variableDeclarationAction = 7;
+    VariableEvaluationAction variableEvaluationAction = 8;
+    EvalProgramAction evalProgramAction = 9;
+  }
+}
+
+enum ActionType {
+  OPERATION = 0;
+  PUT_VARIABLE_ON_STACK = 1;
+  IF_THEN_ELSE = 2;
+  START_NEXT = 3;
+  FOR_NEXT = 4;
+  VARIABLE_DECLARATION = 5;
+  VARIABLE_EVALUATION = 6;
+  PROG_EVALUATION = 7;
+}
+
+message PutVariableOnStackAction {
+  Variable value = 1;
+}
+
+message IfThenElseAction {
+  repeated ActionType ifActions = 1;
+  repeated ActionType thenAction = 2;
+  repeated ActionType elseActions = 3;
+}
+
+message StartNextLoopAction {
+  repeated Action actions = 1;
+}
+
+message ForNextLoopAction {
+  string varName = 1;
+  repeated Action actions = 2;
+}
+
+message VariableDeclarationAction {
+  repeated string varNames = 1;
+  ProgramVariable programVariable = 2;
+}
+
+message VariableEvaluationAction {
+  string varName = 1;
+}
+
+message EvalProgramAction {
+  ProgramVariable programVariable = 1;
+}
+
+message Stack {
+  repeated Variable elements= 1;
+}
