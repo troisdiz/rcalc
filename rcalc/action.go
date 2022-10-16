@@ -288,6 +288,11 @@ func (reg *ActionRegistry) CreateActionFromProto(protoAction *protostack.Action)
 			return nil, err
 		}
 		return action, nil
+	} else {
+		action := reg.GetAction(protoAction.OpCode)
+		if action != nil {
+			return action, nil
+		}
 	}
 	return nil, fmt.Errorf("no unMarshallFunction found for type %d / OpCode %s", protoAction.Type, protoAction.OpCode)
 }

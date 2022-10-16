@@ -207,3 +207,7 @@ var MemoryPackage = ActionPackage{
 		&crdirAct,
 	},
 }
+
+var MiscPackage = ActionPackage{
+	staticActions: []Action{},
+}

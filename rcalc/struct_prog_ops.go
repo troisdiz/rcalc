@@ -468,7 +468,25 @@ func (a *VariableDeclarationActionDesc) Display() string {
 	return fmt.Sprintf("-> %s %s", strings.Join(a.varNames, " "), a.programVariable.display())
 }
 
+/*
+var evalAct := NewActionDesc("eval", 1, CheckNoop, func(system System, stack *Stack) error {
+	v1, err := stack.Pop()
+	if err != nil {
+		return err
+	}
+	switch v1.getType() {
+	case TYPE_NUMERIC | TYPE_BOOL | TYPE_STR :
+		stack.Push(v1)
+	case TYPE_PROGRAM:
+		system.
+
+
+	}
+})
+*/
+
 var StructOpsPackage = ActionPackage{
+	staticActions: []Action{},
 	dynamicActions: []Action{
 		&EvalProgramActionDesc{},
 		&ForNextLoopActionDesc{},

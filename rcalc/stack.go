@@ -3,6 +3,8 @@ package rcalc
 import (
 	"fmt"
 	"github.com/shopspring/decimal"
+	"google.golang.org/protobuf/proto"
+	"os"
 	"strings"
 	"troisdizaines.com/rcalc/rcalc/protostack"
 )
@@ -16,6 +18,8 @@ const (
 	TYPE_STR        Type = 3
 	TYPE_IDENTIFIER Type = 4
 	TYPE_PROGRAM    Type = 5
+	// TYPE_LIST       Type = 6
+	// TYPE_VECTOR     Type = 7
 )
 
 type Variable interface {
@@ -381,4 +385,53 @@ func (s *Stack) CloseSession() error {
 	}
 	s.onGoingSession = false
 	return nil
+}
+
+type StackSavingListener struct {
+	stackDataFolder string
+}
+
+func (sl *StackSavingListener) SessionStart(s *Stack) {
+
+}
+
+func (sl *StackSavingListener) SessionClose(s *Stack) {
+	protoStack, err := CreateProtoFromStack(s)
+	if err != nil {
+		//TODO log error
+		return
+	}
+
+	protoStackBytes, err := proto.Marshal(protoStack)
+	if err != nil {
+		//TODO log error
+		return
+	}
+	err = os.WriteFile(sl.stackDataFolder, protoStackBytes, 0644)
+	if err != nil {
+		//TODO log error
+		return
+	}
+}
+
+func CreateSaveOnDiskStack(stackSavingPath string) *Stack {
+	var stack *Stack
+	file, err := os.ReadFile(stackSavingPath)
+	if err != nil {
+		stack = CreateStack()
+	} else {
+		protoStack := &protostack.Stack{}
+		err = proto.Unmarshal(file, protoStack)
+		if err != nil {
+			stack = CreateStack()
+		} else {
+			stack, err = CreateStackFromProto(Registry, protoStack)
+			if err != nil {
+				stack = CreateStack()
+			}
+		}
+	}
+	saveStackSessionListener := &StackSavingListener{stackDataFolder: stackSavingPath}
+	stack.listeners = append(stack.listeners, saveStackSessionListener)
+	return stack
 }

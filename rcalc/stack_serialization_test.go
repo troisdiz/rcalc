@@ -58,7 +58,8 @@ func TestSaveAndReadStack(t *testing.T) {
 	stack.Push(v2)
 
 	a1 := &VariablePutOnStackActionDesc{value: CreateNumericVariableFromInt(5)}
-	v3 := CreateProgramVariable([]Action{a1})
+	a2 := &VariablePutOnStackActionDesc{value: CreateNumericVariableFromInt(7)}
+	v3 := CreateProgramVariable([]Action{a1, a2, &addOp})
 	stack.Push(v3)
 
 	protoStack, err := CreateProtoFromStack(stack)

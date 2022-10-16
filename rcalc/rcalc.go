@@ -3,11 +3,15 @@ package rcalc
 import (
 	"bufio"
 	"os"
+	"path"
 )
 
-func Run() {
+func Run(stackDataFolder string) {
 
-	var stack = CreateStack()
+	stackDataFilePath := path.Join(stackDataFolder, "stack.protobuf")
+
+	var stack = CreateSaveOnDiskStack(stackDataFilePath)
+
 	var message = ""
 	var system = CreateSystemInstance()
 	for {

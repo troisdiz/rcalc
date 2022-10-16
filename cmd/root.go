@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"os"
+	"path"
 	"troisdizaines.com/rcalc/rcalc"
 )
 
@@ -13,7 +15,15 @@ var rootCmd = &cobra.Command{
 	Long: `Later a more complete long doc
            With a website link`,
 	Run: func(cmd *cobra.Command, args []string) {
-		rcalc.Run()
+		dir, err := homedir.Dir()
+		if err != nil {
+			fmt.Println("Cannot get home directory")
+			os.Exit(-1)
+		}
+
+		rCalcDir := path.Join(dir, ".rcalc")
+
+		rcalc.Run(rCalcDir)
 	},
 }
 
