@@ -61,9 +61,9 @@ message PutVariableOnStackAction {
 }
 
 message IfThenElseAction {
-  repeated ActionType ifActions = 1;
-  repeated ActionType thenAction = 2;
-  repeated ActionType elseActions = 3;
+  repeated Action ifActions   = 1;
+  repeated Action thenActions = 2;
+  repeated Action elseActions = 3;
 }
 
 message StartNextLoopAction {

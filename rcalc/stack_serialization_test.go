@@ -7,9 +7,8 @@ import (
 	"troisdizaines.com/rcalc/rcalc/protostack"
 )
 
-func TestSaveAndReadActions(t *testing.T) {
-
-	actions := []Action{
+func getDynamicActionsForTesting() []Action {
+	return []Action{
 		&VariablePutOnStackActionDesc{value: CreateNumericVariableFromInt(1)},
 		&StartNextLoopActionDesc{
 			actions: []Action{
@@ -20,14 +19,43 @@ func TestSaveAndReadActions(t *testing.T) {
 			varName: "n",
 			actions: []Action{&VariablePutOnStackActionDesc{value: CreateNumericVariableFromInt(7)}},
 		},
+		&IfThenElseActionDesc{
+			ifActions:   []Action{&VariablePutOnStackActionDesc{value: CreateNumericVariableFromInt(7)}},
+			thenActions: []Action{&VariablePutOnStackActionDesc{value: CreateNumericVariableFromInt(8)}},
+			elseActions: nil,
+		},
 		&VariableDeclarationActionDesc{
 			varNames: []string{"n", "m"},
 			programVariable: CreateProgramVariable([]Action{&VariablePutOnStackActionDesc{
 				value: CreateNumericVariableFromInt(7)}}),
 		},
+		&EvalProgramActionDesc{
+			program: CreateProgramVariable([]Action{&VariablePutOnStackActionDesc{
+				value: CreateNumericVariableFromInt(7)}}),
+		},
+		&VariableEvaluationActionDesc{
+			varName: "a",
+		},
 	}
+}
 
-	for _, dynAction := range actions {
+/**
+Test that all registered dynamic actions are tested
+*/
+func TestAllDynamicActionsAreTested(t *testing.T) {
+	var dynamicActionOpCodes = make(map[string]interface{})
+	for dynAction := range Registry.dynamicActions {
+		dynamicActionOpCodes[dynAction] = nil
+	}
+	for _, action := range getDynamicActionsForTesting() {
+		delete(dynamicActionOpCodes, action.OpCode())
+	}
+	assert.Len(t, dynamicActionOpCodes, 0)
+}
+
+func TestSaveAndReadActions(t *testing.T) {
+
+	for _, dynAction := range getDynamicActionsForTesting() {
 		t.Run(dynAction.OpCode(), func(t *testing.T) {
 			protoAction, err := Registry.GetDynamicActionMarshallFunc(dynAction.OpCode())(Registry, dynAction)
 			if assert.NoError(t, err) {

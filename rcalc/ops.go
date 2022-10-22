@@ -62,6 +62,26 @@ var TrigonometricPackage = ActionPackage{
 }
 
 // Logic Package
+var eqNumOp = NewA2NumericR1BooleanOp("==", func(d1 decimal.Decimal, d2 decimal.Decimal) bool {
+	return d1.Equal(d2)
+})
+
+var letNumOp = NewA2NumericR1BooleanOp("<=", func(d1 decimal.Decimal, d2 decimal.Decimal) bool {
+	return d2.LessThanOrEqual(d1)
+})
+
+var ltNumOp = NewA2NumericR1BooleanOp("<", func(d1 decimal.Decimal, d2 decimal.Decimal) bool {
+	return d2.LessThan(d1)
+})
+
+var getNumOp = NewA2NumericR1BooleanOp(">=", func(d1 decimal.Decimal, d2 decimal.Decimal) bool {
+	return d2.GreaterThanOrEqual(d1)
+})
+
+var gtNumOp = NewA2NumericR1BooleanOp("<", func(d1 decimal.Decimal, d2 decimal.Decimal) bool {
+	return d2.GreaterThan(d1)
+})
+
 var negOp = NewA1R1BooleanOp("neg", func(b bool) bool {
 	return !b
 })
@@ -84,7 +104,7 @@ var xandOp = NewA2R1BooleanOp("xand", func(b bool, b2 bool) bool {
 
 var BooleanLogicPackage = ActionPackage{
 	staticActions: []Action{
-		&negOp, &andOp, &orOp, &xorOp, &xandOp,
+		&eqNumOp, &ltNumOp, &letNumOp, &gtNumOp, &getNumOp, &negOp, &andOp, &orOp, &xorOp, &xandOp,
 	},
 }
 

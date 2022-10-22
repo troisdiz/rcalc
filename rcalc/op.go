@@ -141,6 +141,23 @@ func NewA2R1BooleanOp(opCode string, booleanFunc A2R1BooleanFn) OperationDesc {
 	return NewOperationDesc(opCode, 2, CheckAllBooleans, OpToActionFn(A2R1BooleanApplyFn(booleanFunc)))
 }
 
+type A2NumericR1BooleanFn func(d1 decimal.Decimal, d2 decimal.Decimal) bool
+
+func A2NumericR1BooleanApplyFn(f A2NumericR1BooleanFn) PureOperationApplyFn {
+	return func(elts ...Variable) []Variable {
+		elt := GetEltAsNumeric(elts, 1)
+		elt2 := GetEltAsNumeric(elts, 0)
+		return []Variable{CreateBooleanVariable(f(elt, elt2))}
+	}
+}
+
+func NewA2NumericR1BooleanOp(opCode string, numericToBooleanFunc A2NumericR1BooleanFn) OperationDesc {
+	return NewOperationDesc(opCode,
+		2,
+		CheckAllNumerics,
+		OpToActionFn(A2NumericR1BooleanApplyFn(numericToBooleanFunc)))
+}
+
 var VersionOp = NewOperationDesc(
 	"VERSION",
 	0,

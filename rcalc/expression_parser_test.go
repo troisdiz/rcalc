@@ -95,6 +95,34 @@ func TestAntlrParseForNextLoopError(t *testing.T) {
 	assert.Errorf(t, err, "")
 }
 
+func TestAntlrParseIfThenElse(t *testing.T) {
+	var txt string = " if 1 1 == then 2 else 3 end"
+	var registry *ActionRegistry = initRegistry()
+
+	elt, err := ParseToActions(txt, "Test", registry)
+	if assert.NoError(t, err, "Parse error : %s", err) {
+		fmt.Println(elt)
+		if assert.Len(t, elt, 1) {
+			assert.IsType(t, &IfThenElseActionDesc{}, elt[0])
+			ifThenElseActionDesc := elt[0].(*IfThenElseActionDesc)
+			ifActions := ifThenElseActionDesc.ifActions
+			thenActions := ifThenElseActionDesc.thenActions
+			elseActions := ifThenElseActionDesc.elseActions
+
+			if assert.Len(t, ifActions, 3) {
+				assert.IsType(t, &eqNumOp, ifActions[2])
+			}
+			if assert.Len(t, thenActions, 1) {
+				assert.IsType(t, &VariablePutOnStackActionDesc{}, thenActions[0])
+			}
+			if assert.Len(t, elseActions, 1) {
+				assert.IsType(t, &VariablePutOnStackActionDesc{}, elseActions[0])
+			}
+
+		}
+	}
+}
+
 func TestAntlrParseProgram(t *testing.T) {
 	var txt string = " << 1 3 for i 1 next >>"
 	var registry *ActionRegistry = initRegistry()
