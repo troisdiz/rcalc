@@ -31,6 +31,9 @@ func UnMarshallActions(registry *ActionRegistry, protoActions []*protostack.Acti
 	return actions, nil
 }
 
+/*
+	Action used to add a variable to the stack in a program (can be seen as Variable wrapper)
+*/
 type VariablePutOnStackActionDesc struct {
 	value Variable
 }
@@ -92,6 +95,10 @@ func (a *VariablePutOnStackActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
 	}
 }
 
+/*
+	Looks for a local variable named VariableEvaluationDesc.varName in the RuntimeContext and put its value
+	on the stack.
+*/
 type VariableEvaluationActionDesc struct {
 	varName string
 }
@@ -147,6 +154,9 @@ func (a *VariableEvaluationActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
 	}
 }
 
+/*
+	Action to execute if then [else] code structures
+*/
 type IfThenElseActionDesc struct {
 	ifActions   []Action
 	thenActions []Action
@@ -200,11 +210,11 @@ func (a *IfThenElseActionDesc) Display() string {
 	}
 	thenActionsStr := []string{}
 	for _, action := range a.thenActions {
-		ifActionsStr = append(thenActionsStr, action.Display())
+		thenActionsStr = append(thenActionsStr, action.Display())
 	}
 	elseActionsStr := []string{}
 	for _, action := range a.elseActions {
-		ifActionsStr = append(elseActionsStr, action.Display())
+		elseActionsStr = append(elseActionsStr, action.Display())
 	}
 	if len(elseActionsStr) == 0 {
 
@@ -269,6 +279,9 @@ func (a *IfThenElseActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
 	}
 }
 
+/*
+	Action to execute start ... next loops
+*/
 type StartNextLoopActionDesc struct {
 	actions []Action
 }
