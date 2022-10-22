@@ -341,7 +341,8 @@ func ParseToActions(cmds string, lexerName string, registry *ActionRegistry) ([]
 	p.AddErrorListener(el)
 	antlr.ParseTreeWalkerDefault.Walk(listener, p.Start())
 	if el.HasErrors() {
-		return nil, fmt.Errorf("There are %d error(s)", len(el.messages))
+
+		return nil, fmt.Errorf("There are %d error(s):\n - %s", len(el.messages), strings.Join(el.messages, "\n - "))
 	}
 	return listener.rootPc.GetActions(), nil
 }
