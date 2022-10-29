@@ -164,7 +164,7 @@ var StackPackage = ActionPackage{
 
 var storeAct = NewActionDesc("sto",
 	2,
-	CheckGen([]Type{TYPE_IDENTIFIER, TYPE_GENERIC}),
+	CheckGen([]Type{TYPE_ALG_EXPR, TYPE_GENERIC}),
 	func(system System, stack *Stack) error {
 
 		name, _ := stack.Pop()
@@ -177,7 +177,7 @@ var storeAct = NewActionDesc("sto",
 
 var loadAct = NewActionDesc("load",
 	1,
-	CheckGen([]Type{TYPE_IDENTIFIER}),
+	CheckGen([]Type{TYPE_ALG_EXPR}),
 	func(system System, stack *Stack) error {
 
 		variable, err := stack.Pop()
