@@ -194,9 +194,9 @@ func (l *RcalcParserListener) ExitVariableNumber(ctx *parser.VariableNumberConte
 
 }
 
-// ExitVariableIdentifier is called when production identifier is exited.
-func (l *RcalcParserListener) ExitVariableIdentifier(ctx *parser.VariableIdentifierContext) {
-	fmt.Println("ExitInstrIdentifier")
+// ExitVariableAlgebraicExpression is called when production VariableAlgebraicExpression is exited.
+func (l *RcalcParserListener) ExitVariableAlgebraicExpression(ctx *parser.VariableAlgebraicExpressionContext) {
+	fmt.Println("ExitVariableAlgebraicExpression")
 	identifier, err := parseIdentifier(ctx.GetText())
 	if err != nil {
 		ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
