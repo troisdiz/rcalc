@@ -22,9 +22,9 @@ const (
 
 type Variable interface {
 	getType() Type
-	asNumericVar() NumericVariable
-	asBooleanVar() BooleanVariable
-	asIdentifierVar() AlgebraicExpressionVariable
+	asNumericVar() *NumericVariable
+	asBooleanVar() *BooleanVariable
+	asIdentifierVar() *AlgebraicExpressionVariable
 	asProgramVar() *ProgramVariable
 	display() string
 	String() string
@@ -38,15 +38,15 @@ func (se *CommonVariable) getType() Type {
 	return se.fType
 }
 
-func (se *CommonVariable) asNumericVar() NumericVariable {
+func (se *CommonVariable) asNumericVar() *NumericVariable {
 	panic("This is not a Numeric variable")
 }
 
-func (se *CommonVariable) asBooleanVar() BooleanVariable {
+func (se *CommonVariable) asBooleanVar() *BooleanVariable {
 	panic("This is not a Boolean variable")
 }
 
-func (se *CommonVariable) asIdentifierVar() AlgebraicExpressionVariable {
+func (se *CommonVariable) asIdentifierVar() *AlgebraicExpressionVariable {
 	panic("This is not an Identifier variable")
 }
 

@@ -9,6 +9,10 @@ type RuntimeContext struct {
 	currentScope *Scope
 }
 
+type VariableReader interface {
+	GetVariableValue(varName string) (Variable, error)
+}
+
 func CreateRuntimeContext(system System, stack *Stack) *RuntimeContext {
 	rtContext := &RuntimeContext{
 		system: system,

@@ -184,6 +184,8 @@ func TestAlgebraicExpressionParsing(t *testing.T) {
 		"'1 * +2'",
 		"'1*(2+ 3)'",
 		"'1*sqrt(2+3)'",
+		"'1 + 2 + 3'",
+		"'1 + 2 - 3'",
 	}
 
 	for idx, expr := range expressions {
@@ -200,7 +202,7 @@ func TestAlgebraicExpressionParsing(t *testing.T) {
 			el := &TestErrorListener{}
 
 			// Finally parse the expression (by walking the tree)
-			var listener *TestParserListener = &TestParserListener{}
+			var listener = CreateRcalcParserListener(Registry)
 			//p.RemoveErrorListeners()
 			p.AddErrorListener(el)
 			antlr.ParseTreeWalkerDefault.Walk(listener, p.Start())

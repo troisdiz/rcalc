@@ -96,28 +96,28 @@ number
 quoted_algebraic_expression: QUOTE alg_expression QUOTE ;
 
 alg_expression
-   : alg_mulExpression ((OP_ADD | OP_SUB) alg_mulExpression)*
+   : alg_mulExpression (op_type=(OP_ADD | OP_SUB) alg_mulExpression)* # AlgExprRoot
    ;
 
 alg_mulExpression
-   : alg_powExpression ((OP_MUL | OP_DIV) alg_powExpression)*
+   : alg_powExpression ((OP_MUL | OP_DIV) alg_powExpression)* # AlgExprMul
    ;
 
 alg_powExpression
-   : alg_signedAtom (OP_POW alg_signedAtom)*
+   : alg_signedAtom (OP_POW alg_signedAtom)* #AlgExprPow
    ;
 
 alg_signedAtom
-   : OP_ADD alg_signedAtom
-   | OP_SUB alg_signedAtom
-   | alg_func_call
-   | alg_atom
+   : OP_ADD alg_signedAtom # AlgExprAddSignedAtom
+   | OP_SUB alg_signedAtom # AlgExprSubSignedAtom
+   | alg_func_call         # AlgExprFuncCall
+   | alg_atom              # AlgExprAtom
    ;
 
 alg_atom
-   :number
-   | alg_variable
-   | PAREN_OPEN alg_expression PAREN_CLOSE
+   : number                                # AlgExprNumber
+   | alg_variable                          # AlgExprVariable
+   | PAREN_OPEN alg_expression PAREN_CLOSE # AlgExprParen
    ;
 
 alg_variable

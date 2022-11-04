@@ -16,8 +16,8 @@ func (se *NumericVariable) String() string {
 	return fmt.Sprintf("NumericVariable(%v)", se.value)
 }
 
-func (se *NumericVariable) asNumericVar() NumericVariable {
-	return *se
+func (se *NumericVariable) asNumericVar() *NumericVariable {
+	return se
 }
 
 func (se *NumericVariable) display() string {
@@ -49,8 +49,8 @@ func (se *BooleanVariable) String() string {
 	return fmt.Sprintf("BooleanVariable(%v) type = %d", se.value, se.fType)
 }
 
-func (se *BooleanVariable) asBooleanVar() BooleanVariable {
-	return *se
+func (se *BooleanVariable) asBooleanVar() *BooleanVariable {
+	return se
 }
 
 func (se *BooleanVariable) display() string {
@@ -65,17 +65,50 @@ func CreateBooleanVariable(value bool) Variable {
 	return &result
 }
 
+type AlgebraicExpressionNode interface {
+	evaluate(variableReader VariableReader) *NumericVariable
+}
+
+type AlgExprMul struct {
+	items []AlgebraicExpressionNode
+}
+
+func (a *AlgExprMul) evaluate(variableReader VariableReader) *NumericVariable {
+	result := decimal.NewFromInt(1)
+	for _, it := range a.items {
+		result = result.Mul(it.evaluate(variableReader).asNumericVar().value)
+	}
+	return CreateNumericVariable(result).asNumericVar()
+}
+
+var _ AlgebraicExpressionNode = (*AlgExprMul)(nil)
+
+type AlgExprAddSub struct {
+	items []AlgebraicExpressionNode
+}
+
+func (a *AlgExprAddSub) evaluate(variableReader VariableReader) *NumericVariable {
+	result := decimal.NewFromInt(0)
+	for _, it := range a.items {
+		result = result.Add(it.evaluate(variableReader).asNumericVar().value)
+	}
+	return CreateNumericVariable(result).asNumericVar()
+}
+
+var _ AlgebraicExpressionNode = (*AlgExprAddSub)(nil)
+
 type AlgebraicExpressionVariable struct {
 	CommonVariable
-	value string
+	value    string
+	rootNode AlgebraicExpressionNode
 }
 
 func (se *AlgebraicExpressionVariable) String() string {
 	return fmt.Sprintf("AlgebraicExpressionVariable(%v) type = %d", se.value, se.fType)
 }
 
-func (se *AlgebraicExpressionVariable) asIdentifierVar() AlgebraicExpressionVariable {
-	return *se
+func (se *AlgebraicExpressionVariable) asIdentifierVar() *AlgebraicExpressionVariable {
+	return se
 }
 
 func (se *AlgebraicExpressionVariable) display() string {

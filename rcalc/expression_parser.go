@@ -30,57 +30,59 @@ func parseAction(txt string, registry *ActionRegistry) (Action, error) {
 	}
 }
 
-type ParseContext interface {
-	GetParent() ParseContext
-	SetParent(ctx ParseContext)
+type ParseContext[T any] interface {
+	GetParent() ParseContext[T]
+	SetParent(ctx ParseContext[T])
 
-	AddAction(action Action)
+	AddAction(action T)
 	AddIdentifier(id string)
 
-	BackFromChild(child ParseContext)
-	CreateFinalAction() Action
+	BackFromChild(child ParseContext[T])
+	CreateFinalAction() T
 
 	TokenVisited(token int)
 }
 
-type BaseParseContext struct {
-	parent         ParseContext
-	actions        []Action
+type BaseParseContext[T any] struct {
+	parent         ParseContext[T]
+	actions        []T
 	idDeclarations []string
 }
 
-func (pc *BaseParseContext) TokenVisited(token int) {}
+var _ ParseContext[string] = (*BaseParseContext[string])(nil)
 
-func (pc *BaseParseContext) CreateFinalAction() Action {
+func (g *BaseParseContext[T]) GetParent() ParseContext[T] {
+	return g.parent
+}
+
+func (g *BaseParseContext[T]) SetParent(ctx ParseContext[T]) {
+	g.parent = ctx
+}
+
+func (g *BaseParseContext[T]) AddAction(action T) {
+	g.actions = append(g.actions, action)
+}
+
+func (g *BaseParseContext[T]) AddIdentifier(id string) {
+	g.idDeclarations = append(g.idDeclarations, id)
+}
+
+func (g *BaseParseContext[T]) BackFromChild(child ParseContext[T]) {
+	g.AddAction(child.CreateFinalAction())
+}
+
+func (g *BaseParseContext[T]) CreateFinalAction() T {
 	panic("CreateFinalAction must be implemented by sub structures")
 }
 
-func (pc *BaseParseContext) GetParent() ParseContext {
-	return pc.parent
+func (g *BaseParseContext[T]) GetActions() []T {
+	return g.actions
 }
 
-func (pc *BaseParseContext) SetParent(ctx ParseContext) {
-	pc.parent = ctx
-}
-
-func (pc *BaseParseContext) BackFromChild(child ParseContext) {
-	pc.AddAction(child.CreateFinalAction())
-}
-
-func (pc *BaseParseContext) AddAction(action Action) {
-	pc.actions = append(pc.actions, action)
-}
-
-func (pc *BaseParseContext) AddIdentifier(id string) {
-	pc.idDeclarations = append(pc.idDeclarations, id)
-}
-
-func (pc *BaseParseContext) GetActions() []Action {
-	return pc.actions
-}
+func (g *BaseParseContext[T]) TokenVisited(token int) {}
 
 type IfThenElseContext struct {
-	BaseParseContext // to avoid reimplementing the interface
+	BaseParseContext[Action] // to avoid reimplementing the interface
 
 	actions       [][]Action
 	currentAction int
@@ -111,7 +113,7 @@ func (i *IfThenElseContext) CreateFinalAction() Action {
 }
 
 type StartEndLoopContext struct {
-	BaseParseContext
+	BaseParseContext[Action]
 }
 
 func (pc *StartEndLoopContext) CreateFinalAction() Action {
@@ -119,7 +121,7 @@ func (pc *StartEndLoopContext) CreateFinalAction() Action {
 }
 
 type ForNextLoopContext struct {
-	BaseParseContext
+	BaseParseContext[Action]
 }
 
 func (pc *ForNextLoopContext) CreateFinalAction() Action {
@@ -130,7 +132,7 @@ func (pc *ForNextLoopContext) CreateFinalAction() Action {
 }
 
 type ProgramContext struct {
-	BaseParseContext
+	BaseParseContext[Action]
 }
 
 func (pc *ProgramContext) CreateFinalAction() Action {
@@ -143,12 +145,12 @@ type RcalcParserListener struct {
 
 	registry *ActionRegistry
 
-	rootPc    *BaseParseContext
-	currentPc ParseContext
+	rootPc    *BaseParseContext[Action]
+	currentPc ParseContext[Action]
 }
 
 func CreateRcalcParserListener(registry *ActionRegistry) *RcalcParserListener {
-	rootPc := &BaseParseContext{
+	rootPc := &BaseParseContext[Action]{
 		parent:  nil,
 		actions: nil,
 	}
@@ -167,7 +169,7 @@ func (l *RcalcParserListener) AddVarName(varName string) {
 	l.currentPc.AddIdentifier(varName)
 }
 
-func (l *RcalcParserListener) StartNewContext(ctx ParseContext) {
+func (l *RcalcParserListener) StartNewContext(ctx ParseContext[Action]) {
 	ctx.SetParent(l.currentPc)
 	l.currentPc = ctx
 }
@@ -194,6 +196,24 @@ func (l *RcalcParserListener) ExitVariableNumber(ctx *parser.VariableNumberConte
 
 }
 
+type AlgebraicVariableContext struct {
+	BaseParseContext[Action] // to avoid reimplementing the interface
+}
+
+func (ac *AlgebraicVariableContext) CreateFinalAction() Action {
+	return nil
+}
+
+func (ac *AlgebraicVariableContext) TokenVisited(token int) {
+
+}
+
+// EnterVariableAlgebraicExpression is called when production VariableAlgebraicExpression is entered.
+func (l *RcalcParserListener) EnterVariableAlgebraicExpression(ctx *parser.VariableAlgebraicExpressionContext) {
+	fmt.Println("EnterVariableAlgebraicExpression")
+	l.StartNewContext(&AlgebraicVariableContext{})
+}
+
 // ExitVariableAlgebraicExpression is called when production VariableAlgebraicExpression is exited.
 func (l *RcalcParserListener) ExitVariableAlgebraicExpression(ctx *parser.VariableAlgebraicExpressionContext) {
 	fmt.Println("ExitVariableAlgebraicExpression")
@@ -203,6 +223,7 @@ func (l *RcalcParserListener) ExitVariableAlgebraicExpression(ctx *parser.Variab
 	} else {
 		l.AddAction(&VariablePutOnStackActionDesc{value: identifier})
 	}
+	l.BackToParentContext()
 }
 
 // ExitInstrActionOrVarCall is called when exiting the InstrActionOrVarCall.
@@ -288,6 +309,15 @@ func (l *RcalcParserListener) ExitInstrProgramDeclaration(c *parser.InstrProgram
 	//programContext := l.currentPc
 	l.BackToParentContext()
 	//l.AddAction(programContext.CreateFinalAction())
+}
+
+// ExitAlgExprRoot is called when production AlgExprRoot is exited.
+func (l *RcalcParserListener) ExitAlgExprRoot(ctx *parser.AlgExprRootContext) {
+	op_type := ctx.GetOp_type()
+	if op_type != nil {
+		fmt.Printf("ExitAlgExprRoot => %s\n", op_type.GetText())
+	}
+	fmt.Printf("ExitAlgExprRoot full text => %s\n", ctx.GetText())
 }
 
 /* Error Reporting */
