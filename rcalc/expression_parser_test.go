@@ -46,6 +46,27 @@ func TestAntlrIdentifierParser(t *testing.T) {
 	}
 }
 
+func TestAntlrAlgebraicExprParser(t *testing.T) {
+	var txt string = "'1+2'"
+	var registry *ActionRegistry = initRegistry()
+	actions, err := ParseToActions(txt, "", registry)
+	if assert.NoError(t, err, "Parse error: %s", err) {
+		assert.Len(t, actions, 1)
+
+		assert.IsType(t, &VariablePutOnStackActionDesc{}, actions[0])
+
+		actionDesc := actions[0].(*VariablePutOnStackActionDesc)
+		assert.NotNil(t, actionDesc.value)
+		assert.IsType(t, &AlgebraicExpressionVariable{}, actionDesc.value)
+
+		algExprVar := actionDesc.value.(*AlgebraicExpressionVariable)
+		assert.NotNil(t, algExprVar.rootNode)
+		numericValue := algExprVar.rootNode.evaluate(nil)
+		expected := decimal.NewFromInt(3)
+		assert.Equal(t, expected, numericValue.value, "Expected %v / Value %v", expected, numericValue.value)
+	}
+}
+
 func TestAntlrParseActionInRegistry(t *testing.T) {
 	var txt string = "quit sto"
 	var registry *ActionRegistry = initRegistry()
@@ -183,13 +204,14 @@ func TestAlgebraicExpressionParsing(t *testing.T) {
 		"'1 * -2'",
 		"'1 * +2'",
 		"'1*(2+ 3)'",
-		"'1*sqrt(2+3)'",
+		"'1*cos(2+3)'",
+		"'-sin(2+3)'",
 		"'1 + 2 + 3'",
 		"'1 + 2 - 3'",
 	}
 
 	for idx, expr := range expressions {
-		t.Run(fmt.Sprintf("%02d-%s", idx+1, expr), func(t *testing.T) {
+		t.Run(fmt.Sprintf("Parse %02d-%s", idx+1, expr), func(t *testing.T) {
 			is := antlr.NewInputStream(expr)
 			// Create the Lexer
 			lexer := parser.NewRcalcLexer(is)
@@ -207,6 +229,19 @@ func TestAlgebraicExpressionParsing(t *testing.T) {
 			p.AddErrorListener(el)
 			antlr.ParseTreeWalkerDefault.Walk(listener, p.Start())
 			assert.False(t, el.hasErrors)
+			// listener.rootPc.GetActions()
 		})
+	}
+}
+
+func TestTokenToPosition(t *testing.T) {
+	ref := []int{3, 5, 12}
+	tokens := []int{5, 3, 12}
+	positions, err := tokenToPosition(ref, tokens)
+	if assert.NoError(t, err) {
+		if assert.Len(t, positions, 3) {
+			assert.Equal(t, []int{1, 0, 2}, positions)
+		}
+
 	}
 }

@@ -8,6 +8,27 @@ import (
 	parser "troisdizaines.com/rcalc/rcalc/parser"
 )
 
+func tokenToPosition(ref []int, tokens []int) ([]int, error) {
+	result := make([]int, len(tokens))
+	var found bool
+	for idx, token := range tokens {
+		found = false
+		for pos, candidate := range ref {
+			if candidate == token {
+				found = true
+				result[idx] = pos
+				continue
+			}
+		}
+		if !found {
+			//myLexer.getVocabulary.getSymbolicName(myTerminalNode.getSymbol.getType)
+
+			return nil, fmt.Errorf("token %d at position %d is not expected", token, idx)
+		}
+	}
+	return result, nil
+}
+
 func parserNumber(txt string) (Variable, error) {
 	number, err := decimal.NewFromString(txt)
 	if err != nil {
@@ -16,9 +37,10 @@ func parserNumber(txt string) (Variable, error) {
 	return CreateNumericVariable(number), nil
 }
 
-func parseIdentifier(txt string) (Variable, error) {
+func parseIdentifier(txt string, node AlgebraicExpressionNode) (Variable, error) {
 	l := len(txt)
-	return CreateIdentifierVariable(txt[1 : l-1]), nil
+	// TODO is identifier also ?
+	return CreateAlgebraicExpressionVariable(txt[1:l-1], node), nil
 }
 
 func parseAction(txt string, registry *ActionRegistry) (Action, error) {
@@ -93,9 +115,11 @@ func (i *IfThenElseContext) AddAction(action Action) {
 }
 
 func (i *IfThenElseContext) TokenVisited(token int) {
+	if i.actions == nil {
+		i.actions = make([][]Action, 3)
+	}
 	switch token {
 	case parser.RcalcLexerKW_IF:
-		i.actions = make([][]Action, 3)
 		i.currentAction = 0
 	case parser.RcalcLexerKW_THEN:
 		i.currentAction = 1
@@ -147,6 +171,9 @@ type RcalcParserListener struct {
 
 	rootPc    *BaseParseContext[Action]
 	currentPc ParseContext[Action]
+
+	rootAlgebraicPc    *AlgebraicExprContext
+	currentAlgebraicPc ParseContext[AlgebraicExpressionNode]
 }
 
 func CreateRcalcParserListener(registry *ActionRegistry) *RcalcParserListener {
@@ -180,8 +207,22 @@ func (l *RcalcParserListener) BackToParentContext() {
 	l.currentPc.BackFromChild(oldCurrent)
 }
 
+func (l *RcalcParserListener) StartNewAlgebraicContext(ctx ParseContext[AlgebraicExpressionNode]) {
+	ctx.SetParent(l.currentAlgebraicPc)
+	l.currentAlgebraicPc = ctx
+}
+
+func (l *RcalcParserListener) BackToParentAlgebraicContext() {
+	oldCurrent := l.currentAlgebraicPc
+	l.currentAlgebraicPc = l.currentAlgebraicPc.GetParent()
+	l.currentAlgebraicPc.BackFromChild(oldCurrent)
+}
+
 func (l *RcalcParserListener) TokenVisited(token int) {
 	l.currentPc.TokenVisited(token)
+	if l.currentAlgebraicPc != nil {
+		l.currentAlgebraicPc.TokenVisited(token)
+	}
 }
 
 // ExitVariableNumber is called when production InstrNumber is exited.
@@ -196,34 +237,121 @@ func (l *RcalcParserListener) ExitVariableNumber(ctx *parser.VariableNumberConte
 
 }
 
-type AlgebraicVariableContext struct {
-	BaseParseContext[Action] // to avoid reimplementing the interface
-}
-
-func (ac *AlgebraicVariableContext) CreateFinalAction() Action {
-	return nil
-}
-
-func (ac *AlgebraicVariableContext) TokenVisited(token int) {
-
-}
-
 // EnterVariableAlgebraicExpression is called when production VariableAlgebraicExpression is entered.
 func (l *RcalcParserListener) EnterVariableAlgebraicExpression(ctx *parser.VariableAlgebraicExpressionContext) {
 	fmt.Println("EnterVariableAlgebraicExpression")
-	l.StartNewContext(&AlgebraicVariableContext{})
+
+	l.rootAlgebraicPc = &AlgebraicExprContext{}
+	l.currentAlgebraicPc = l.rootAlgebraicPc
+	l.StartNewContext(&AlgebraicVariableContext{
+		algebraicContext: l.rootAlgebraicPc,
+	})
 }
 
 // ExitVariableAlgebraicExpression is called when production VariableAlgebraicExpression is exited.
 func (l *RcalcParserListener) ExitVariableAlgebraicExpression(ctx *parser.VariableAlgebraicExpressionContext) {
 	fmt.Println("ExitVariableAlgebraicExpression")
-	identifier, err := parseIdentifier(ctx.GetText())
+
+	rootAlgExpr := l.rootAlgebraicPc.GetActions()
+
+	identifier, err := parseIdentifier(ctx.GetText(), rootAlgExpr[0])
 	if err != nil {
 		ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
 	} else {
 		l.AddAction(&VariablePutOnStackActionDesc{value: identifier})
 	}
 	l.BackToParentContext()
+}
+
+// EnterAlgExprAddSub is called when entering the AlgExprAddSub production.
+func (l *RcalcParserListener) EnterAlgExprAddSub(c *parser.AlgExprAddSubContext) {
+	l.StartNewAlgebraicContext(&AlgebraicAddSubContext{})
+}
+
+// ExitAlgExprAddSub is called when production AlgExprRoot is exited.
+func (l *RcalcParserListener) ExitAlgExprAddSub(ctx *parser.AlgExprAddSubContext) {
+	l.BackToParentAlgebraicContext()
+}
+
+// EnterAlgExprMulDiv is called when production AlgExprMulDiv is entered.
+func (l *RcalcParserListener) EnterAlgExprMulDiv(ctx *parser.AlgExprMulDivContext) {
+	l.StartNewAlgebraicContext(&AlgebraicMulDivContext{})
+}
+
+// ExitAlgExprMulDiv is called when production AlgExprMulDiv is exited.
+func (l *RcalcParserListener) ExitAlgExprMulDiv(ctx *parser.AlgExprMulDivContext) {
+	fmt.Printf("ExitAlgExprMulDiv %s\n", ctx.GetText())
+	l.BackToParentAlgebraicContext()
+}
+
+// EnterAlgExprFuncCall is called when production AlgExprFuncAtom is entered.
+func (l *RcalcParserListener) EnterAlgExprFuncCall(ctx *parser.AlgExprFuncCallContext) {
+	functionName := ctx.GetFunction_name().GetText()
+	l.StartNewAlgebraicContext(&AlgebraicFunctionContext{
+		functionName: functionName,
+	})
+}
+
+// ExitAlgExprFuncCall is called when production AlgExprFuncAtom is exited.
+func (l *RcalcParserListener) ExitAlgExprFuncCall(ctx *parser.AlgExprFuncCallContext) {
+
+	l.BackToParentAlgebraicContext()
+}
+
+// EnterAlgExprNumber is called when entering the AlgExprNumber production.
+func (l *RcalcParserListener) EnterAlgExprNumber(ctx *parser.AlgExprNumberContext) {
+	value, err := decimal.NewFromString(ctx.GetText())
+	if err != nil {
+		panic(fmt.Sprintf("Cannot parse number %s", ctx.GetText()))
+	}
+	l.StartNewAlgebraicContext(&AlgebraicNumberContext{
+		value: value,
+	})
+}
+
+// ExitAlgExprNumber is called when exiting the AlgExprNumber production.
+func (l *RcalcParserListener) ExitAlgExprNumber(ctx *parser.AlgExprNumberContext) {
+	l.BackToParentAlgebraicContext()
+}
+
+// EnterAlgExprVariable is called when production AlgExprVariable is entered.
+func (l *RcalcParserListener) EnterAlgExprVariable(ctx *parser.AlgExprVariableContext) {
+	l.StartNewAlgebraicContext(&AlgebraicVariableNameContext{value: ctx.GetText()})
+}
+
+// ExitAlgExprVariable is called when production AlgExprVariable is exited.
+func (l *RcalcParserListener) ExitAlgExprVariable(ctx *parser.AlgExprVariableContext) {
+	l.BackToParentAlgebraicContext()
+}
+
+// EnterAlgExprAddSignedAtom is called when production AlgExprAddSignedAtom is entered.
+func (l *RcalcParserListener) EnterAlgExprAddSignedAtom(ctx *parser.AlgExprAddSignedAtomContext) {
+	l.StartNewAlgebraicContext(&AlgebraicAtomContext{})
+}
+
+// ExitAlgExprAddSignedAtom is called when production AlgExprAddSignedAtom is exited.
+func (l *RcalcParserListener) ExitAlgExprAddSignedAtom(ctx *parser.AlgExprAddSignedAtomContext) {
+	l.BackToParentAlgebraicContext()
+}
+
+// EnterAlgExprSubSignedAtom is called when production AlgExprSubSignedAtom is entered.
+func (l *RcalcParserListener) EnterAlgExprSubSignedAtom(ctx *parser.AlgExprSubSignedAtomContext) {
+	l.StartNewAlgebraicContext(&AlgebraicAtomContext{})
+}
+
+// ExitAlgExprSubSignedAtom is called when production AlgExprSubSignedAtom is exited.
+func (l *RcalcParserListener) ExitAlgExprSubSignedAtom(ctx *parser.AlgExprSubSignedAtomContext) {
+	l.BackToParentAlgebraicContext()
+}
+
+// EnterAlgExprAtom is called when production AlgExprAtom is entered.
+func (l *RcalcParserListener) EnterAlgExprAtom(ctx *parser.AlgExprAtomContext) {
+	l.StartNewAlgebraicContext(&AlgebraicAtomContext{})
+}
+
+// ExitAlgExprAtom is called when production AlgExprAtom is exited.
+func (l *RcalcParserListener) ExitAlgExprAtom(ctx *parser.AlgExprAtomContext) {
+	l.BackToParentAlgebraicContext()
 }
 
 // ExitInstrActionOrVarCall is called when exiting the InstrActionOrVarCall.
@@ -309,15 +437,6 @@ func (l *RcalcParserListener) ExitInstrProgramDeclaration(c *parser.InstrProgram
 	//programContext := l.currentPc
 	l.BackToParentContext()
 	//l.AddAction(programContext.CreateFinalAction())
-}
-
-// ExitAlgExprRoot is called when production AlgExprRoot is exited.
-func (l *RcalcParserListener) ExitAlgExprRoot(ctx *parser.AlgExprRootContext) {
-	op_type := ctx.GetOp_type()
-	if op_type != nil {
-		fmt.Printf("ExitAlgExprRoot => %s\n", op_type.GetText())
-	}
-	fmt.Printf("ExitAlgExprRoot full text => %s\n", ctx.GetText())
 }
 
 /* Error Reporting */

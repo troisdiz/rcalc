@@ -8,7 +8,7 @@ import (
 func TestCrDirAction(t *testing.T) {
 
 	myFolderName := "MyFolder"
-	var id1 = CreateIdentifierVariable(myFolderName)
+	var id1 = CreateAlgebraicExpressionVariable(myFolderName, nil)
 
 	stack := CreateStack()
 	stack.Push(id1)

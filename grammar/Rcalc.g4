@@ -96,11 +96,11 @@ number
 quoted_algebraic_expression: QUOTE alg_expression QUOTE ;
 
 alg_expression
-   : alg_mulExpression (op_type=(OP_ADD | OP_SUB) alg_mulExpression)* # AlgExprRoot
+   : alg_mulExpression ((OP_ADD | OP_SUB) alg_mulExpression)* # AlgExprAddSub
    ;
 
 alg_mulExpression
-   : alg_powExpression ((OP_MUL | OP_DIV) alg_powExpression)* # AlgExprMul
+   : alg_powExpression ((OP_MUL | OP_DIV) alg_powExpression)* # AlgExprMulDiv
    ;
 
 alg_powExpression
@@ -110,7 +110,7 @@ alg_powExpression
 alg_signedAtom
    : OP_ADD alg_signedAtom # AlgExprAddSignedAtom
    | OP_SUB alg_signedAtom # AlgExprSubSignedAtom
-   | alg_func_call         # AlgExprFuncCall
+   | alg_func_call         # AlgExprFuncAtom
    | alg_atom              # AlgExprAtom
    ;
 
@@ -125,7 +125,7 @@ alg_variable
    ;
 
 alg_func_call
-   : function_name=NAME PAREN_OPEN alg_expression (COMMA alg_expression)* PAREN_CLOSE
+   : function_name=NAME PAREN_OPEN alg_expression (COMMA alg_expression)* PAREN_CLOSE # AlgExprFuncCall
    ;
 
 list : CURLY_OPEN variable* CURLY_CLOSE ;
