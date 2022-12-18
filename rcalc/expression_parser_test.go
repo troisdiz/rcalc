@@ -229,7 +229,7 @@ func TestAlgebraicExpressionParsing(t *testing.T) {
 			p.AddErrorListener(el)
 			antlr.ParseTreeWalkerDefault.Walk(listener, p.Start())
 			assert.False(t, el.hasErrors)
-			// listener.rootPc.GetActions()
+			listener.rootPc.GetActions()
 		})
 	}
 }

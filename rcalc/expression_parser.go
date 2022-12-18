@@ -56,7 +56,7 @@ type ParseContext[T any] interface {
 	GetParent() ParseContext[T]
 	SetParent(ctx ParseContext[T])
 
-	AddAction(action T)
+	AddItem(item T)
 	AddIdentifier(id string)
 
 	BackFromChild(child ParseContext[T])
@@ -67,7 +67,7 @@ type ParseContext[T any] interface {
 
 type BaseParseContext[T any] struct {
 	parent         ParseContext[T]
-	actions        []T
+	items          []T
 	idDeclarations []string
 }
 
@@ -81,8 +81,8 @@ func (g *BaseParseContext[T]) SetParent(ctx ParseContext[T]) {
 	g.parent = ctx
 }
 
-func (g *BaseParseContext[T]) AddAction(action T) {
-	g.actions = append(g.actions, action)
+func (g *BaseParseContext[T]) AddItem(item T) {
+	g.items = append(g.items, item)
 }
 
 func (g *BaseParseContext[T]) AddIdentifier(id string) {
@@ -90,7 +90,7 @@ func (g *BaseParseContext[T]) AddIdentifier(id string) {
 }
 
 func (g *BaseParseContext[T]) BackFromChild(child ParseContext[T]) {
-	g.AddAction(child.CreateFinalAction())
+	g.AddItem(child.CreateFinalAction())
 }
 
 func (g *BaseParseContext[T]) CreateFinalAction() T {
@@ -98,7 +98,7 @@ func (g *BaseParseContext[T]) CreateFinalAction() T {
 }
 
 func (g *BaseParseContext[T]) GetActions() []T {
-	return g.actions
+	return g.items
 }
 
 func (g *BaseParseContext[T]) TokenVisited(token int) {}
@@ -110,7 +110,7 @@ type IfThenElseContext struct {
 	currentAction int
 }
 
-func (i *IfThenElseContext) AddAction(action Action) {
+func (i *IfThenElseContext) AddItem(action Action) {
 	i.actions[i.currentAction] = append(i.actions[i.currentAction], action)
 }
 
@@ -141,7 +141,7 @@ type StartEndLoopContext struct {
 }
 
 func (pc *StartEndLoopContext) CreateFinalAction() Action {
-	return &StartNextLoopActionDesc{actions: pc.BaseParseContext.actions}
+	return &StartNextLoopActionDesc{actions: pc.BaseParseContext.items}
 }
 
 type ForNextLoopContext struct {
@@ -151,7 +151,7 @@ type ForNextLoopContext struct {
 func (pc *ForNextLoopContext) CreateFinalAction() Action {
 	return &ForNextLoopActionDesc{
 		varName: pc.BaseParseContext.idDeclarations[0],
-		actions: pc.BaseParseContext.actions,
+		actions: pc.BaseParseContext.items,
 	}
 }
 
@@ -160,7 +160,7 @@ type ProgramContext struct {
 }
 
 func (pc *ProgramContext) CreateFinalAction() Action {
-	progVar := CreateProgramVariable(pc.actions)
+	progVar := CreateProgramVariable(pc.items)
 	return &VariablePutOnStackActionDesc{value: progVar}
 }
 
@@ -178,8 +178,8 @@ type RcalcParserListener struct {
 
 func CreateRcalcParserListener(registry *ActionRegistry) *RcalcParserListener {
 	rootPc := &BaseParseContext[Action]{
-		parent:  nil,
-		actions: nil,
+		parent: nil,
+		items:  nil,
 	}
 	return &RcalcParserListener{
 		registry:  registry,
@@ -189,7 +189,7 @@ func CreateRcalcParserListener(registry *ActionRegistry) *RcalcParserListener {
 }
 
 func (l *RcalcParserListener) AddAction(action Action) {
-	l.currentPc.AddAction(action)
+	l.currentPc.AddItem(action)
 }
 
 func (l *RcalcParserListener) AddVarName(varName string) {
@@ -436,7 +436,7 @@ func (l *RcalcParserListener) EnterInstrProgramDeclaration(c *parser.InstrProgra
 func (l *RcalcParserListener) ExitInstrProgramDeclaration(c *parser.InstrProgramDeclarationContext) {
 	//programContext := l.currentPc
 	l.BackToParentContext()
-	//l.AddAction(programContext.CreateFinalAction())
+	//l.AddItem(programContext.CreateFinalAction())
 }
 
 /* Error Reporting */
