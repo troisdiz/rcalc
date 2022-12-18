@@ -161,7 +161,7 @@ func (a *AlgExprSignedElt) evaluate(variableReader VariableReader) *NumericVaria
 }
 
 type AlgExprFunctionElt struct {
-	function     interface{}
+	//function     interface{}
 	functionName string
 	arguments    []AlgebraicExpressionNode
 }
