@@ -97,7 +97,7 @@ func (g *BaseParseContext[T]) CreateFinalAction() T {
 	panic("CreateFinalAction must be implemented by sub structures")
 }
 
-func (g *BaseParseContext[T]) GetActions() []T {
+func (g *BaseParseContext[T]) GetItems() []T {
 	return g.items
 }
 
@@ -252,7 +252,7 @@ func (l *RcalcParserListener) EnterVariableAlgebraicExpression(ctx *parser.Varia
 func (l *RcalcParserListener) ExitVariableAlgebraicExpression(ctx *parser.VariableAlgebraicExpressionContext) {
 	fmt.Println("ExitVariableAlgebraicExpression")
 
-	rootAlgExpr := l.rootAlgebraicPc.GetActions()
+	rootAlgExpr := l.rootAlgebraicPc.GetItems()
 
 	identifier, err := parseIdentifier(ctx.GetText(), rootAlgExpr[0])
 	if err != nil {
@@ -493,5 +493,5 @@ func ParseToActions(cmds string, lexerName string, registry *ActionRegistry) ([]
 
 		return nil, fmt.Errorf("There are %d error(s):\n - %s", len(el.messages), strings.Join(el.messages, "\n - "))
 	}
-	return listener.rootPc.GetActions(), nil
+	return listener.rootPc.GetItems(), nil
 }

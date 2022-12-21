@@ -61,7 +61,7 @@ func TestAntlrAlgebraicExprParser(t *testing.T) {
 
 		algExprVar := actionDesc.value.(*AlgebraicExpressionVariable)
 		assert.NotNil(t, algExprVar.rootNode)
-		numericValue := algExprVar.rootNode.evaluate(nil)
+		numericValue := algExprVar.rootNode.Evaluate(nil)
 		expected := decimal.NewFromInt(3)
 		assert.Equal(t, expected, numericValue.value, "Expected %v / Value %v", expected, numericValue.value)
 	}
@@ -197,22 +197,63 @@ var _ parser.RcalcListener = (*TestParserListener)(nil)
 
 func TestAlgebraicExpressionParsing(t *testing.T) {
 
-	expressions := []string{
-		"'1 +2'",
-		"'1 + 2'",
-		"'1+ 2'",
-		"'1 * -2'",
-		"'1 * +2'",
-		"'1*(2+ 3)'",
-		"'1*cos(2+3)'",
-		"'-sin(2+3)'",
-		"'1 + 2 + 3'",
-		"'1 + 2 - 3'",
+	expressions := []struct {
+		literal string
+		value   decimal.Decimal
+	}{
+		{
+			literal: "'1 +2'",
+			value:   decimal.NewFromInt(3),
+		},
+		{
+			literal: "'1 + 2'", value: decimal.NewFromInt(3),
+		},
+		{
+			literal: "'1 +2 - 5'", value: decimal.NewFromInt(-2),
+		},
+		/*{
+			//TODO This does not parse
+			literal: "'1 +2 - 5'", value: decimal.NewFromInt(-2),
+		},*/
+		{
+			literal: "'1+ 2'",
+			value:   decimal.NewFromInt(3),
+		},
+		{
+			literal: "'1 * -2'",
+			value:   decimal.NewFromInt(-2),
+		},
+		{
+			literal: "'1 * +2'",
+			value:   decimal.NewFromInt(2),
+		},
+		{
+			literal: "'1*(2+ 3)'",
+			value:   decimal.NewFromInt(5),
+		},
+		{
+			literal: "'1*cos(2+3- 5)'",
+			value:   decimal.NewFromInt(1),
+		},
+		{
+			literal: "'-sin((2+3)*0)'",
+			value:   decimal.NewFromInt(0),
+		},
+		{
+			literal: "'1 + 2 + 3'",
+			value:   decimal.NewFromInt(6),
+		},
+		{
+			literal: "'1 + 2 - 3'",
+			value:   decimal.Zero,
+		},
 	}
 
+	var nodeByExpression map[string]AlgebraicExpressionNode = make(map[string]AlgebraicExpressionNode)
+
 	for idx, expr := range expressions {
-		t.Run(fmt.Sprintf("Parse %02d-%s", idx+1, expr), func(t *testing.T) {
-			is := antlr.NewInputStream(expr)
+		t.Run(fmt.Sprintf("Parse %02d-%s", idx+1, expr.literal), func(t *testing.T) {
+			is := antlr.NewInputStream(expr.literal)
 			// Create the Lexer
 			lexer := parser.NewRcalcLexer(is)
 			stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
@@ -229,7 +270,22 @@ func TestAlgebraicExpressionParsing(t *testing.T) {
 			p.AddErrorListener(el)
 			antlr.ParseTreeWalkerDefault.Walk(listener, p.Start())
 			assert.False(t, el.hasErrors)
-			listener.rootPc.GetActions()
+			expressionNodes := listener.rootPc.GetItems()
+			variablePutOnSatckAction := expressionNodes[0].(*VariablePutOnStackActionDesc)
+			algExprVariable := variablePutOnSatckAction.value.(*AlgebraicExpressionVariable)
+			nodeByExpression[expr.literal] = algExprVariable.rootNode
+		})
+	}
+	for idx, expr := range expressions {
+		t.Run(fmt.Sprintf("Compute %02d-%s", idx+1, expr.literal), func(t *testing.T) {
+			algExprNode := nodeByExpression[expr.literal]
+			numericVariable, err := evalAlgExpression(nil, algExprNode)
+			if assert.NoError(t, err) {
+				assert.True(t,
+					expr.value.Equal(numericVariable.value),
+					"%s -> %v instead of %v\n", expr.literal, numericVariable.value, expr.value)
+			}
+
 		})
 	}
 }

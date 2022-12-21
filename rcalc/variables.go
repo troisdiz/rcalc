@@ -66,7 +66,7 @@ func CreateBooleanVariable(value bool) Variable {
 }
 
 type AlgebraicExpressionNode interface {
-	evaluate(variableReader VariableReader) *NumericVariable
+	Evaluate(variableReader VariableReader) *NumericVariable
 }
 
 type AlgExprMulDiv struct {
@@ -76,10 +76,10 @@ type AlgExprMulDiv struct {
 
 var _ AlgebraicExpressionNode = (*AlgExprMulDiv)(nil)
 
-func (a *AlgExprMulDiv) evaluate(variableReader VariableReader) *NumericVariable {
+func (a *AlgExprMulDiv) Evaluate(variableReader VariableReader) *NumericVariable {
 	result := decimal.NewFromInt(1)
 	for _, it := range a.items {
-		result = result.Mul(it.evaluate(variableReader).asNumericVar().value)
+		result = result.Mul(it.Evaluate(variableReader).asNumericVar().value)
 	}
 	return CreateNumericVariable(result).asNumericVar()
 }
@@ -95,7 +95,7 @@ type AlgExprAddSub struct {
 	operators []int
 }
 
-func (a *AlgExprAddSub) evaluate(variableReader VariableReader) *NumericVariable {
+func (a *AlgExprAddSub) Evaluate(variableReader VariableReader) *NumericVariable {
 	result := decimal.NewFromInt(0)
 	for idx, it := range a.items {
 		operator := OPERATOR_ADD
@@ -104,9 +104,9 @@ func (a *AlgExprAddSub) evaluate(variableReader VariableReader) *NumericVariable
 		}
 		switch operator {
 		case OPERATOR_ADD:
-			result = result.Add(it.evaluate(variableReader).asNumericVar().value)
+			result = result.Add(it.Evaluate(variableReader).asNumericVar().value)
 		case OPERATOR_SUB:
-			result = result.Sub(it.evaluate(variableReader).asNumericVar().value)
+			result = result.Sub(it.Evaluate(variableReader).asNumericVar().value)
 		}
 	}
 	return CreateNumericVariable(result).asNumericVar()
@@ -120,7 +120,7 @@ type AlgExprNumber struct {
 
 var _ AlgebraicExpressionNode = (*AlgExprNumber)(nil)
 
-func (a *AlgExprNumber) evaluate(variableReader VariableReader) *NumericVariable {
+func (a *AlgExprNumber) Evaluate(variableReader VariableReader) *NumericVariable {
 	return CreateNumericVariable(a.value).asNumericVar()
 }
 
@@ -130,7 +130,7 @@ type AlgExprVariable struct {
 
 var _ AlgebraicExpressionNode = (*AlgExprVariable)(nil)
 
-func (aev *AlgExprVariable) evaluate(variableReader VariableReader) *NumericVariable {
+func (aev *AlgExprVariable) Evaluate(variableReader VariableReader) *NumericVariable {
 	variableValue, err := variableReader.GetVariableValue(aev.value)
 	if err != nil {
 		// TODO Error system for such case
@@ -152,8 +152,8 @@ type AlgExprSignedElt struct {
 
 var _ AlgebraicExpressionNode = (*AlgExprSignedElt)(nil)
 
-func (a *AlgExprSignedElt) evaluate(variableReader VariableReader) *NumericVariable {
-	result := a.items.evaluate(variableReader)
+func (a *AlgExprSignedElt) Evaluate(variableReader VariableReader) *NumericVariable {
+	result := a.items.Evaluate(variableReader)
 	if a.operator == OPERATOR_SUB {
 		result.value = result.value.Neg()
 	}
@@ -168,17 +168,23 @@ type AlgExprFunctionElt struct {
 
 var _ AlgebraicExpressionNode = (*AlgExprFunctionElt)(nil)
 
-func (a AlgExprFunctionElt) evaluate(variableReader VariableReader) *NumericVariable {
+func (a AlgExprFunctionElt) Evaluate(variableReader VariableReader) *NumericVariable {
 
 	if a.functionName == "cos" {
 		if len(a.arguments) == 1 {
-			argValue := a.arguments[0].evaluate(variableReader)
+			argValue := a.arguments[0].Evaluate(variableReader)
 			result := argValue.value.Cos()
 			return CreateNumericVariable(result).asNumericVar()
 		}
 	}
-
-	//TODO implement me
+	if a.functionName == "sin" {
+		if len(a.arguments) == 1 {
+			argValue := a.arguments[0].Evaluate(variableReader)
+			result := argValue.value.Sin()
+			return CreateNumericVariable(result).asNumericVar()
+		}
+	}
+	//TODO implement numeric functione registry to use it here
 	panic("implement me")
 }
 

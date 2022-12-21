@@ -504,10 +504,14 @@ func (e *EvalProgramActionDesc) CheckTypes(elts ...Variable) (bool, error) {
 }
 
 func (e *EvalProgramActionDesc) Apply(runtimeContext *RuntimeContext) error {
+	return executeProgram(runtimeContext, e.program)
+}
+
+func executeProgram(runtimeContext *RuntimeContext, program *ProgramVariable) error {
 	runtimeContext.EnterNewScope()
 	defer func() { runtimeContext.LeaveScope() }()
 
-	for _, action := range e.program.actions {
+	for _, action := range program.actions {
 		err := runtimeContext.RunAction(action)
 		if err != nil {
 			return err
@@ -628,25 +632,72 @@ func (a *VariableDeclarationActionDesc) Display() string {
 	return fmt.Sprintf("-> %s %s", strings.Join(a.varNames, " "), a.programVariable.display())
 }
 
-/*
-var evalAct := NewActionDesc("eval", 1, CheckNoop, func(system System, stack *Stack) error {
-	v1, err := stack.Pop()
+type EvalActionDesc struct{}
+
+// EvalActionDesc implements Action
+var _ Action = (*EvalActionDesc)(nil)
+
+func (e *EvalActionDesc) Display() string {
+	return "eval"
+}
+
+func (e *EvalActionDesc) OpCode() string {
+	return "eval"
+}
+
+func (e *EvalActionDesc) NbArgs() int {
+	return 1
+}
+
+func (e *EvalActionDesc) CheckTypes(elts ...Variable) (bool, error) {
+	return true, nil
+}
+
+func (e *EvalActionDesc) Apply(runtimeContext *RuntimeContext) error {
+
+	v1, err := runtimeContext.stack.Pop()
 	if err != nil {
 		return err
 	}
 	switch v1.getType() {
-	case TYPE_NUMERIC | TYPE_BOOL | TYPE_STR :
-		stack.Push(v1)
+	case TYPE_NUMERIC | TYPE_BOOL | TYPE_STR:
+		runtimeContext.stack.Push(v1)
 	case TYPE_PROGRAM:
-		system.
-
-
+		return executeProgram(runtimeContext, v1.(*ProgramVariable))
+	case TYPE_ALG_EXPR:
+		expression, err := evalAlgExpression(runtimeContext, v1.(*AlgebraicExpressionVariable).rootNode)
+		if err != nil {
+			return err
+		} else {
+			runtimeContext.stack.Push(expression)
+			return nil
+		}
 	}
-})
-*/
+
+	return nil
+}
+
+func evalAlgExpression(runtimeContext *RuntimeContext, algExpreNode AlgebraicExpressionNode) (*NumericVariable, error) {
+	numericVariable := algExpreNode.Evaluate(runtimeContext)
+	return numericVariable, nil
+}
+
+func (e *EvalActionDesc) MarshallFunc() ActionMarshallFunc {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (e *EvalActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
+	//TODO implement me
+	panic("implement me")
+}
+
+var evalAct = &EvalActionDesc{}
 
 var StructOpsPackage = ActionPackage{
-	staticActions: []Action{},
+	staticActions: []Action{
+		evalAct,
+	},
 	dynamicActions: []Action{
 		&EvalProgramActionDesc{},
 		&IfThenElseActionDesc{},
