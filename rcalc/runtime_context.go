@@ -60,7 +60,7 @@ func (s *Scope) GetVariableValue(varName string) (Variable, error) {
 		}
 		lookupScope = lookupScope.parent
 	}
-	// TODO memory variables
+	// Nothing found in local vairables
 	return nil, fmt.Errorf("variable named %s not found", varName)
 }
 
@@ -71,7 +71,19 @@ func (s *Scope) SetVariableValue(varName string, value Variable) error {
 }
 
 func (rt *RuntimeContext) GetVariableValue(varName string) (Variable, error) {
-	return rt.currentScope.GetVariableValue(varName)
+
+	value, err := rt.currentScope.GetVariableValue(varName)
+	// Let's look in main Memory
+	if err != nil {
+		memory := rt.system.Memory()
+		currentFolder := memory.getCurrentFolder()
+		varPath := append(memory.getPath(currentFolder), varName)
+		node := memory.resolvePath(varPath)
+		varNode := node.asMemoryVariable()
+		value = varNode.value
+		err = nil
+	}
+	return value, err
 }
 
 func (rt *RuntimeContext) SetVariableValue(varName string, value Variable) error {

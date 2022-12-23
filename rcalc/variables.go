@@ -66,7 +66,7 @@ func CreateBooleanVariable(value bool) Variable {
 }
 
 type AlgebraicExpressionNode interface {
-	Evaluate(variableReader VariableReader) *NumericVariable
+	Evaluate(variableReader VariableReader) (*NumericVariable, error)
 }
 
 type AlgExprMulDiv struct {
@@ -76,12 +76,18 @@ type AlgExprMulDiv struct {
 
 var _ AlgebraicExpressionNode = (*AlgExprMulDiv)(nil)
 
-func (a *AlgExprMulDiv) Evaluate(variableReader VariableReader) *NumericVariable {
+func (a *AlgExprMulDiv) Evaluate(variableReader VariableReader) (*NumericVariable, error) {
 	result := decimal.NewFromInt(1)
 	for _, it := range a.items {
-		result = result.Mul(it.Evaluate(variableReader).asNumericVar().value)
+		variable, err := it.Evaluate(variableReader)
+		if err != nil {
+			return nil, err
+		}
+		numericVar := variable.asNumericVar()
+		subExprValue := numericVar.value
+		result = result.Mul(subExprValue)
 	}
-	return CreateNumericVariable(result).asNumericVar()
+	return CreateNumericVariable(result).asNumericVar(), nil
 }
 
 // type AddSubOp int
@@ -95,7 +101,7 @@ type AlgExprAddSub struct {
 	operators []int
 }
 
-func (a *AlgExprAddSub) Evaluate(variableReader VariableReader) *NumericVariable {
+func (a *AlgExprAddSub) Evaluate(variableReader VariableReader) (*NumericVariable, error) {
 	result := decimal.NewFromInt(0)
 	for idx, it := range a.items {
 		operator := OPERATOR_ADD
@@ -104,12 +110,20 @@ func (a *AlgExprAddSub) Evaluate(variableReader VariableReader) *NumericVariable
 		}
 		switch operator {
 		case OPERATOR_ADD:
-			result = result.Add(it.Evaluate(variableReader).asNumericVar().value)
+			variable, err := it.Evaluate(variableReader)
+			if err != nil {
+				return nil, err
+			}
+			result = result.Add(variable.asNumericVar().value)
 		case OPERATOR_SUB:
-			result = result.Sub(it.Evaluate(variableReader).asNumericVar().value)
+			variable, err := it.Evaluate(variableReader)
+			if err != nil {
+				return nil, err
+			}
+			result = result.Sub(variable.asNumericVar().value)
 		}
 	}
-	return CreateNumericVariable(result).asNumericVar()
+	return CreateNumericVariable(result).asNumericVar(), nil
 }
 
 var _ AlgebraicExpressionNode = (*AlgExprAddSub)(nil)
@@ -120,8 +134,8 @@ type AlgExprNumber struct {
 
 var _ AlgebraicExpressionNode = (*AlgExprNumber)(nil)
 
-func (a *AlgExprNumber) Evaluate(variableReader VariableReader) *NumericVariable {
-	return CreateNumericVariable(a.value).asNumericVar()
+func (a *AlgExprNumber) Evaluate(variableReader VariableReader) (*NumericVariable, error) {
+	return CreateNumericVariable(a.value).asNumericVar(), nil
 }
 
 type AlgExprVariable struct {
@@ -130,18 +144,17 @@ type AlgExprVariable struct {
 
 var _ AlgebraicExpressionNode = (*AlgExprVariable)(nil)
 
-func (aev *AlgExprVariable) Evaluate(variableReader VariableReader) *NumericVariable {
-	variableValue, err := variableReader.GetVariableValue(aev.value)
+func (aev *AlgExprVariable) Evaluate(variableReader VariableReader) (*NumericVariable, error) {
+	varName := aev.value
+	variableValue, err := variableReader.GetVariableValue(varName)
 	if err != nil {
-		// TODO Error system for such case
-		return nil
+		return nil, fmt.Errorf("cannot find variable %s", varName)
 	}
 	if variableValue.getType() == TYPE_NUMERIC {
 		numericVar := variableValue.asNumericVar()
-		return numericVar
+		return numericVar, nil
 	} else {
-		// TODO Error system for such case
-		return nil
+		return nil, fmt.Errorf("variable %s is not of numeric type", varName)
 	}
 }
 
@@ -152,12 +165,12 @@ type AlgExprSignedElt struct {
 
 var _ AlgebraicExpressionNode = (*AlgExprSignedElt)(nil)
 
-func (a *AlgExprSignedElt) Evaluate(variableReader VariableReader) *NumericVariable {
-	result := a.items.Evaluate(variableReader)
+func (a *AlgExprSignedElt) Evaluate(variableReader VariableReader) (*NumericVariable, error) {
+	result, _ := a.items.Evaluate(variableReader)
 	if a.operator == OPERATOR_SUB {
 		result.value = result.value.Neg()
 	}
-	return result
+	return result, nil
 }
 
 type AlgExprFunctionElt struct {
@@ -168,20 +181,20 @@ type AlgExprFunctionElt struct {
 
 var _ AlgebraicExpressionNode = (*AlgExprFunctionElt)(nil)
 
-func (a AlgExprFunctionElt) Evaluate(variableReader VariableReader) *NumericVariable {
+func (a AlgExprFunctionElt) Evaluate(variableReader VariableReader) (*NumericVariable, error) {
 
 	if a.functionName == "cos" {
 		if len(a.arguments) == 1 {
-			argValue := a.arguments[0].Evaluate(variableReader)
+			argValue, _ := a.arguments[0].Evaluate(variableReader)
 			result := argValue.value.Cos()
-			return CreateNumericVariable(result).asNumericVar()
+			return CreateNumericVariable(result).asNumericVar(), nil
 		}
 	}
 	if a.functionName == "sin" {
 		if len(a.arguments) == 1 {
-			argValue := a.arguments[0].Evaluate(variableReader)
+			argValue, _ := a.arguments[0].Evaluate(variableReader)
 			result := argValue.value.Sin()
-			return CreateNumericVariable(result).asNumericVar()
+			return CreateNumericVariable(result).asNumericVar(), nil
 		}
 	}
 	//TODO implement numeric functione registry to use it here

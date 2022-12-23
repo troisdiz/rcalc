@@ -678,7 +678,7 @@ func (e *EvalActionDesc) Apply(runtimeContext *RuntimeContext) error {
 }
 
 func evalAlgExpression(runtimeContext *RuntimeContext, algExpreNode AlgebraicExpressionNode) (*NumericVariable, error) {
-	numericVariable := algExpreNode.Evaluate(runtimeContext)
+	numericVariable, _ := algExpreNode.Evaluate(runtimeContext)
 	return numericVariable, nil
 }
 

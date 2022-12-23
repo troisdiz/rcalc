@@ -61,7 +61,7 @@ func TestAntlrAlgebraicExprParser(t *testing.T) {
 
 		algExprVar := actionDesc.value.(*AlgebraicExpressionVariable)
 		assert.NotNil(t, algExprVar.rootNode)
-		numericValue := algExprVar.rootNode.Evaluate(nil)
+		numericValue, _ := algExprVar.rootNode.Evaluate(nil)
 		expected := decimal.NewFromInt(3)
 		assert.Equal(t, expected, numericValue.value, "Expected %v / Value %v", expected, numericValue.value)
 	}
@@ -247,6 +247,14 @@ func TestAlgebraicExpressionParsing(t *testing.T) {
 			literal: "'1 + 2 - 3'",
 			value:   decimal.Zero,
 		},
+		{
+			literal: "'a'",
+			value:   decimal.NewFromInt(7),
+		},
+		{
+			literal: "'a+2'",
+			value:   decimal.NewFromInt(9),
+		},
 	}
 
 	var nodeByExpression map[string]AlgebraicExpressionNode = make(map[string]AlgebraicExpressionNode)
@@ -271,22 +279,34 @@ func TestAlgebraicExpressionParsing(t *testing.T) {
 			antlr.ParseTreeWalkerDefault.Walk(listener, p.Start())
 			assert.False(t, el.hasErrors)
 			expressionNodes := listener.rootPc.GetItems()
-			variablePutOnSatckAction := expressionNodes[0].(*VariablePutOnStackActionDesc)
-			algExprVariable := variablePutOnSatckAction.value.(*AlgebraicExpressionVariable)
-			nodeByExpression[expr.literal] = algExprVariable.rootNode
+			variablePutOnStackAction := expressionNodes[0].(*VariablePutOnStackActionDesc)
+			algExprVariable := variablePutOnStackAction.value.(*AlgebraicExpressionVariable)
+			if assert.NotNil(t, algExprVariable.rootNode, "Value of PutOnStackAction is nil for expr %s", expr.literal) {
+				nodeByExpression[expr.literal] = algExprVariable.rootNode
+			}
 		})
 	}
-	for idx, expr := range expressions {
-		t.Run(fmt.Sprintf("Compute %02d-%s", idx+1, expr.literal), func(t *testing.T) {
-			algExprNode := nodeByExpression[expr.literal]
-			numericVariable, err := evalAlgExpression(nil, algExprNode)
-			if assert.NoError(t, err) {
-				assert.True(t,
-					expr.value.Equal(numericVariable.value),
-					"%s -> %v instead of %v\n", expr.literal, numericVariable.value, expr.value)
-			}
+	stack := CreateStack()
+	system := CreateSystemInstance()
+	_, err := system.memory.createVariable(
+		"a",
+		system.memory.getRoot(),
+		CreateNumericVariable(decimal.NewFromInt(7)))
+	if assert.NoError(t, err, "Cannot create variable") {
 
-		})
+		runtimeContext := CreateRuntimeContext(system, stack)
+		for idx, expr := range expressions {
+			t.Run(fmt.Sprintf("Compute %02d-%s", idx+1, expr.literal), func(t *testing.T) {
+				algExprNode := nodeByExpression[expr.literal]
+				numericVariable, err := evalAlgExpression(runtimeContext, algExprNode)
+				if assert.NoError(t, err) {
+					assert.True(t,
+						expr.value.Equal(numericVariable.value),
+						"%s -> %v instead of %v\n", expr.literal, numericVariable.value, expr.value)
+				}
+
+			})
+		}
 	}
 }
 
