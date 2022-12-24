@@ -79,9 +79,14 @@ func (rt *RuntimeContext) GetVariableValue(varName string) (Variable, error) {
 		currentFolder := memory.getCurrentFolder()
 		varPath := append(memory.getPath(currentFolder), varName)
 		node := memory.resolvePath(varPath)
-		varNode := node.asMemoryVariable()
-		value = varNode.value
-		err = nil
+		if node == nil {
+			value = nil
+			err = fmt.Errorf("cannot find variable %s in local variables nor in path %v", varName, varPath)
+		} else {
+			varNode := node.asMemoryVariable()
+			value = varNode.value
+			err = nil
+		}
 	}
 	return value, err
 }

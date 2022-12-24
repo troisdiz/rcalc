@@ -9,6 +9,7 @@ import (
 type AlgebraicVariableContext struct {
 	BaseParseContext[Action] // to avoid reimplementing the interface
 
+	exprText         string
 	algebraicContext *AlgebraicExprContext
 }
 
@@ -25,7 +26,7 @@ func (ac *AlgebraicVariableContext) CreateFinalAction() Action {
 		CommonVariable: CommonVariable{
 			fType: TYPE_ALG_EXPR,
 		},
-		value:    "'toto'",
+		value:    ac.exprText,
 		rootNode: algRootNode,
 	}}
 }

@@ -243,7 +243,12 @@ func (l *RcalcParserListener) EnterVariableAlgebraicExpression(ctx *parser.Varia
 
 	l.rootAlgebraicPc = &AlgebraicExprContext{}
 	l.currentAlgebraicPc = l.rootAlgebraicPc
+
+	text := ctx.GetText()
+	lenText := len(text)
+	exprText := text[1 : lenText-1]
 	l.StartNewContext(&AlgebraicVariableContext{
+		exprText:         exprText,
 		algebraicContext: l.rootAlgebraicPc,
 	})
 }
@@ -436,7 +441,6 @@ func (l *RcalcParserListener) EnterInstrProgramDeclaration(c *parser.InstrProgra
 func (l *RcalcParserListener) ExitInstrProgramDeclaration(c *parser.InstrProgramDeclarationContext) {
 	//programContext := l.currentPc
 	l.BackToParentContext()
-	//l.AddItem(programContext.CreateFinalAction())
 }
 
 /* Error Reporting */
