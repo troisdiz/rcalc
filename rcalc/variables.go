@@ -239,11 +239,19 @@ func (p *ProgramVariable) display() string {
 	for _, action := range p.actions {
 		actionStr = append(actionStr, action.Display())
 	}
-	return fmt.Sprintf(" << %s >>", strings.Join(actionStr, " "))
+	return fmt.Sprintf("<< %s >>", strings.Join(actionStr, " "))
 }
 
 func (p *ProgramVariable) asProgramVar() *ProgramVariable {
 	return p
+}
+
+func (p *ProgramVariable) String() string {
+	var actionStrings []string
+	for _, action := range p.actions {
+		actionStrings = append(actionStrings, fmt.Sprintf("%v", action))
+	}
+	return fmt.Sprintf("[ProgramVariable]\n    %s", strings.Join(actionStrings, "\n    "))
 }
 
 func CreateProgramVariable(actions []Action) *ProgramVariable {

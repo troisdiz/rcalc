@@ -165,3 +165,13 @@ var VersionOp = NewOperationDesc(
 	OpToActionFn(func(elts ...Variable) []Variable {
 		return []Variable{CreateNumericVariable(decimal.Zero)}
 	}))
+
+var DebugOp = NewOperationDesc(
+	"debug",
+	1,
+	func(elts ...Variable) (bool, error) { return true, nil },
+	OpToActionFn(func(elts ...Variable) []Variable {
+		fmt.Printf("%v\n", elts[0])
+		return []Variable{
+			elts[0]}
+	}))
