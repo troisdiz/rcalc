@@ -170,6 +170,31 @@ func TestAntlrParseProgram(t *testing.T) {
 	}
 }
 
+func TestAntlrParseLocalVariableDeclaration(t *testing.T) {
+	var txt string = " ->  a b << a >>"
+	var registry *ActionRegistry = initRegistry()
+
+	elt, err := ParseToActions(txt, "Test", registry)
+	if assert.NoError(t, err, "Parse error : %s", err) {
+		fmt.Println(elt)
+		if assert.Len(t, elt, 1) {
+			assert.IsType(t, &VariableDeclarationActionDesc{}, elt[0])
+			variableDeclarationActionDesc := elt[0].(*VariableDeclarationActionDesc)
+			varNames := variableDeclarationActionDesc.varNames
+			if assert.Len(t, varNames, 2) {
+				assert.Equal(t, "a", varNames[0])
+				assert.Equal(t, "b", varNames[1])
+			}
+			programVariable := variableDeclarationActionDesc.programVariable
+			if assert.NotNil(t, programVariable) {
+				if assert.Len(t, programVariable.actions, 1) {
+					assert.IsType(t, &VariableEvaluationActionDesc{}, programVariable.actions[0])
+				}
+			}
+		}
+	}
+}
+
 type TestErrorListener struct {
 	hasErrors bool
 }

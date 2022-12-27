@@ -164,6 +164,20 @@ func (pc *ProgramContext) CreateFinalAction() Action {
 	return &VariablePutOnStackActionDesc{value: progVar}
 }
 
+type InstrLocalVarCreationContext struct {
+	BaseParseContext[Action]
+}
+
+func (pc *InstrLocalVarCreationContext) CreateFinalAction() Action {
+	programPutOnStackVariable := pc.BaseParseContext.items[0].(*VariablePutOnStackActionDesc)
+	fmt.Printf("%v\n", programPutOnStackVariable)
+	programVariable := programPutOnStackVariable.value.asProgramVar()
+	return &VariableDeclarationActionDesc{
+		varNames:        pc.BaseParseContext.idDeclarations,
+		programVariable: programVariable,
+	}
+}
+
 type RcalcParserListener struct {
 	*parser.BaseRcalcListener
 
@@ -373,7 +387,7 @@ func (l *RcalcParserListener) ExitInstrActionOrVarCall(ctx *parser.InstrActionOr
 
 // ExitDeclarationVariable is called when exiting the DeclarationVariable production.
 func (l *RcalcParserListener) ExitDeclarationVariable(ctx *parser.DeclarationVariableContext) {
-	fmt.Println("ExitInstrActionOrVarCall")
+	fmt.Println("ExitDeclarationVariable")
 	action, err := parseAction(ctx.GetText(), l.registry)
 	if err != nil {
 		//ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
@@ -432,14 +446,22 @@ func (l *RcalcParserListener) ExitInstrForNextLoop(c *parser.InstrForNextLoopCon
 	l.BackToParentContext()
 }
 
-// EnterInstrProgramDeclaration is called when entering the InstrProgramDeclaration production.
-func (l *RcalcParserListener) EnterInstrProgramDeclaration(c *parser.InstrProgramDeclarationContext) {
+// EnterProgramDeclaration is called when entering the InstrProgramDeclaration production.
+func (l *RcalcParserListener) EnterProgramDeclaration(c *parser.ProgramDeclarationContext) {
 	l.StartNewContext(&ProgramContext{})
 }
 
-// ExitInstrProgramDeclaration is called when entering the InstrProgramDeclaration production.
-func (l *RcalcParserListener) ExitInstrProgramDeclaration(c *parser.InstrProgramDeclarationContext) {
-	//programContext := l.currentPc
+// ExitProgramDeclaration is called when entering the InstrProgramDeclaration production.
+func (l *RcalcParserListener) ExitProgramDeclaration(c *parser.ProgramDeclarationContext) {
+	l.BackToParentContext()
+}
+
+func (l *RcalcParserListener) EnterInstrLocalVarCreation(c *parser.InstrLocalVarCreationContext) {
+	l.StartNewContext(&InstrLocalVarCreationContext{})
+}
+
+// ExitInstrLocalVarCreation is called when exiting the InstrLocalVarCreation production.
+func (l *RcalcParserListener) ExitInstrLocalVarCreation(c *parser.InstrLocalVarCreationContext) {
 	l.BackToParentContext()
 }
 

@@ -72,7 +72,11 @@ if_then_else
 
 start_next_loop: KW_START instr+ KW_NEXT ;
 for_next_loop: KW_FOR variableDeclaration instr+ KW_NEXT ;
-program_declaration: PROG_OPEN instr+ PROG_CLOSE ;
+
+program_declaration:
+    PROG_OPEN instr+ PROG_CLOSE  # ProgramDeclaration
+    ;
+
 local_var_creation
     : '->' variableDeclaration+ program_declaration # LocalVarCreationProgram
 //    | '->' variableDeclaration+ identifier          # LocalVarCreationAlgebraicExpr
