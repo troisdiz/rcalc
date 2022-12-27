@@ -170,7 +170,7 @@ type InstrLocalVarCreationContext struct {
 
 func (pc *InstrLocalVarCreationContext) CreateFinalAction() Action {
 	programPutOnStackVariable := pc.BaseParseContext.items[0].(*VariablePutOnStackActionDesc)
-	fmt.Printf("%v\n", programPutOnStackVariable)
+	//fmt.Printf("%v\n", programPutOnStackVariable)
 	programVariable := programPutOnStackVariable.value.asProgramVar()
 	return &VariableDeclarationActionDesc{
 		varNames:        pc.BaseParseContext.idDeclarations,
@@ -241,7 +241,7 @@ func (l *RcalcParserListener) TokenVisited(token int) {
 
 // ExitVariableNumber is called when production InstrNumber is exited.
 func (l *RcalcParserListener) ExitVariableNumber(ctx *parser.VariableNumberContext) {
-	fmt.Printf("ExitInstrNumber: %s\n", ctx.GetText())
+	//fmt.Printf("ExitInstrNumber: %s\n", ctx.GetText())
 	number, err := parserNumber(ctx.GetText())
 	if err != nil {
 		ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
@@ -253,7 +253,7 @@ func (l *RcalcParserListener) ExitVariableNumber(ctx *parser.VariableNumberConte
 
 // EnterVariableAlgebraicExpression is called when production VariableAlgebraicExpression is entered.
 func (l *RcalcParserListener) EnterVariableAlgebraicExpression(ctx *parser.VariableAlgebraicExpressionContext) {
-	fmt.Println("EnterVariableAlgebraicExpression")
+	//fmt.Println("EnterVariableAlgebraicExpression")
 
 	l.rootAlgebraicPc = &AlgebraicExprContext{}
 	l.currentAlgebraicPc = l.rootAlgebraicPc
@@ -269,7 +269,7 @@ func (l *RcalcParserListener) EnterVariableAlgebraicExpression(ctx *parser.Varia
 
 // ExitVariableAlgebraicExpression is called when production VariableAlgebraicExpression is exited.
 func (l *RcalcParserListener) ExitVariableAlgebraicExpression(ctx *parser.VariableAlgebraicExpressionContext) {
-	fmt.Println("ExitVariableAlgebraicExpression")
+	//fmt.Println("ExitVariableAlgebraicExpression")
 
 	rootAlgExpr := l.rootAlgebraicPc.GetItems()
 
@@ -299,7 +299,7 @@ func (l *RcalcParserListener) EnterAlgExprMulDiv(ctx *parser.AlgExprMulDivContex
 
 // ExitAlgExprMulDiv is called when production AlgExprMulDiv is exited.
 func (l *RcalcParserListener) ExitAlgExprMulDiv(ctx *parser.AlgExprMulDivContext) {
-	fmt.Printf("ExitAlgExprMulDiv %s\n", ctx.GetText())
+	//fmt.Printf("ExitAlgExprMulDiv %s\n", ctx.GetText())
 	l.BackToParentAlgebraicContext()
 }
 
@@ -375,7 +375,7 @@ func (l *RcalcParserListener) ExitAlgExprAtom(ctx *parser.AlgExprAtomContext) {
 
 // ExitInstrActionOrVarCall is called when exiting the InstrActionOrVarCall.
 func (l *RcalcParserListener) ExitInstrActionOrVarCall(ctx *parser.InstrActionOrVarCallContext) {
-	fmt.Println("ExitInstrActionOrVarCall")
+	//fmt.Println("ExitInstrActionOrVarCall")
 	action, err := parseAction(ctx.GetText(), l.registry)
 	if err != nil {
 		//ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
@@ -387,7 +387,7 @@ func (l *RcalcParserListener) ExitInstrActionOrVarCall(ctx *parser.InstrActionOr
 
 // ExitDeclarationVariable is called when exiting the DeclarationVariable production.
 func (l *RcalcParserListener) ExitDeclarationVariable(ctx *parser.DeclarationVariableContext) {
-	fmt.Println("ExitDeclarationVariable")
+	//fmt.Println("ExitDeclarationVariable")
 	action, err := parseAction(ctx.GetText(), l.registry)
 	if err != nil {
 		//ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
@@ -400,7 +400,7 @@ func (l *RcalcParserListener) ExitDeclarationVariable(ctx *parser.DeclarationVar
 
 // ExitInstrOp is called when production InstrOp is exited.
 func (l *RcalcParserListener) ExitInstrOp(ctx *parser.InstrOpContext) {
-	fmt.Println("ExitInstrOp")
+	//fmt.Println("ExitInstrOp")
 	action, err := parseAction(ctx.GetText(), l.registry)
 	if err != nil {
 		ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
