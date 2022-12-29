@@ -37,8 +37,8 @@ func (ac *AlgebraicVariableContext) TokenVisited(token int) {
 
 type AlgebraicExprContext struct {
 	BaseParseContext[AlgebraicExpressionNode] // to avoid reimplementing the interface
-
-	tokens []int
+	reg                                       *ActionRegistry
+	tokens                                    []int
 }
 
 var _ ParseContext[AlgebraicExpressionNode] = (*AlgebraicExprContext)(nil)
@@ -119,9 +119,15 @@ var _ ParseContext[AlgebraicExpressionNode] = (*AlgebraicFunctionContext)(nil)
 
 func (afc *AlgebraicFunctionContext) CreateFinalAction() AlgebraicExpressionNode {
 
-	return &AlgExprFunctionElt{
-		functionName: afc.functionName,
-		arguments:    afc.GetItems(),
+	if fn := afc.reg.GetAlgebraicFunction(afc.functionName); fn != nil {
+		return &AlgExprFunctionElt{
+			functionName: afc.functionName,
+			fn:           fn,
+			arguments:    afc.GetItems(),
+		}
+	} else {
+		// TODO error handling of such cases
+		return nil
 	}
 }
 

@@ -176,6 +176,7 @@ func (a *AlgExprSignedElt) Evaluate(variableReader VariableReader) (*NumericVari
 type AlgExprFunctionElt struct {
 	//function     interface{}
 	functionName string
+	fn           AlgebraicFn
 	arguments    []AlgebraicExpressionNode
 }
 
@@ -183,22 +184,17 @@ var _ AlgebraicExpressionNode = (*AlgExprFunctionElt)(nil)
 
 func (a AlgExprFunctionElt) Evaluate(variableReader VariableReader) (*NumericVariable, error) {
 
-	if a.functionName == "cos" {
-		if len(a.arguments) == 1 {
-			argValue, _ := a.arguments[0].Evaluate(variableReader)
-			result := argValue.value.Cos()
-			return CreateNumericVariable(result).asNumericVar(), nil
+	var args []decimal.Decimal = make([]decimal.Decimal, len(a.arguments))
+	for idx, numVarArg := range a.arguments {
+		value, err := numVarArg.Evaluate(variableReader)
+		if err != nil {
+			return nil, err
+		} else {
+			args[idx] = value.value
 		}
 	}
-	if a.functionName == "sin" {
-		if len(a.arguments) == 1 {
-			argValue, _ := a.arguments[0].Evaluate(variableReader)
-			result := argValue.value.Sin()
-			return CreateNumericVariable(result).asNumericVar(), nil
-		}
-	}
-	//TODO implement numeric functione registry to use it here
-	panic("implement me")
+
+	return CreateNumericVariable(a.fn(args...)).asNumericVar(), nil
 }
 
 type AlgebraicExpressionVariable struct {

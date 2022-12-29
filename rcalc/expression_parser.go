@@ -255,7 +255,9 @@ func (l *RcalcParserListener) ExitVariableNumber(ctx *parser.VariableNumberConte
 func (l *RcalcParserListener) EnterVariableAlgebraicExpression(ctx *parser.VariableAlgebraicExpressionContext) {
 	//fmt.Println("EnterVariableAlgebraicExpression")
 
-	l.rootAlgebraicPc = &AlgebraicExprContext{}
+	l.rootAlgebraicPc = &AlgebraicExprContext{
+		reg: l.registry,
+	}
 	l.currentAlgebraicPc = l.rootAlgebraicPc
 
 	text := ctx.GetText()
@@ -284,7 +286,9 @@ func (l *RcalcParserListener) ExitVariableAlgebraicExpression(ctx *parser.Variab
 
 // EnterAlgExprAddSub is called when entering the AlgExprAddSub production.
 func (l *RcalcParserListener) EnterAlgExprAddSub(c *parser.AlgExprAddSubContext) {
-	l.StartNewAlgebraicContext(&AlgebraicAddSubContext{})
+	l.StartNewAlgebraicContext(&AlgebraicAddSubContext{
+		AlgebraicExprContext{reg: l.registry},
+	})
 }
 
 // ExitAlgExprAddSub is called when production AlgExprRoot is exited.
@@ -294,7 +298,9 @@ func (l *RcalcParserListener) ExitAlgExprAddSub(ctx *parser.AlgExprAddSubContext
 
 // EnterAlgExprMulDiv is called when production AlgExprMulDiv is entered.
 func (l *RcalcParserListener) EnterAlgExprMulDiv(ctx *parser.AlgExprMulDivContext) {
-	l.StartNewAlgebraicContext(&AlgebraicMulDivContext{})
+	l.StartNewAlgebraicContext(&AlgebraicMulDivContext{
+		AlgebraicExprContext{reg: l.registry},
+	})
 }
 
 // ExitAlgExprMulDiv is called when production AlgExprMulDiv is exited.
@@ -307,7 +313,8 @@ func (l *RcalcParserListener) ExitAlgExprMulDiv(ctx *parser.AlgExprMulDivContext
 func (l *RcalcParserListener) EnterAlgExprFuncCall(ctx *parser.AlgExprFuncCallContext) {
 	functionName := ctx.GetFunction_name().GetText()
 	l.StartNewAlgebraicContext(&AlgebraicFunctionContext{
-		functionName: functionName,
+		AlgebraicExprContext: AlgebraicExprContext{reg: l.registry},
+		functionName:         functionName,
 	})
 }
 
@@ -324,7 +331,8 @@ func (l *RcalcParserListener) EnterAlgExprNumber(ctx *parser.AlgExprNumberContex
 		panic(fmt.Sprintf("Cannot parse number %s", ctx.GetText()))
 	}
 	l.StartNewAlgebraicContext(&AlgebraicNumberContext{
-		value: value,
+		AlgebraicExprContext: AlgebraicExprContext{reg: l.registry},
+		value:                value,
 	})
 }
 
@@ -335,7 +343,9 @@ func (l *RcalcParserListener) ExitAlgExprNumber(ctx *parser.AlgExprNumberContext
 
 // EnterAlgExprVariable is called when production AlgExprVariable is entered.
 func (l *RcalcParserListener) EnterAlgExprVariable(ctx *parser.AlgExprVariableContext) {
-	l.StartNewAlgebraicContext(&AlgebraicVariableNameContext{value: ctx.GetText()})
+	l.StartNewAlgebraicContext(&AlgebraicVariableNameContext{
+		AlgebraicExprContext: AlgebraicExprContext{reg: l.registry},
+		value:                ctx.GetText()})
 }
 
 // ExitAlgExprVariable is called when production AlgExprVariable is exited.
@@ -345,7 +355,9 @@ func (l *RcalcParserListener) ExitAlgExprVariable(ctx *parser.AlgExprVariableCon
 
 // EnterAlgExprAddSignedAtom is called when production AlgExprAddSignedAtom is entered.
 func (l *RcalcParserListener) EnterAlgExprAddSignedAtom(ctx *parser.AlgExprAddSignedAtomContext) {
-	l.StartNewAlgebraicContext(&AlgebraicAtomContext{})
+	l.StartNewAlgebraicContext(&AlgebraicAtomContext{
+		AlgebraicExprContext{reg: l.registry},
+	})
 }
 
 // ExitAlgExprAddSignedAtom is called when production AlgExprAddSignedAtom is exited.
@@ -355,7 +367,9 @@ func (l *RcalcParserListener) ExitAlgExprAddSignedAtom(ctx *parser.AlgExprAddSig
 
 // EnterAlgExprSubSignedAtom is called when production AlgExprSubSignedAtom is entered.
 func (l *RcalcParserListener) EnterAlgExprSubSignedAtom(ctx *parser.AlgExprSubSignedAtomContext) {
-	l.StartNewAlgebraicContext(&AlgebraicAtomContext{})
+	l.StartNewAlgebraicContext(&AlgebraicAtomContext{
+		AlgebraicExprContext{reg: l.registry},
+	})
 }
 
 // ExitAlgExprSubSignedAtom is called when production AlgExprSubSignedAtom is exited.
@@ -365,7 +379,9 @@ func (l *RcalcParserListener) ExitAlgExprSubSignedAtom(ctx *parser.AlgExprSubSig
 
 // EnterAlgExprAtom is called when production AlgExprAtom is entered.
 func (l *RcalcParserListener) EnterAlgExprAtom(ctx *parser.AlgExprAtomContext) {
-	l.StartNewAlgebraicContext(&AlgebraicAtomContext{})
+	l.StartNewAlgebraicContext(&AlgebraicAtomContext{
+		AlgebraicExprContext{reg: l.registry},
+	})
 }
 
 // ExitAlgExprAtom is called when production AlgExprAtom is exited.
