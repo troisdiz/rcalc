@@ -6,8 +6,16 @@ import (
 	"path"
 )
 
-func Run(stackDataFolder string) {
+func Run(stackDataFolder string, createFolder bool) {
 
+	if createFolder {
+		if _, err := os.Stat(stackDataFolder); os.IsNotExist(err) {
+			err := os.Mkdir(stackDataFolder, 0755)
+			if err != nil {
+				return
+			}
+		}
+	}
 	stackDataFilePath := path.Join(stackDataFolder, "stack.protobuf")
 
 	var stack = CreateSaveOnDiskStack(stackDataFilePath)

@@ -23,7 +23,7 @@ var rootCmd = &cobra.Command{
 
 		rCalcDir := path.Join(dir, ".rcalc")
 
-		rcalc.Run(rCalcDir)
+		rcalc.Run(rCalcDir, true)
 	},
 }
 
