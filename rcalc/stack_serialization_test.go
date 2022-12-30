@@ -40,7 +40,7 @@ func getDynamicActionsForTesting() []Action {
 }
 
 /**
-Test that all registered dynamic actions are tested
+Test that all registered dynamic items are tested
 */
 func TestAllDynamicActionsAreTested(t *testing.T) {
 	var dynamicActionOpCodes = make(map[string]interface{})

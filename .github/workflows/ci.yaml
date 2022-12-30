@@ -13,7 +13,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: '>=1.17.0'
+          go-version: '>=1.18.0'
       - name: Display Go version
         run: go version
       - name: Setup Java
@@ -32,10 +32,13 @@ jobs:
       - name: Generate source from antlr grammar and protobuf files
         run: make generate
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3
         with:
           # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
           version: latest
+          skip-pkg-cache: true
+          skip-build-cache: true
+          args: --timeout=10m
       - run: make test
       - run: make compile
       - name: Upload package as artifact

@@ -8,6 +8,27 @@ import (
 	parser "troisdizaines.com/rcalc/rcalc/parser"
 )
 
+func tokenToPosition(ref []int, tokens []int) ([]int, error) {
+	result := make([]int, len(tokens))
+	var found bool
+	for idx, token := range tokens {
+		found = false
+		for pos, candidate := range ref {
+			if candidate == token {
+				found = true
+				result[idx] = pos
+				continue
+			}
+		}
+		if !found {
+			//myLexer.getVocabulary.getSymbolicName(myTerminalNode.getSymbol.getType)
+
+			return nil, fmt.Errorf("token %d at position %d is not expected", token, idx)
+		}
+	}
+	return result, nil
+}
+
 func parserNumber(txt string) (Variable, error) {
 	number, err := decimal.NewFromString(txt)
 	if err != nil {
@@ -16,9 +37,10 @@ func parserNumber(txt string) (Variable, error) {
 	return CreateNumericVariable(number), nil
 }
 
-func parseIdentifier(txt string) (Variable, error) {
+func parseIdentifier(txt string, node AlgebraicExpressionNode) (Variable, error) {
 	l := len(txt)
-	return CreateIdentifierVariable(txt[1 : l-1]), nil
+	// TODO is identifier also ?
+	return CreateAlgebraicExpressionVariable(txt[1:l-1], node), nil
 }
 
 func parseAction(txt string, registry *ActionRegistry) (Action, error) {
@@ -30,70 +52,74 @@ func parseAction(txt string, registry *ActionRegistry) (Action, error) {
 	}
 }
 
-type ParseContext interface {
-	GetParent() ParseContext
-	SetParent(ctx ParseContext)
+type ParseContext[T any] interface {
+	GetParent() ParseContext[T]
+	SetParent(ctx ParseContext[T])
 
-	AddAction(action Action)
+	AddItem(item T)
 	AddIdentifier(id string)
 
-	BackFromChild(child ParseContext)
-	CreateFinalAction() Action
+	BackFromChild(child ParseContext[T])
+	CreateFinalAction() T
 
 	TokenVisited(token int)
 }
 
-type BaseParseContext struct {
-	parent         ParseContext
-	actions        []Action
+type BaseParseContext[T any] struct {
+	parent         ParseContext[T]
+	items          []T
 	idDeclarations []string
 }
 
-func (pc *BaseParseContext) TokenVisited(token int) {}
+var _ ParseContext[string] = (*BaseParseContext[string])(nil)
 
-func (pc *BaseParseContext) CreateFinalAction() Action {
+func (g *BaseParseContext[T]) GetParent() ParseContext[T] {
+	return g.parent
+}
+
+func (g *BaseParseContext[T]) SetParent(ctx ParseContext[T]) {
+	g.parent = ctx
+}
+
+func (g *BaseParseContext[T]) AddItem(item T) {
+	g.items = append(g.items, item)
+}
+
+func (g *BaseParseContext[T]) AddIdentifier(id string) {
+	g.idDeclarations = append(g.idDeclarations, id)
+}
+
+func (g *BaseParseContext[T]) BackFromChild(child ParseContext[T]) {
+	g.AddItem(child.CreateFinalAction())
+}
+
+func (g *BaseParseContext[T]) CreateFinalAction() T {
 	panic("CreateFinalAction must be implemented by sub structures")
 }
 
-func (pc *BaseParseContext) GetParent() ParseContext {
-	return pc.parent
+func (g *BaseParseContext[T]) GetItems() []T {
+	return g.items
 }
 
-func (pc *BaseParseContext) SetParent(ctx ParseContext) {
-	pc.parent = ctx
-}
-
-func (pc *BaseParseContext) BackFromChild(child ParseContext) {
-	pc.AddAction(child.CreateFinalAction())
-}
-
-func (pc *BaseParseContext) AddAction(action Action) {
-	pc.actions = append(pc.actions, action)
-}
-
-func (pc *BaseParseContext) AddIdentifier(id string) {
-	pc.idDeclarations = append(pc.idDeclarations, id)
-}
-
-func (pc *BaseParseContext) GetActions() []Action {
-	return pc.actions
-}
+func (g *BaseParseContext[T]) TokenVisited(token int) {}
 
 type IfThenElseContext struct {
-	BaseParseContext // to avoid reimplementing the interface
+	BaseParseContext[Action] // to avoid reimplementing the interface
 
 	actions       [][]Action
 	currentAction int
 }
 
-func (i *IfThenElseContext) AddAction(action Action) {
+func (i *IfThenElseContext) AddItem(action Action) {
 	i.actions[i.currentAction] = append(i.actions[i.currentAction], action)
 }
 
 func (i *IfThenElseContext) TokenVisited(token int) {
+	if i.actions == nil {
+		i.actions = make([][]Action, 3)
+	}
 	switch token {
 	case parser.RcalcLexerKW_IF:
-		i.actions = make([][]Action, 3)
 		i.currentAction = 0
 	case parser.RcalcLexerKW_THEN:
 		i.currentAction = 1
@@ -111,31 +137,45 @@ func (i *IfThenElseContext) CreateFinalAction() Action {
 }
 
 type StartEndLoopContext struct {
-	BaseParseContext
+	BaseParseContext[Action]
 }
 
 func (pc *StartEndLoopContext) CreateFinalAction() Action {
-	return &StartNextLoopActionDesc{actions: pc.BaseParseContext.actions}
+	return &StartNextLoopActionDesc{actions: pc.BaseParseContext.items}
 }
 
 type ForNextLoopContext struct {
-	BaseParseContext
+	BaseParseContext[Action]
 }
 
 func (pc *ForNextLoopContext) CreateFinalAction() Action {
 	return &ForNextLoopActionDesc{
 		varName: pc.BaseParseContext.idDeclarations[0],
-		actions: pc.BaseParseContext.actions,
+		actions: pc.BaseParseContext.items,
 	}
 }
 
 type ProgramContext struct {
-	BaseParseContext
+	BaseParseContext[Action]
 }
 
 func (pc *ProgramContext) CreateFinalAction() Action {
-	progVar := CreateProgramVariable(pc.actions)
+	progVar := CreateProgramVariable(pc.items)
 	return &VariablePutOnStackActionDesc{value: progVar}
+}
+
+type InstrLocalVarCreationContext struct {
+	BaseParseContext[Action]
+}
+
+func (pc *InstrLocalVarCreationContext) CreateFinalAction() Action {
+	programPutOnStackVariable := pc.BaseParseContext.items[0].(*VariablePutOnStackActionDesc)
+	//fmt.Printf("%v\n", programPutOnStackVariable)
+	programVariable := programPutOnStackVariable.value.asProgramVar()
+	return &VariableDeclarationActionDesc{
+		varNames:        pc.BaseParseContext.idDeclarations,
+		programVariable: programVariable,
+	}
 }
 
 type RcalcParserListener struct {
@@ -143,14 +183,17 @@ type RcalcParserListener struct {
 
 	registry *ActionRegistry
 
-	rootPc    *BaseParseContext
-	currentPc ParseContext
+	rootPc    *BaseParseContext[Action]
+	currentPc ParseContext[Action]
+
+	rootAlgebraicPc    *AlgebraicExprContext
+	currentAlgebraicPc ParseContext[AlgebraicExpressionNode]
 }
 
 func CreateRcalcParserListener(registry *ActionRegistry) *RcalcParserListener {
-	rootPc := &BaseParseContext{
-		parent:  nil,
-		actions: nil,
+	rootPc := &BaseParseContext[Action]{
+		parent: nil,
+		items:  nil,
 	}
 	return &RcalcParserListener{
 		registry:  registry,
@@ -160,14 +203,14 @@ func CreateRcalcParserListener(registry *ActionRegistry) *RcalcParserListener {
 }
 
 func (l *RcalcParserListener) AddAction(action Action) {
-	l.currentPc.AddAction(action)
+	l.currentPc.AddItem(action)
 }
 
 func (l *RcalcParserListener) AddVarName(varName string) {
 	l.currentPc.AddIdentifier(varName)
 }
 
-func (l *RcalcParserListener) StartNewContext(ctx ParseContext) {
+func (l *RcalcParserListener) StartNewContext(ctx ParseContext[Action]) {
 	ctx.SetParent(l.currentPc)
 	l.currentPc = ctx
 }
@@ -178,13 +221,27 @@ func (l *RcalcParserListener) BackToParentContext() {
 	l.currentPc.BackFromChild(oldCurrent)
 }
 
+func (l *RcalcParserListener) StartNewAlgebraicContext(ctx ParseContext[AlgebraicExpressionNode]) {
+	ctx.SetParent(l.currentAlgebraicPc)
+	l.currentAlgebraicPc = ctx
+}
+
+func (l *RcalcParserListener) BackToParentAlgebraicContext() {
+	oldCurrent := l.currentAlgebraicPc
+	l.currentAlgebraicPc = l.currentAlgebraicPc.GetParent()
+	l.currentAlgebraicPc.BackFromChild(oldCurrent)
+}
+
 func (l *RcalcParserListener) TokenVisited(token int) {
 	l.currentPc.TokenVisited(token)
+	if l.currentAlgebraicPc != nil {
+		l.currentAlgebraicPc.TokenVisited(token)
+	}
 }
 
 // ExitVariableNumber is called when production InstrNumber is exited.
 func (l *RcalcParserListener) ExitVariableNumber(ctx *parser.VariableNumberContext) {
-	fmt.Printf("ExitInstrNumber: %s\n", ctx.GetText())
+	//fmt.Printf("ExitInstrNumber: %s\n", ctx.GetText())
 	number, err := parserNumber(ctx.GetText())
 	if err != nil {
 		ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
@@ -194,20 +251,147 @@ func (l *RcalcParserListener) ExitVariableNumber(ctx *parser.VariableNumberConte
 
 }
 
-// ExitVariableIdentifier is called when production identifier is exited.
-func (l *RcalcParserListener) ExitVariableIdentifier(ctx *parser.VariableIdentifierContext) {
-	fmt.Println("ExitInstrIdentifier")
-	identifier, err := parseIdentifier(ctx.GetText())
+// EnterVariableAlgebraicExpression is called when production VariableAlgebraicExpression is entered.
+func (l *RcalcParserListener) EnterVariableAlgebraicExpression(ctx *parser.VariableAlgebraicExpressionContext) {
+	//fmt.Println("EnterVariableAlgebraicExpression")
+
+	l.rootAlgebraicPc = &AlgebraicExprContext{
+		reg: l.registry,
+	}
+	l.currentAlgebraicPc = l.rootAlgebraicPc
+
+	text := ctx.GetText()
+	lenText := len(text)
+	exprText := text[1 : lenText-1]
+	l.StartNewContext(&AlgebraicVariableContext{
+		exprText:         exprText,
+		algebraicContext: l.rootAlgebraicPc,
+	})
+}
+
+// ExitVariableAlgebraicExpression is called when production VariableAlgebraicExpression is exited.
+func (l *RcalcParserListener) ExitVariableAlgebraicExpression(ctx *parser.VariableAlgebraicExpressionContext) {
+	//fmt.Println("ExitVariableAlgebraicExpression")
+
+	rootAlgExpr := l.rootAlgebraicPc.GetItems()
+
+	identifier, err := parseIdentifier(ctx.GetText(), rootAlgExpr[0])
 	if err != nil {
 		ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
 	} else {
 		l.AddAction(&VariablePutOnStackActionDesc{value: identifier})
 	}
+	l.BackToParentContext()
+}
+
+// EnterAlgExprAddSub is called when entering the AlgExprAddSub production.
+func (l *RcalcParserListener) EnterAlgExprAddSub(c *parser.AlgExprAddSubContext) {
+	l.StartNewAlgebraicContext(&AlgebraicAddSubContext{
+		AlgebraicExprContext{reg: l.registry},
+	})
+}
+
+// ExitAlgExprAddSub is called when production AlgExprRoot is exited.
+func (l *RcalcParserListener) ExitAlgExprAddSub(ctx *parser.AlgExprAddSubContext) {
+	l.BackToParentAlgebraicContext()
+}
+
+// EnterAlgExprMulDiv is called when production AlgExprMulDiv is entered.
+func (l *RcalcParserListener) EnterAlgExprMulDiv(ctx *parser.AlgExprMulDivContext) {
+	l.StartNewAlgebraicContext(&AlgebraicMulDivContext{
+		AlgebraicExprContext{reg: l.registry},
+	})
+}
+
+// ExitAlgExprMulDiv is called when production AlgExprMulDiv is exited.
+func (l *RcalcParserListener) ExitAlgExprMulDiv(ctx *parser.AlgExprMulDivContext) {
+	//fmt.Printf("ExitAlgExprMulDiv %s\n", ctx.GetText())
+	l.BackToParentAlgebraicContext()
+}
+
+// EnterAlgExprFuncCall is called when production AlgExprFuncAtom is entered.
+func (l *RcalcParserListener) EnterAlgExprFuncCall(ctx *parser.AlgExprFuncCallContext) {
+	functionName := ctx.GetFunction_name().GetText()
+	l.StartNewAlgebraicContext(&AlgebraicFunctionContext{
+		AlgebraicExprContext: AlgebraicExprContext{reg: l.registry},
+		functionName:         functionName,
+	})
+}
+
+// ExitAlgExprFuncCall is called when production AlgExprFuncAtom is exited.
+func (l *RcalcParserListener) ExitAlgExprFuncCall(ctx *parser.AlgExprFuncCallContext) {
+
+	l.BackToParentAlgebraicContext()
+}
+
+// EnterAlgExprNumber is called when entering the AlgExprNumber production.
+func (l *RcalcParserListener) EnterAlgExprNumber(ctx *parser.AlgExprNumberContext) {
+	value, err := decimal.NewFromString(ctx.GetText())
+	if err != nil {
+		panic(fmt.Sprintf("Cannot parse number %s", ctx.GetText()))
+	}
+	l.StartNewAlgebraicContext(&AlgebraicNumberContext{
+		AlgebraicExprContext: AlgebraicExprContext{reg: l.registry},
+		value:                value,
+	})
+}
+
+// ExitAlgExprNumber is called when exiting the AlgExprNumber production.
+func (l *RcalcParserListener) ExitAlgExprNumber(ctx *parser.AlgExprNumberContext) {
+	l.BackToParentAlgebraicContext()
+}
+
+// EnterAlgExprVariable is called when production AlgExprVariable is entered.
+func (l *RcalcParserListener) EnterAlgExprVariable(ctx *parser.AlgExprVariableContext) {
+	l.StartNewAlgebraicContext(&AlgebraicVariableNameContext{
+		AlgebraicExprContext: AlgebraicExprContext{reg: l.registry},
+		value:                ctx.GetText()})
+}
+
+// ExitAlgExprVariable is called when production AlgExprVariable is exited.
+func (l *RcalcParserListener) ExitAlgExprVariable(ctx *parser.AlgExprVariableContext) {
+	l.BackToParentAlgebraicContext()
+}
+
+// EnterAlgExprAddSignedAtom is called when production AlgExprAddSignedAtom is entered.
+func (l *RcalcParserListener) EnterAlgExprAddSignedAtom(ctx *parser.AlgExprAddSignedAtomContext) {
+	l.StartNewAlgebraicContext(&AlgebraicAtomContext{
+		AlgebraicExprContext{reg: l.registry},
+	})
+}
+
+// ExitAlgExprAddSignedAtom is called when production AlgExprAddSignedAtom is exited.
+func (l *RcalcParserListener) ExitAlgExprAddSignedAtom(ctx *parser.AlgExprAddSignedAtomContext) {
+	l.BackToParentAlgebraicContext()
+}
+
+// EnterAlgExprSubSignedAtom is called when production AlgExprSubSignedAtom is entered.
+func (l *RcalcParserListener) EnterAlgExprSubSignedAtom(ctx *parser.AlgExprSubSignedAtomContext) {
+	l.StartNewAlgebraicContext(&AlgebraicAtomContext{
+		AlgebraicExprContext{reg: l.registry},
+	})
+}
+
+// ExitAlgExprSubSignedAtom is called when production AlgExprSubSignedAtom is exited.
+func (l *RcalcParserListener) ExitAlgExprSubSignedAtom(ctx *parser.AlgExprSubSignedAtomContext) {
+	l.BackToParentAlgebraicContext()
+}
+
+// EnterAlgExprAtom is called when production AlgExprAtom is entered.
+func (l *RcalcParserListener) EnterAlgExprAtom(ctx *parser.AlgExprAtomContext) {
+	l.StartNewAlgebraicContext(&AlgebraicAtomContext{
+		AlgebraicExprContext{reg: l.registry},
+	})
+}
+
+// ExitAlgExprAtom is called when production AlgExprAtom is exited.
+func (l *RcalcParserListener) ExitAlgExprAtom(ctx *parser.AlgExprAtomContext) {
+	l.BackToParentAlgebraicContext()
 }
 
 // ExitInstrActionOrVarCall is called when exiting the InstrActionOrVarCall.
 func (l *RcalcParserListener) ExitInstrActionOrVarCall(ctx *parser.InstrActionOrVarCallContext) {
-	fmt.Println("ExitInstrActionOrVarCall")
+	//fmt.Println("ExitInstrActionOrVarCall")
 	action, err := parseAction(ctx.GetText(), l.registry)
 	if err != nil {
 		//ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
@@ -219,7 +403,7 @@ func (l *RcalcParserListener) ExitInstrActionOrVarCall(ctx *parser.InstrActionOr
 
 // ExitDeclarationVariable is called when exiting the DeclarationVariable production.
 func (l *RcalcParserListener) ExitDeclarationVariable(ctx *parser.DeclarationVariableContext) {
-	fmt.Println("ExitInstrActionOrVarCall")
+	//fmt.Println("ExitDeclarationVariable")
 	action, err := parseAction(ctx.GetText(), l.registry)
 	if err != nil {
 		//ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
@@ -232,7 +416,7 @@ func (l *RcalcParserListener) ExitDeclarationVariable(ctx *parser.DeclarationVar
 
 // ExitInstrOp is called when production InstrOp is exited.
 func (l *RcalcParserListener) ExitInstrOp(ctx *parser.InstrOpContext) {
-	fmt.Println("ExitInstrOp")
+	//fmt.Println("ExitInstrOp")
 	action, err := parseAction(ctx.GetText(), l.registry)
 	if err != nil {
 		ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
@@ -278,16 +462,23 @@ func (l *RcalcParserListener) ExitInstrForNextLoop(c *parser.InstrForNextLoopCon
 	l.BackToParentContext()
 }
 
-// EnterInstrProgramDeclaration is called when entering the InstrProgramDeclaration production.
-func (l *RcalcParserListener) EnterInstrProgramDeclaration(c *parser.InstrProgramDeclarationContext) {
+// EnterProgramDeclaration is called when entering the InstrProgramDeclaration production.
+func (l *RcalcParserListener) EnterProgramDeclaration(c *parser.ProgramDeclarationContext) {
 	l.StartNewContext(&ProgramContext{})
 }
 
-// ExitInstrProgramDeclaration is called when entering the InstrProgramDeclaration production.
-func (l *RcalcParserListener) ExitInstrProgramDeclaration(c *parser.InstrProgramDeclarationContext) {
-	//programContext := l.currentPc
+// ExitProgramDeclaration is called when entering the InstrProgramDeclaration production.
+func (l *RcalcParserListener) ExitProgramDeclaration(c *parser.ProgramDeclarationContext) {
 	l.BackToParentContext()
-	//l.AddAction(programContext.CreateFinalAction())
+}
+
+func (l *RcalcParserListener) EnterInstrLocalVarCreation(c *parser.InstrLocalVarCreationContext) {
+	l.StartNewContext(&InstrLocalVarCreationContext{})
+}
+
+// ExitInstrLocalVarCreation is called when exiting the InstrLocalVarCreation production.
+func (l *RcalcParserListener) ExitInstrLocalVarCreation(c *parser.InstrLocalVarCreationContext) {
+	l.BackToParentContext()
 }
 
 /* Error Reporting */
@@ -344,5 +535,5 @@ func ParseToActions(cmds string, lexerName string, registry *ActionRegistry) ([]
 
 		return nil, fmt.Errorf("There are %d error(s):\n - %s", len(el.messages), strings.Join(el.messages, "\n - "))
 	}
-	return listener.rootPc.GetActions(), nil
+	return listener.rootPc.GetItems(), nil
 }

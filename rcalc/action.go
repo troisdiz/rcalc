@@ -2,6 +2,7 @@ package rcalc
 
 import (
 	"fmt"
+	"github.com/shopspring/decimal"
 	"troisdizaines.com/rcalc/rcalc/protostack"
 )
 
@@ -153,34 +154,20 @@ func (op *OperationDesc) Display() string {
 	return op.opCode
 }
 
-/*
-func (op *OperationDesc) MarshallFunc() ActionMarshallFunc {
-	return func(reg *ActionRegistry, action Action) (*protostack.Action, error) {
-		op := action.(*OperationDesc)
-		return &protostack.Action{
-			Type:   protostack.ActionType_OPERATION,
-			OpCode: op.OpCode(),
-		}, nil
-	}
-}
-
-func (op *OperationDesc) UnMarshallFunc() ActionUnMarshallFunc {
-	return func(reg *ActionRegistry, protoAction *protostack.Action) (Action, error) {
-		protoOpCode := protoAction.OpCode
-		if reg.ContainsOpCode(protoOpCode) {
-			return reg.GetAction(protoOpCode), nil
-		} else {
-			return nil, fmt.Errorf("cannot find action with opcode %s", protoOpCode)
-		}
-	}
-}*/
-
 type PureOperationApplyFn func(elts ...Variable) []Variable
 
 func OpToActionFn(opFn PureOperationApplyFn) OperationApplyFn {
 	return func(system System, elts ...Variable) []Variable {
 		return opFn(elts...)
 	}
+}
+
+type AlgebraicFn func(args ...decimal.Decimal) decimal.Decimal
+
+type AlgebraicFunctionDesc struct {
+	name      string
+	argsCount int
+	fn        AlgebraicFn
 }
 
 /* Registry stuff */
@@ -191,8 +178,7 @@ type ActionRegistry struct {
 		marshalFunc   ActionMarshallFunc
 		unMarshalFunc ActionUnMarshallFunc
 	}
-	// marshallFunctions   map[string]ActionMarshallFunc
-	// unMarshallFunctions map[string]ActionUnMarshallFunc
+	algebraicFunctionsByName map[string]AlgebraicFunctionDesc
 }
 
 func (reg *ActionRegistry) Register(aDesc Action) {
@@ -200,8 +186,9 @@ func (reg *ActionRegistry) Register(aDesc Action) {
 }
 
 type ActionPackage struct {
-	staticActions  []Action
-	dynamicActions []Action
+	staticActions       []Action
+	dynamicActions      []Action
+	algrebraicFunctions []AlgebraicFunctionDesc
 }
 
 func (ap *ActionPackage) AddStatic(action Action) {
@@ -212,14 +199,15 @@ func (ap *ActionPackage) AddDynamic(action Action) {
 	ap.dynamicActions = append(ap.dynamicActions, action)
 }
 
+func (ap *ActionPackage) AddAlgebraicFunction(desc AlgebraicFunctionDesc) {
+	ap.algrebraicFunctions = append(ap.algrebraicFunctions, desc)
+}
+
 func (reg *ActionRegistry) RegisterActions(aPackage *ActionPackage) {
 	for _, aDesc := range aPackage.staticActions {
 		reg.actionDescs[aDesc.OpCode()] = aDesc
 	}
 	for _, dynAction := range aPackage.dynamicActions {
-		// reg.marshallFunctions[dynAction.OpCode()] = dynAction.MarshallFunc()
-		// reg.unMarshallFunctions[dynAction.OpCode()] = dynAction.UnMarshallFunc()
-
 		reg.dynamicActions[dynAction.OpCode()] = struct {
 			marshalFunc   ActionMarshallFunc
 			unMarshalFunc ActionUnMarshallFunc
@@ -227,6 +215,9 @@ func (reg *ActionRegistry) RegisterActions(aPackage *ActionPackage) {
 			marshalFunc:   dynAction.MarshallFunc(),
 			unMarshalFunc: dynAction.UnMarshallFunc(),
 		}
+	}
+	for _, algFnDesc := range aPackage.algrebraicFunctions {
+		reg.algebraicFunctionsByName[algFnDesc.name] = algFnDesc
 	}
 }
 
@@ -237,8 +228,7 @@ func initRegistry() *ActionRegistry {
 			marshalFunc   ActionMarshallFunc
 			unMarshalFunc ActionUnMarshallFunc
 		}{},
-		// marshallFunctions:   map[string]ActionMarshallFunc{},
-		// unMarshallFunctions: map[string]ActionUnMarshallFunc{},
+		algebraicFunctionsByName: map[string]AlgebraicFunctionDesc{},
 	}
 	reg.RegisterActions(&ArithmeticPackage)
 	reg.RegisterActions(&TrigonometricPackage)
@@ -246,6 +236,7 @@ func initRegistry() *ActionRegistry {
 	reg.RegisterActions(&StackPackage)
 	reg.RegisterActions(&MemoryPackage)
 	reg.RegisterActions(&StructOpsPackage)
+	reg.Register(&DebugOp)
 	reg.Register(&VersionOp)
 	reg.Register(&EXIT_ACTION)
 	return &reg
@@ -278,6 +269,15 @@ func (reg *ActionRegistry) GetDynamicActionUnMarshallFunc(opCode string) ActionU
 		return dynAction.unMarshalFunc
 	} else {
 		return nil
+	}
+}
+
+func (reg *ActionRegistry) GetAlgebraicFunction(fnName string) AlgebraicFn {
+	algebraicFunctionDesc, ok := reg.algebraicFunctionsByName[fnName]
+	if !ok {
+		return nil
+	} else {
+		return algebraicFunctionDesc.fn
 	}
 }
 

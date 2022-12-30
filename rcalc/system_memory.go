@@ -2,39 +2,80 @@ package rcalc
 
 import "fmt"
 
-type MemoryNode struct {
-	parentFolder *MemoryNode
+type MemoryNode interface {
+	asMemoryVariable() *MemoryVariable
+	asMemoryFolder() *MemoryFolder
+	getParent() *MemoryFolder
+	Name() string
+}
+
+type AbstractMemoryNode struct {
+	parentFolder *MemoryFolder
 	name         string
 }
 
-func (node *MemoryNode) Name() string {
+var _ MemoryNode = (*AbstractMemoryNode)(nil)
+
+func (node *AbstractMemoryNode) getParent() *MemoryFolder {
+	return node.parentFolder
+}
+
+func (node *AbstractMemoryNode) Name() string {
 	return node.name
 }
 
+func (node *AbstractMemoryNode) asMemoryVariable() *MemoryVariable {
+	panic("Cannot cast")
+}
+
+func (node *AbstractMemoryNode) asMemoryFolder() *MemoryFolder {
+	panic("Cannot cast")
+}
+
 type MemoryVariable struct {
-	MemoryNode
+	AbstractMemoryNode
 	value Variable
 }
 
-func (variable *MemoryVariable) Value() Variable {
-	return variable.value
+var _ MemoryNode = (*MemoryVariable)(nil)
+
+func (mv *MemoryVariable) asMemoryVariable() *MemoryVariable {
+	return mv
+}
+
+func (mv *MemoryVariable) Value() Variable {
+	return mv.value
 }
 
 type MemoryFolder struct {
-	MemoryNode
+	AbstractMemoryNode
 	subFolders []*MemoryFolder
 	variables  []*MemoryVariable
 }
 
-func (folder *MemoryFolder) AsMemoryNode() *MemoryNode {
-	return &folder.MemoryNode
+var _ MemoryNode = (*MemoryFolder)(nil)
+
+func (folder *MemoryFolder) asMemoryFolder() *MemoryFolder {
+	return folder
 }
+
 func (folder *MemoryFolder) SubFolders() []*MemoryFolder {
 	return folder.subFolders
 }
 
 func (folder *MemoryFolder) SubVariables() []*MemoryVariable {
 	return folder.variables
+}
+
+func (folder *MemoryFolder) SubNodes() []MemoryNode {
+	var result []MemoryNode
+	for _, elt := range folder.SubFolders() {
+		result = append(result, elt)
+	}
+	for _, elt := range folder.SubVariables() {
+		result = append(result, elt)
+	}
+	return result
 }
 
 type InternalMemory struct {
@@ -46,10 +87,10 @@ func (m *InternalMemory) getCurrentFolder() *MemoryFolder {
 	return m.currentFolder
 }
 
-func (m *InternalMemory) getPath(node *MemoryNode) []string {
+func (m *InternalMemory) getPath(node MemoryNode) []string {
 	var result []string
 
-	for n := node; n.parentFolder != nil; n = n.parentFolder {
+	for n := node; n.getParent() != nil; n = n.getParent() {
 		result = append(result, n.Name())
 	}
 
@@ -60,9 +101,32 @@ func (m *InternalMemory) getPath(node *MemoryNode) []string {
 	return result
 }
 
-func (m *InternalMemory) resolvePath(path []string) *MemoryNode {
-	//TODO implement me
-	panic("implement me InternalMemory resolvePath")
+func (m *InternalMemory) resolvePath(path []string) MemoryNode {
+	pathNode := m.getRoot()
+	totalDepth := len(path)
+	if totalDepth == 0 {
+		return pathNode
+	}
+	for _, pathElt := range path[:totalDepth-1] {
+		var nextFolder *MemoryFolder
+		for _, subFolder := range pathNode.asMemoryFolder().subFolders {
+			if subFolder.name == pathElt {
+				nextFolder = subFolder
+				break
+			}
+		}
+		if nextFolder == nil {
+			return nil
+		} else {
+			pathNode = nextFolder
+		}
+	}
+	for _, subVariable := range pathNode.SubNodes() {
+		if subVariable.Name() == path[totalDepth-1] {
+			return subVariable
+		}
+	}
+	return nil
 }
 
 type Memory interface {
@@ -70,8 +134,8 @@ type Memory interface {
 	getCurrentFolder() *MemoryFolder
 	//setCurrentFolder(f *MemoryFolder) error
 
-	getPath(node *MemoryNode) []string
-	resolvePath(path []string) *MemoryNode
+	getPath(node MemoryNode) []string
+	resolvePath(path []string) MemoryNode
 
 	createFolder(folderName string, parent *MemoryFolder) (*MemoryFolder, error)
 	createVariable(variableName string, parent *MemoryFolder, value Variable) (*MemoryVariable, error)
@@ -92,8 +156,8 @@ func (im *InternalMemory) createFolder(folderName string, parent *MemoryFolder) 
 		return nil, fmt.Errorf("parent folder is nil")
 	}
 	newFolder := &MemoryFolder{
-		MemoryNode: MemoryNode{
-			parentFolder: parent.AsMemoryNode(),
+		AbstractMemoryNode: AbstractMemoryNode{
+			parentFolder: parent,
 			name:         folderName,
 		},
 	}
@@ -106,8 +170,8 @@ func (im *InternalMemory) createVariable(variableName string, parent *MemoryFold
 		return nil, fmt.Errorf("Cannot create memory variable with nil parent folder")
 	}
 	memVar := &MemoryVariable{
-		MemoryNode: MemoryNode{name: variableName},
-		value:      value,
+		AbstractMemoryNode: AbstractMemoryNode{name: variableName},
+		value:              value,
 	}
 	parent.variables = append(parent.variables, memVar)
 	return memVar, nil
@@ -119,7 +183,7 @@ func (im *InternalMemory) listVariables(parent *MemoryFolder) ([]*MemoryVariable
 
 func NewInternalMemory() *InternalMemory {
 	homeFolder := &MemoryFolder{
-		MemoryNode: MemoryNode{
+		AbstractMemoryNode: AbstractMemoryNode{
 			name:         "HOME",
 			parentFolder: nil},
 		subFolders: nil,

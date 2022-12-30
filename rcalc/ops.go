@@ -34,6 +34,14 @@ var sinOp = NewA1R1NumericOp("sin", func(num decimal.Decimal) decimal.Decimal {
 	return num.Sin()
 })
 
+var sinAlgDesc = AlgebraicFunctionDesc{
+	name:      "sin",
+	argsCount: 1,
+	fn: func(args ...decimal.Decimal) decimal.Decimal {
+		return args[0].Sin()
+	},
+}
+
 var arcSinOp = NewA1R1NumericOp("asin", func(num decimal.Decimal) decimal.Decimal {
 	return num.Div(decimal.NewFromInt(1).Sub(num.Pow(decimal.NewFromInt(2))).Pow(decimal.New(5, -1))).Atan()
 })
@@ -41,6 +49,14 @@ var arcSinOp = NewA1R1NumericOp("asin", func(num decimal.Decimal) decimal.Decima
 var cosOp = NewA1R1NumericOp("cos", func(num decimal.Decimal) decimal.Decimal {
 	return num.Cos()
 })
+
+var cosAlgDesc = AlgebraicFunctionDesc{
+	name:      "cos",
+	argsCount: 1,
+	fn: func(args ...decimal.Decimal) decimal.Decimal {
+		return args[0].Cos()
+	},
+}
 
 var arcCosOp = NewA1R1NumericOp("acos", func(num decimal.Decimal) decimal.Decimal {
 	return decimal.NewFromInt(1).Sub(num.Pow(decimal.NewFromInt(2))).Pow(decimal.New(5, -1)).Div(num).Atan()
@@ -50,6 +66,14 @@ var tanOp = NewA1R1NumericOp("sin", func(num decimal.Decimal) decimal.Decimal {
 	return num.Tan()
 })
 
+var tanAlgDesc = AlgebraicFunctionDesc{
+	name:      "tan",
+	argsCount: 1,
+	fn: func(args ...decimal.Decimal) decimal.Decimal {
+		return args[0].Tan()
+	},
+}
+
 var arcTanOp = NewA1R1NumericOp("atan", func(num decimal.Decimal) decimal.Decimal {
 	return num.Atan()
 })
@@ -58,6 +82,9 @@ var TrigonometricPackage = ActionPackage{
 	staticActions: []Action{
 		&sinOp, &cosOp, &tanOp,
 		&arcSinOp, &arcCosOp, &arcTanOp,
+	},
+	algrebraicFunctions: []AlgebraicFunctionDesc{
+		sinAlgDesc, cosAlgDesc, tanAlgDesc,
 	},
 }
 
@@ -164,7 +191,7 @@ var StackPackage = ActionPackage{
 
 var storeAct = NewActionDesc("sto",
 	2,
-	CheckGen([]Type{TYPE_IDENTIFIER, TYPE_GENERIC}),
+	CheckGen([]Type{TYPE_ALG_EXPR, TYPE_GENERIC}),
 	func(system System, stack *Stack) error {
 
 		name, _ := stack.Pop()
@@ -177,7 +204,7 @@ var storeAct = NewActionDesc("sto",
 
 var loadAct = NewActionDesc("load",
 	1,
-	CheckGen([]Type{TYPE_IDENTIFIER}),
+	CheckGen([]Type{TYPE_ALG_EXPR}),
 	func(system System, stack *Stack) error {
 
 		variable, err := stack.Pop()
