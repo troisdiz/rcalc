@@ -22,7 +22,9 @@ jobs:
           distribution: 'temurin' # See 'Supported distributions' for available options
           java-version: '17'
       - name: Install Antlr4
-        uses: StoneMoe/setup-antlr4@v4.11.1
+        uses: StoneMoe/setup-antlr4@v2
+        with:
+          download_url: 'https://www.antlr.org/download/antlr-4.11.1-complete.jar'
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
         with:
