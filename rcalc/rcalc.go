@@ -16,6 +16,11 @@ func Run(stackDataFolder string, createFolder bool) {
 			}
 		}
 	}
+
+	InitDevLogger(path.Join(stackDataFolder, "rcalc-debug.log"))
+
+	GetLogger().Info("Start rcalc")
+	sugaredLogger := GetLogger().Sugar()
 	stackDataFilePath := path.Join(stackDataFolder, "stack.protobuf")
 
 	var stack = CreateSaveOnDiskStack(stackDataFilePath)
@@ -40,6 +45,7 @@ func Run(stackDataFolder string, createFolder bool) {
 
 		actions, parseErr := ParseToActions(cmds, "InteractiveShell", Registry)
 		if parseErr != nil {
+			sugaredLogger.Errorf("Parsing error(s): %v", parseErr)
 			message = parseErr.Error()
 		} else {
 			runtimeContext := CreateRuntimeContext(system, stack)
