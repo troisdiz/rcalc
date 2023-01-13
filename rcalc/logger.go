@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-var logger *zap.Logger
+var logger *zap.SugaredLogger
 
 func InitDevLogger(filePath string) {
 
@@ -18,9 +18,10 @@ func InitDevLogger(filePath string) {
 
 	writer := zapcore.AddSync(logFile)
 	defaultLogLevel := zapcore.DebugLevel
-	logger = zap.New(zapcore.NewCore(fileEncoder, writer, defaultLogLevel), zap.AddStacktrace(zapcore.ErrorLevel))
+	baseLogger := zap.New(zapcore.NewCore(fileEncoder, writer, defaultLogLevel), zap.AddStacktrace(zapcore.ErrorLevel))
+	logger = baseLogger.Sugar()
 }
 
-func GetLogger() *zap.Logger {
+func GetLogger() *zap.SugaredLogger {
 	return logger
 }

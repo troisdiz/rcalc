@@ -20,7 +20,7 @@ func Run(stackDataFolder string, createFolder bool) {
 	InitDevLogger(path.Join(stackDataFolder, "rcalc-debug.log"))
 
 	GetLogger().Info("Start rcalc")
-	sugaredLogger := GetLogger().Sugar()
+	sugaredLogger := GetLogger()
 	stackDataFilePath := path.Join(stackDataFolder, "stack.protobuf")
 
 	var stack = CreateSaveOnDiskStack(stackDataFilePath)
