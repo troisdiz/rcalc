@@ -52,23 +52,35 @@ func parseAction(txt string, registry *ActionRegistry) (Action, error) {
 	}
 }
 
+type Location struct {
+	start, stop antlr.Token
+}
+
+type ValidationError struct {
+	location Location
+	err      error
+}
+
 type ParseContext[T any] interface {
 	GetParent() ParseContext[T]
 	SetParent(ctx ParseContext[T])
 
 	AddItem(item T)
 	AddIdentifier(id string)
+	ReportValidationError(location Location, err error)
+	GetValidationErrors() []ValidationError
 
 	BackFromChild(child ParseContext[T])
-	CreateFinalAction() T
+	CreateFinalAction() (T, error)
 
 	TokenVisited(token int)
 }
 
 type BaseParseContext[T any] struct {
-	parent         ParseContext[T]
-	items          []T
-	idDeclarations []string
+	parent           ParseContext[T]
+	items            []T
+	idDeclarations   []string
+	validationErrors []ValidationError
 }
 
 var _ ParseContext[string] = (*BaseParseContext[string])(nil)
@@ -89,11 +101,31 @@ func (g *BaseParseContext[T]) AddIdentifier(id string) {
 	g.idDeclarations = append(g.idDeclarations, id)
 }
 
-func (g *BaseParseContext[T]) BackFromChild(child ParseContext[T]) {
-	g.AddItem(child.CreateFinalAction())
+func (g *BaseParseContext[T]) ReportValidationError(location Location, err error) {
+	g.validationErrors = append(g.validationErrors, ValidationError{location: location, err: err})
 }
 
-func (g *BaseParseContext[T]) CreateFinalAction() T {
+func (g *BaseParseContext[T]) GetValidationErrors() []ValidationError {
+	return g.validationErrors
+}
+
+func (g *BaseParseContext[T]) BackFromChild(child ParseContext[T]) {
+	childValidationErrors := child.GetValidationErrors()
+	if len(childValidationErrors) > 0 {
+		for _, ve := range childValidationErrors {
+			g.validationErrors = append(g.validationErrors, ve)
+		}
+	} else {
+		action, err := child.CreateFinalAction()
+		if err != nil {
+			g.ReportValidationError(Location{}, err)
+		} else {
+			g.AddItem(action)
+		}
+	}
+}
+
+func (g *BaseParseContext[T]) CreateFinalAction() (T, error) {
 	panic("CreateFinalAction must be implemented by sub structures")
 }
 
@@ -128,54 +160,54 @@ func (i *IfThenElseContext) TokenVisited(token int) {
 	}
 }
 
-func (i *IfThenElseContext) CreateFinalAction() Action {
+func (i *IfThenElseContext) CreateFinalAction() (Action, error) {
 	return &IfThenElseActionDesc{
 		ifActions:   i.actions[0],
 		thenActions: i.actions[1],
 		elseActions: i.actions[2],
-	}
+	}, nil
 }
 
 type StartEndLoopContext struct {
 	BaseParseContext[Action]
 }
 
-func (pc *StartEndLoopContext) CreateFinalAction() Action {
-	return &StartNextLoopActionDesc{actions: pc.BaseParseContext.items}
+func (pc *StartEndLoopContext) CreateFinalAction() (Action, error) {
+	return &StartNextLoopActionDesc{actions: pc.BaseParseContext.items}, nil
 }
 
 type ForNextLoopContext struct {
 	BaseParseContext[Action]
 }
 
-func (pc *ForNextLoopContext) CreateFinalAction() Action {
+func (pc *ForNextLoopContext) CreateFinalAction() (Action, error) {
 	return &ForNextLoopActionDesc{
 		varName: pc.BaseParseContext.idDeclarations[0],
 		actions: pc.BaseParseContext.items,
-	}
+	}, nil
 }
 
 type ProgramContext struct {
 	BaseParseContext[Action]
 }
 
-func (pc *ProgramContext) CreateFinalAction() Action {
+func (pc *ProgramContext) CreateFinalAction() (Action, error) {
 	progVar := CreateProgramVariable(pc.items)
-	return &VariablePutOnStackActionDesc{value: progVar}
+	return &VariablePutOnStackActionDesc{value: progVar}, nil
 }
 
 type InstrLocalVarCreationContext struct {
 	BaseParseContext[Action]
 }
 
-func (pc *InstrLocalVarCreationContext) CreateFinalAction() Action {
+func (pc *InstrLocalVarCreationContext) CreateFinalAction() (Action, error) {
 	programPutOnStackVariable := pc.BaseParseContext.items[0].(*VariablePutOnStackActionDesc)
 	//fmt.Printf("%v\n", programPutOnStackVariable)
 	programVariable := programPutOnStackVariable.value.asProgramVar()
 	return &VariableDeclarationActionDesc{
 		varNames:        pc.BaseParseContext.idDeclarations,
 		programVariable: programVariable,
-	}
+	}, nil
 }
 
 type RcalcParserListener struct {
