@@ -564,10 +564,11 @@ func ParseToActions(cmds string, lexerName string, registry *ActionRegistry) ([]
 	var listener *RcalcParserListener = CreateRcalcParserListener(registry)
 	//p.RemoveErrorListeners()
 	p.AddErrorListener(el)
-	antlr.ParseTreeWalkerDefault.Walk(listener, p.Start())
+	parseResult := p.Start()
 	if el.HasErrors() {
-
 		return nil, fmt.Errorf("There are %d error(s):\n - %s", len(el.messages), strings.Join(el.messages, "\n - "))
 	}
+	antlr.ParseTreeWalkerDefault.Walk(listener, parseResult)
+
 	return listener.rootPc.GetItems(), nil
 }
