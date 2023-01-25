@@ -493,7 +493,9 @@ func (el *RcalcParserErrorListener) HasErrors() bool {
 }
 
 func (el *RcalcParserErrorListener) SyntaxError(recognizer antlr.Recognizer, offendingSymbol interface{}, line, column int, msg string, e antlr.RecognitionException) {
-	message := fmt.Sprintf("SyntaxError (%d, %d) : %s", line, column, msg)
+	antlrParser := recognizer.(antlr.Parser)
+	stack := antlrParser.GetRuleInvocationStack(antlrParser.GetParserRuleContext())
+	message := fmt.Sprintf("SyntaxError (%d, %d) : %s with stack %v", line, column, msg, stack)
 	el.messages = append(el.messages, message)
 }
 

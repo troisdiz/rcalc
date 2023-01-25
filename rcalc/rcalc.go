@@ -2,22 +2,38 @@ package rcalc
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"path"
 )
 
-func Run(stackDataFolder string, createFolder bool) {
+func Run(stackDataFolder string, createFolder bool, debugMode bool) {
+
+	defer func() {
+		logger := GetLogger()
+		if logger == nil {
+			_, _ = fmt.Fprintln(os.Stderr, "Exiting rcalc, logger is nil")
+		} else {
+			logger.Info("Exiting rcalc")
+		}
+	}()
 
 	if createFolder {
 		if _, err := os.Stat(stackDataFolder); os.IsNotExist(err) {
 			err := os.Mkdir(stackDataFolder, 0755)
 			if err != nil {
+				fmt.Printf("Error creating %s : %s\n", stackDataFolder, err.Error())
 				return
 			}
 		}
 	}
-
-	InitDevLogger(path.Join(stackDataFolder, "rcalc-debug.log"))
+	logFilePath := path.Join(stackDataFolder, "rcalc-debug.log")
+	fmt.Println(logFilePath)
+	if debugMode {
+		InitDevLogger(logFilePath)
+	} else {
+		InitProdLogger(logFilePath)
+	}
 
 	GetLogger().Info("Start rcalc")
 	sugaredLogger := GetLogger()
@@ -65,6 +81,7 @@ func Run(stackDataFolder string, createFolder bool) {
 				if system.shouldStop() {
 					err := stack.CloseSession()
 					if err != nil {
+						sugaredLogger.Errorf("Error while closing session")
 						return
 					}
 					return
