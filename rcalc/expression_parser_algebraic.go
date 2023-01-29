@@ -52,7 +52,7 @@ func (aec *AlgebraicExprContext) CreateFinalAction() (AlgebraicExpressionNode, e
 }
 
 func (aec *AlgebraicExprContext) GetRootExprNode() AlgebraicExpressionNode {
-	return aec.GetItems()[0]
+	return aec.GetItems()[0].item
 }
 
 type AlgebraicAddSubContext struct {
@@ -66,7 +66,7 @@ func (asc *AlgebraicAddSubContext) CreateFinalAction() (AlgebraicExpressionNode,
 		panic("Unknown token")
 	}
 	return &AlgExprAddSub{
-		items:     asc.GetItems(),
+		items:     toNonLocated(asc.GetItems()),
 		operators: operators,
 	}, nil
 }
@@ -85,7 +85,7 @@ func (amdc *AlgebraicMulDivContext) CreateFinalAction() (AlgebraicExpressionNode
 	}
 
 	return &AlgExprMulDiv{
-		items:     amdc.GetItems(),
+		items:     toNonLocated(amdc.GetItems()),
 		operators: operators,
 	}, nil
 }
@@ -104,7 +104,7 @@ func (asac *AlgebraicSignedAtomContext) CreateFinalAction() (AlgebraicExpression
 	}
 
 	return &AlgExprSignedElt{
-		items:    asac.GetItems()[0],
+		items:    asac.GetItems()[0].item,
 		operator: operators[0],
 	}, nil
 }
@@ -123,7 +123,7 @@ func (afc *AlgebraicFunctionContext) CreateFinalAction() (AlgebraicExpressionNod
 		return &AlgExprFunctionElt{
 			functionName: afc.functionName,
 			fn:           fn,
-			arguments:    afc.GetItems(),
+			arguments:    toNonLocated(afc.GetItems()),
 		}, nil
 	} else {
 		// TODO error handling of such cases
@@ -142,7 +142,7 @@ func (aac *AlgebraicAtomContext) CreateFinalAction() (AlgebraicExpressionNode, e
 		operator = OPERATOR_SUB
 	}
 	return &AlgExprSignedElt{
-		items:    aac.GetItems()[0],
+		items:    aac.GetItems()[0].item,
 		operator: operator,
 	}, nil
 }
