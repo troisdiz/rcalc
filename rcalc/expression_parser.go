@@ -61,6 +61,18 @@ type ValidationError struct {
 	err      error
 }
 
+func (ve *ValidationError) String() string {
+	return ve.err.Error()
+}
+
+func toErrorMessage(validationErrors []ValidationError) string {
+	var errorsAsString []string
+	for _, validationError := range validationErrors {
+		errorsAsString = append(errorsAsString, " - "+validationError.String())
+	}
+	return strings.Join(errorsAsString, "\n")
+}
+
 type ParseContext[T any] interface {
 	GetParent() ParseContext[T]
 	SetParent(ctx ParseContext[T])
@@ -232,6 +244,8 @@ type InstrLocalVarCreationContext struct {
 	BaseParseContext[Action]
 }
 
+var _ ParseContext[Action] = (*InstrLocalVarCreationContext)(nil)
+
 func (pc *InstrLocalVarCreationContext) CreateFinalAction() (Action, error) {
 	programPutOnStackVariable := pc.BaseParseContext.items[0].item.(*VariablePutOnStackActionDesc)
 	//fmt.Printf("%v\n", programPutOnStackVariable)
@@ -253,6 +267,8 @@ type RcalcParserListener struct {
 	rootAlgebraicPc    *AlgebraicExprContext
 	currentAlgebraicPc ParseContext[AlgebraicExpressionNode]
 }
+
+var _ parser.RcalcListener = (*RcalcParserListener)(nil)
 
 func CreateRcalcParserListener(registry *ActionRegistry) *RcalcParserListener {
 	rootPc := &BaseParseContext[Action]{
@@ -551,6 +567,8 @@ type RcalcParserErrorListener struct {
 	messages []string
 }
 
+var _ antlr.ErrorListener = (*RcalcParserErrorListener)(nil)
+
 func (el *RcalcParserErrorListener) HasErrors() bool {
 	return len(el.messages) > 0
 
@@ -601,6 +619,10 @@ func ParseToActions(cmds string, lexerName string, registry *ActionRegistry) ([]
 		return nil, fmt.Errorf("There are %d error(s):\n - %s", len(el.messages), strings.Join(el.messages, "\n - "))
 	}
 	antlr.ParseTreeWalkerDefault.Walk(listener, parseResult)
+	if len(listener.rootPc.validationErrors) > 0 {
+		errorsAsString := toErrorMessage(listener.rootPc.validationErrors)
+		return nil, fmt.Errorf("There are %d validations error(s):\n%s", len(listener.rootPc.validationErrors), errorsAsString)
+	}
 
 	return toNonLocated(listener.rootPc.GetItems()), nil
 }
