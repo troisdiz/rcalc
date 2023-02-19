@@ -236,10 +236,12 @@ func TestAlgebraicExpressionParsing(t *testing.T) {
 		{
 			literal: "'1 +2 - 5'", value: decimal.NewFromInt(-2),
 		},
-		/*{
-			//TODO This does not parse
-			literal: "'1 +2 - 5'", value: decimal.NewFromInt(-2),
-		},*/
+		/*
+			{
+				//TODO This does not parse
+				literal: "'1 +2 -5'", value: decimal.NewFromInt(-2),
+			},
+		*/
 		{
 			literal: "'1+ 2'",
 			value:   decimal.NewFromInt(3),
@@ -279,6 +281,18 @@ func TestAlgebraicExpressionParsing(t *testing.T) {
 		{
 			literal: "'a+2'",
 			value:   decimal.NewFromInt(9),
+		},
+		{
+			literal: "'2^2'",
+			value:   decimal.NewFromInt(4),
+		},
+		{
+			literal: "'2^2^2'",
+			value:   decimal.NewFromInt(16),
+		},
+		{
+			literal: "'2^(2+3)'",
+			value:   decimal.NewFromInt(32),
 		},
 	}
 
@@ -323,6 +337,9 @@ func TestAlgebraicExpressionParsing(t *testing.T) {
 		for idx, expr := range expressions {
 			t.Run(fmt.Sprintf("Compute %02d-%s", idx+1, expr.literal), func(t *testing.T) {
 				algExprNode := nodeByExpression[expr.literal]
+				if algExprNode == nil {
+					assert.Failf(t, "Parsing failed, cannot do compute test", "")
+				}
 				numericVariable, err := evalAlgExpression(runtimeContext, algExprNode)
 				if assert.NoError(t, err) {
 					assert.True(t,

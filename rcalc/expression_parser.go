@@ -389,6 +389,18 @@ func (l *RcalcParserListener) ExitAlgExprMulDiv(ctx *parser.AlgExprMulDivContext
 	l.BackToParentAlgebraicContext()
 }
 
+// EnterAlgExprPow is called when entering the AlgExprPow production.
+func (l *RcalcParserListener) EnterAlgExprPow(c *parser.AlgExprPowContext) {
+	l.StartNewAlgebraicContext(&AlgebraicPowerContext{
+		AlgebraicExprContext{reg: l.registry},
+	})
+}
+
+// ExitAlgExprPow is called when exiting the AlgExprPow production.
+func (l *RcalcParserListener) ExitAlgExprPow(c *parser.AlgExprPowContext) {
+	l.BackToParentAlgebraicContext()
+}
+
 // EnterAlgExprFuncCall is called when production AlgExprFuncAtom is entered.
 func (l *RcalcParserListener) EnterAlgExprFuncCall(ctx *parser.AlgExprFuncCallContext) {
 	functionName := ctx.GetFunction_name().GetText()
