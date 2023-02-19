@@ -237,12 +237,9 @@ func TestAlgebraicExpressionParsing(t *testing.T) {
 		{
 			literal: "'1 +2 - 5'", value: decimal.NewFromInt(-2),
 		},
-		/*
-			{
-				//TODO This does not parse
-				literal: "'1 +2 -5'", value: decimal.NewFromInt(-2),
-			},
-		*/
+		{
+			literal: "'1 +2 -5'", value: decimal.NewFromInt(-2),
+		},
 		{
 			literal: "'1+ 2'",
 			value:   decimal.NewFromInt(3),
