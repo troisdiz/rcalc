@@ -52,23 +52,73 @@ func parseAction(txt string, registry *ActionRegistry) (Action, error) {
 	}
 }
 
+type Location struct {
+	start, stop antlr.Token
+}
+
+type ValidationError struct {
+	location Location
+	err      error
+}
+
+func (ve *ValidationError) String() string {
+	return ve.err.Error()
+}
+
+func toErrorMessage(validationErrors []ValidationError) string {
+	var errorsAsString []string
+	for _, validationError := range validationErrors {
+		errorsAsString = append(errorsAsString, " - "+validationError.String())
+	}
+	return strings.Join(errorsAsString, "\n")
+}
+
 type ParseContext[T any] interface {
 	GetParent() ParseContext[T]
 	SetParent(ctx ParseContext[T])
 
-	AddItem(item T)
-	AddIdentifier(id string)
+	AddItem(item LocatedItem[T])
+	AddIdentifier(id LocatedItem[string])
+	ReportValidationError(location Location, err error)
+	GetValidationErrors() []ValidationError
 
 	BackFromChild(child ParseContext[T])
-	CreateFinalAction() T
+	CreateFinalAction() (T, error)
 
 	TokenVisited(token int)
 }
 
+type LocatedItem[T any] struct {
+	Location
+	item T
+}
+
+func newLocatedItem[T any](item T, start antlr.Token, stop antlr.Token) LocatedItem[T] {
+	return LocatedItem[T]{
+		Location: Location{
+			start: nil,
+			stop:  nil,
+		},
+		item: item,
+	}
+}
+
+func toNonLocated[T any](locatedItems []LocatedItem[T]) []T {
+	if locatedItems == nil {
+		return nil
+	}
+	var result []T = make([]T, len(locatedItems))
+	for idx, locatedItem := range locatedItems {
+		result[idx] = locatedItem.item
+	}
+	return result
+}
+
 type BaseParseContext[T any] struct {
-	parent         ParseContext[T]
-	items          []T
-	idDeclarations []string
+	parent           ParseContext[T]
+	items            []LocatedItem[T]
+	idDeclarations   []LocatedItem[string]
+	validationErrors []ValidationError
 }
 
 var _ ParseContext[string] = (*BaseParseContext[string])(nil)
@@ -81,23 +131,41 @@ func (g *BaseParseContext[T]) SetParent(ctx ParseContext[T]) {
 	g.parent = ctx
 }
 
-func (g *BaseParseContext[T]) AddItem(item T) {
+func (g *BaseParseContext[T]) AddItem(item LocatedItem[T]) {
 	g.items = append(g.items, item)
 }
 
-func (g *BaseParseContext[T]) AddIdentifier(id string) {
+func (g *BaseParseContext[T]) AddIdentifier(id LocatedItem[string]) {
 	g.idDeclarations = append(g.idDeclarations, id)
 }
 
-func (g *BaseParseContext[T]) BackFromChild(child ParseContext[T]) {
-	g.AddItem(child.CreateFinalAction())
+func (g *BaseParseContext[T]) ReportValidationError(location Location, err error) {
+	g.validationErrors = append(g.validationErrors, ValidationError{location: location, err: err})
 }
 
-func (g *BaseParseContext[T]) CreateFinalAction() T {
+func (g *BaseParseContext[T]) GetValidationErrors() []ValidationError {
+	return g.validationErrors
+}
+
+func (g *BaseParseContext[T]) BackFromChild(child ParseContext[T]) {
+	childValidationErrors := child.GetValidationErrors()
+	if len(childValidationErrors) > 0 {
+		g.validationErrors = append(g.validationErrors, childValidationErrors...)
+	} else {
+		action, err := child.CreateFinalAction()
+		if err != nil {
+			g.ReportValidationError(Location{}, err)
+		} else {
+			g.AddItem(newLocatedItem(action, nil, nil))
+		}
+	}
+}
+
+func (g *BaseParseContext[T]) CreateFinalAction() (T, error) {
 	panic("CreateFinalAction must be implemented by sub structures")
 }
 
-func (g *BaseParseContext[T]) GetItems() []T {
+func (g *BaseParseContext[T]) GetItems() []LocatedItem[T] {
 	return g.items
 }
 
@@ -106,17 +174,19 @@ func (g *BaseParseContext[T]) TokenVisited(token int) {}
 type IfThenElseContext struct {
 	BaseParseContext[Action] // to avoid reimplementing the interface
 
-	actions       [][]Action
+	actions       [][]LocatedItem[Action]
 	currentAction int
 }
 
-func (i *IfThenElseContext) AddItem(action Action) {
+var _ ParseContext[Action] = (*IfThenElseContext)(nil)
+
+func (i *IfThenElseContext) AddItem(action LocatedItem[Action]) {
 	i.actions[i.currentAction] = append(i.actions[i.currentAction], action)
 }
 
 func (i *IfThenElseContext) TokenVisited(token int) {
 	if i.actions == nil {
-		i.actions = make([][]Action, 3)
+		i.actions = make([][]LocatedItem[Action], 3)
 	}
 	switch token {
 	case parser.RcalcLexerKW_IF:
@@ -128,54 +198,62 @@ func (i *IfThenElseContext) TokenVisited(token int) {
 	}
 }
 
-func (i *IfThenElseContext) CreateFinalAction() Action {
+func (i *IfThenElseContext) CreateFinalAction() (Action, error) {
 	return &IfThenElseActionDesc{
-		ifActions:   i.actions[0],
-		thenActions: i.actions[1],
-		elseActions: i.actions[2],
-	}
+		ifActions:   toNonLocated(i.actions[0]),
+		thenActions: toNonLocated(i.actions[1]),
+		elseActions: toNonLocated(i.actions[2]),
+	}, nil
 }
 
 type StartEndLoopContext struct {
 	BaseParseContext[Action]
 }
 
-func (pc *StartEndLoopContext) CreateFinalAction() Action {
-	return &StartNextLoopActionDesc{actions: pc.BaseParseContext.items}
+var _ ParseContext[Action] = (*StartEndLoopContext)(nil)
+
+func (pc *StartEndLoopContext) CreateFinalAction() (Action, error) {
+	return &StartNextLoopActionDesc{actions: toNonLocated(pc.BaseParseContext.items)}, nil
 }
 
 type ForNextLoopContext struct {
 	BaseParseContext[Action]
 }
 
-func (pc *ForNextLoopContext) CreateFinalAction() Action {
+var _ ParseContext[Action] = (*ForNextLoopContext)(nil)
+
+func (pc *ForNextLoopContext) CreateFinalAction() (Action, error) {
 	return &ForNextLoopActionDesc{
-		varName: pc.BaseParseContext.idDeclarations[0],
-		actions: pc.BaseParseContext.items,
-	}
+		varName: pc.BaseParseContext.idDeclarations[0].item,
+		actions: toNonLocated(pc.BaseParseContext.items),
+	}, nil
 }
 
 type ProgramContext struct {
 	BaseParseContext[Action]
 }
 
-func (pc *ProgramContext) CreateFinalAction() Action {
-	progVar := CreateProgramVariable(pc.items)
-	return &VariablePutOnStackActionDesc{value: progVar}
+var _ ParseContext[Action] = (*ProgramContext)(nil)
+
+func (pc *ProgramContext) CreateFinalAction() (Action, error) {
+	progVar := CreateProgramVariable(toNonLocated(pc.items))
+	return &VariablePutOnStackActionDesc{value: progVar}, nil
 }
 
 type InstrLocalVarCreationContext struct {
 	BaseParseContext[Action]
 }
 
-func (pc *InstrLocalVarCreationContext) CreateFinalAction() Action {
-	programPutOnStackVariable := pc.BaseParseContext.items[0].(*VariablePutOnStackActionDesc)
+var _ ParseContext[Action] = (*InstrLocalVarCreationContext)(nil)
+
+func (pc *InstrLocalVarCreationContext) CreateFinalAction() (Action, error) {
+	programPutOnStackVariable := pc.BaseParseContext.items[0].item.(*VariablePutOnStackActionDesc)
 	//fmt.Printf("%v\n", programPutOnStackVariable)
 	programVariable := programPutOnStackVariable.value.asProgramVar()
 	return &VariableDeclarationActionDesc{
-		varNames:        pc.BaseParseContext.idDeclarations,
+		varNames:        toNonLocated(pc.BaseParseContext.idDeclarations),
 		programVariable: programVariable,
-	}
+	}, nil
 }
 
 type RcalcParserListener struct {
@@ -190,6 +268,8 @@ type RcalcParserListener struct {
 	currentAlgebraicPc ParseContext[AlgebraicExpressionNode]
 }
 
+var _ parser.RcalcListener = (*RcalcParserListener)(nil)
+
 func CreateRcalcParserListener(registry *ActionRegistry) *RcalcParserListener {
 	rootPc := &BaseParseContext[Action]{
 		parent: nil,
@@ -202,11 +282,11 @@ func CreateRcalcParserListener(registry *ActionRegistry) *RcalcParserListener {
 	}
 }
 
-func (l *RcalcParserListener) AddAction(action Action) {
+func (l *RcalcParserListener) AddAction(action LocatedItem[Action]) {
 	l.currentPc.AddItem(action)
 }
 
-func (l *RcalcParserListener) AddVarName(varName string) {
+func (l *RcalcParserListener) AddVarName(varName LocatedItem[string]) {
 	l.currentPc.AddIdentifier(varName)
 }
 
@@ -246,7 +326,7 @@ func (l *RcalcParserListener) ExitVariableNumber(ctx *parser.VariableNumberConte
 	if err != nil {
 		ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
 	} else {
-		l.AddAction(&VariablePutOnStackActionDesc{number})
+		l.AddAction(newLocatedItem[Action](&VariablePutOnStackActionDesc{number}, ctx.GetStart(), ctx.GetStop()))
 	}
 
 }
@@ -275,11 +355,11 @@ func (l *RcalcParserListener) ExitVariableAlgebraicExpression(ctx *parser.Variab
 
 	rootAlgExpr := l.rootAlgebraicPc.GetItems()
 
-	identifier, err := parseIdentifier(ctx.GetText(), rootAlgExpr[0])
+	identifier, err := parseIdentifier(ctx.GetText(), rootAlgExpr[0].item)
 	if err != nil {
 		ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
 	} else {
-		l.AddAction(&VariablePutOnStackActionDesc{value: identifier})
+		l.AddAction(newLocatedItem[Action](&VariablePutOnStackActionDesc{value: identifier}, ctx.GetStart(), ctx.GetStop()))
 	}
 	l.BackToParentContext()
 }
@@ -395,9 +475,9 @@ func (l *RcalcParserListener) ExitInstrActionOrVarCall(ctx *parser.InstrActionOr
 	action, err := parseAction(ctx.GetText(), l.registry)
 	if err != nil {
 		//ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
-		l.AddAction(&VariableEvaluationActionDesc{varName: ctx.GetText()})
+		l.AddAction(newLocatedItem[Action](&VariableEvaluationActionDesc{varName: ctx.GetText()}, ctx.GetStart(), ctx.GetStop()))
 	} else {
-		l.AddAction(action)
+		l.AddAction(newLocatedItem[Action](action, ctx.GetStart(), ctx.GetStop()))
 	}
 }
 
@@ -407,10 +487,10 @@ func (l *RcalcParserListener) ExitDeclarationVariable(ctx *parser.DeclarationVar
 	action, err := parseAction(ctx.GetText(), l.registry)
 	if err != nil {
 		//ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
-		l.AddVarName(ctx.GetText())
+		l.AddVarName(newLocatedItem(ctx.GetText(), ctx.GetStart(), ctx.GetStop()))
 	} else {
 		//TODO we should raise error here
-		l.AddAction(action)
+		l.AddAction(newLocatedItem[Action](action, ctx.GetStart(), ctx.GetStop()))
 	}
 }
 
@@ -421,7 +501,7 @@ func (l *RcalcParserListener) ExitInstrOp(ctx *parser.InstrOpContext) {
 	if err != nil {
 		ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
 	} else {
-		l.AddAction(action)
+		l.AddAction(newLocatedItem[Action](action, ctx.GetStart(), ctx.GetStop()))
 	}
 }
 
@@ -431,12 +511,12 @@ func (l *RcalcParserListener) VisitTerminal(node antlr.TerminalNode) {
 }
 
 // EnterInstIfThenElse is called when entering the InstIfThenElse production.
-func (l *RcalcParserListener) EnterInstIfThenElse(c *parser.InstIfThenElseContext) {
+func (l *RcalcParserListener) EnterInstIfThenElse(ctx *parser.InstIfThenElseContext) {
 	l.StartNewContext(&IfThenElseContext{})
 }
 
 // ExitInstIfThenElse is called when entering the InstIfThenElse production.
-func (l *RcalcParserListener) ExitInstIfThenElse(c *parser.InstIfThenElseContext) {
+func (l *RcalcParserListener) ExitInstIfThenElse(ctx *parser.InstIfThenElseContext) {
 	l.BackToParentContext()
 }
 
@@ -452,7 +532,7 @@ func (l *RcalcParserListener) ExitInstrStartNextLoop(ctx *parser.InstrStartNextL
 }
 
 // EnterInstrForNextLoop is called when exiting the InstrForNextLoop production.
-func (l *RcalcParserListener) EnterInstrForNextLoop(c *parser.InstrForNextLoopContext) {
+func (l *RcalcParserListener) EnterInstrForNextLoop(ctx *parser.InstrForNextLoopContext) {
 	loopContext := &ForNextLoopContext{}
 	l.StartNewContext(loopContext)
 }
@@ -487,13 +567,17 @@ type RcalcParserErrorListener struct {
 	messages []string
 }
 
+var _ antlr.ErrorListener = (*RcalcParserErrorListener)(nil)
+
 func (el *RcalcParserErrorListener) HasErrors() bool {
 	return len(el.messages) > 0
 
 }
 
 func (el *RcalcParserErrorListener) SyntaxError(recognizer antlr.Recognizer, offendingSymbol interface{}, line, column int, msg string, e antlr.RecognitionException) {
-	message := fmt.Sprintf("SyntaxError (%d, %d) : %s", line, column, msg)
+	antlrParser := recognizer.(antlr.Parser)
+	stack := antlrParser.GetRuleInvocationStack(antlrParser.GetParserRuleContext())
+	message := fmt.Sprintf("SyntaxError (%d, %d) : %s with stack %v", line, column, msg, stack)
 	el.messages = append(el.messages, message)
 }
 
@@ -530,10 +614,15 @@ func ParseToActions(cmds string, lexerName string, registry *ActionRegistry) ([]
 	var listener *RcalcParserListener = CreateRcalcParserListener(registry)
 	//p.RemoveErrorListeners()
 	p.AddErrorListener(el)
-	antlr.ParseTreeWalkerDefault.Walk(listener, p.Start())
+	parseResult := p.Start()
 	if el.HasErrors() {
-
 		return nil, fmt.Errorf("There are %d error(s):\n - %s", len(el.messages), strings.Join(el.messages, "\n - "))
 	}
-	return listener.rootPc.GetItems(), nil
+	antlr.ParseTreeWalkerDefault.Walk(listener, parseResult)
+	if len(listener.rootPc.validationErrors) > 0 {
+		errorsAsString := toErrorMessage(listener.rootPc.validationErrors)
+		return nil, fmt.Errorf("There are %d validations error(s):\n%s", len(listener.rootPc.validationErrors), errorsAsString)
+	}
+
+	return toNonLocated(listener.rootPc.GetItems()), nil
 }

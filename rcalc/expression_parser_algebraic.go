@@ -13,7 +13,7 @@ type AlgebraicVariableContext struct {
 	algebraicContext *AlgebraicExprContext
 }
 
-func (ac *AlgebraicVariableContext) CreateFinalAction() Action {
+func (ac *AlgebraicVariableContext) CreateFinalAction() (Action, error) {
 
 	var algRootNode AlgebraicExpressionNode
 	// TODO
@@ -28,7 +28,7 @@ func (ac *AlgebraicVariableContext) CreateFinalAction() Action {
 		},
 		value:    ac.exprText,
 		rootNode: algRootNode,
-	}}
+	}}, nil
 }
 
 func (ac *AlgebraicVariableContext) TokenVisited(token int) {
@@ -47,28 +47,28 @@ func (aec *AlgebraicExprContext) TokenVisited(token int) {
 	aec.tokens = append(aec.tokens, token)
 }
 
-func (aec *AlgebraicExprContext) CreateFinalAction() AlgebraicExpressionNode {
+func (aec *AlgebraicExprContext) CreateFinalAction() (AlgebraicExpressionNode, error) {
 	panic("AlgebraicExprContext.CreateFinalAction() must be override")
 }
 
 func (aec *AlgebraicExprContext) GetRootExprNode() AlgebraicExpressionNode {
-	return aec.GetItems()[0]
+	return aec.GetItems()[0].item
 }
 
 type AlgebraicAddSubContext struct {
 	AlgebraicExprContext
 }
 
-func (asc *AlgebraicAddSubContext) CreateFinalAction() AlgebraicExpressionNode {
+func (asc *AlgebraicAddSubContext) CreateFinalAction() (AlgebraicExpressionNode, error) {
 	operators, err := tokenToPosition([]int{parser.RcalcLexerOP_ADD, parser.RcalcLexerOP_SUB}, asc.tokens)
 	fmt.Printf("Length of operators is %d / tokens : %d\n", len(operators), len(asc.tokens))
 	if err != nil {
 		panic("Unknown token")
 	}
 	return &AlgExprAddSub{
-		items:     asc.GetItems(),
+		items:     toNonLocated(asc.GetItems()),
 		operators: operators,
-	}
+	}, nil
 }
 
 type AlgebraicMulDivContext struct {
@@ -77,7 +77,7 @@ type AlgebraicMulDivContext struct {
 
 var _ ParseContext[AlgebraicExpressionNode] = (*AlgebraicMulDivContext)(nil)
 
-func (amdc *AlgebraicMulDivContext) CreateFinalAction() AlgebraicExpressionNode {
+func (amdc *AlgebraicMulDivContext) CreateFinalAction() (AlgebraicExpressionNode, error) {
 	operators, err := tokenToPosition([]int{parser.RcalcLexerOP_MUL, parser.RcalcLexerOP_DIV}, amdc.tokens)
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
@@ -85,9 +85,9 @@ func (amdc *AlgebraicMulDivContext) CreateFinalAction() AlgebraicExpressionNode 
 	}
 
 	return &AlgExprMulDiv{
-		items:     amdc.GetItems(),
+		items:     toNonLocated(amdc.GetItems()),
 		operators: operators,
-	}
+	}, nil
 }
 
 type AlgebraicSignedAtomContext struct {
@@ -96,7 +96,7 @@ type AlgebraicSignedAtomContext struct {
 
 var _ ParseContext[AlgebraicExpressionNode] = (*AlgebraicSignedAtomContext)(nil)
 
-func (asac *AlgebraicSignedAtomContext) CreateFinalAction() AlgebraicExpressionNode {
+func (asac *AlgebraicSignedAtomContext) CreateFinalAction() (AlgebraicExpressionNode, error) {
 	operators, err := tokenToPosition([]int{parser.RcalcLexerOP_ADD, parser.RcalcLexerOP_SUB}, asac.tokens)
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
@@ -104,9 +104,9 @@ func (asac *AlgebraicSignedAtomContext) CreateFinalAction() AlgebraicExpressionN
 	}
 
 	return &AlgExprSignedElt{
-		items:    asac.GetItems()[0],
+		items:    asac.GetItems()[0].item,
 		operator: operators[0],
-	}
+	}, nil
 }
 
 type AlgebraicFunctionContext struct {
@@ -117,17 +117,17 @@ type AlgebraicFunctionContext struct {
 
 var _ ParseContext[AlgebraicExpressionNode] = (*AlgebraicFunctionContext)(nil)
 
-func (afc *AlgebraicFunctionContext) CreateFinalAction() AlgebraicExpressionNode {
+func (afc *AlgebraicFunctionContext) CreateFinalAction() (AlgebraicExpressionNode, error) {
 
 	if fn := afc.reg.GetAlgebraicFunction(afc.functionName); fn != nil {
 		return &AlgExprFunctionElt{
 			functionName: afc.functionName,
 			fn:           fn,
-			arguments:    afc.GetItems(),
-		}
+			arguments:    toNonLocated(afc.GetItems()),
+		}, nil
 	} else {
 		// TODO error handling of such cases
-		return nil
+		return nil, nil
 	}
 }
 
@@ -135,16 +135,16 @@ type AlgebraicAtomContext struct {
 	AlgebraicExprContext
 }
 
-func (aac *AlgebraicAtomContext) CreateFinalAction() AlgebraicExpressionNode {
+func (aac *AlgebraicAtomContext) CreateFinalAction() (AlgebraicExpressionNode, error) {
 
 	operator := OPERATOR_ADD
 	if len(aac.tokens) > 0 && aac.tokens[0] == parser.RcalcLexerOP_SUB {
 		operator = OPERATOR_SUB
 	}
 	return &AlgExprSignedElt{
-		items:    aac.GetItems()[0],
+		items:    aac.GetItems()[0].item,
 		operator: operator,
-	}
+	}, nil
 }
 
 type AlgebraicNumberContext struct {
@@ -153,11 +153,11 @@ type AlgebraicNumberContext struct {
 	value decimal.Decimal
 }
 
-func (anc *AlgebraicNumberContext) CreateFinalAction() AlgebraicExpressionNode {
+func (anc *AlgebraicNumberContext) CreateFinalAction() (AlgebraicExpressionNode, error) {
 
 	return &AlgExprNumber{
 		value: anc.value,
-	}
+	}, nil
 }
 
 type AlgebraicVariableNameContext struct {
@@ -166,8 +166,8 @@ type AlgebraicVariableNameContext struct {
 	value string
 }
 
-func (avnc *AlgebraicVariableNameContext) CreateFinalAction() AlgebraicExpressionNode {
+func (avnc *AlgebraicVariableNameContext) CreateFinalAction() (AlgebraicExpressionNode, error) {
 	return &AlgExprVariable{
 		value: avnc.value,
-	}
+	}, nil
 }
