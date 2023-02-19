@@ -31,8 +31,9 @@ func TestAntlrParse2Numbers(t *testing.T) {
 	for _, expr := range numbersToParse {
 		t.Run(expr, func(t *testing.T) {
 			elt, err := ParseToActions(expr, "Test", registry)
-			assert.NoError(t, err, "Parse error : %s", err)
-			assert.IsType(t, elt[0], &VariablePutOnStackActionDesc{})
+			if assert.NoError(t, err, "Parse error : %s", err) {
+				assert.IsType(t, elt[0], &VariablePutOnStackActionDesc{})
+			}
 		})
 	}
 }
