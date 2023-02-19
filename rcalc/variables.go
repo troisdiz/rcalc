@@ -77,6 +77,11 @@ type AlgExprMulDiv struct {
 var _ AlgebraicExpressionNode = (*AlgExprMulDiv)(nil)
 
 func (a *AlgExprMulDiv) Evaluate(variableReader VariableReader) (*NumericVariable, error) {
+
+	if len(a.items) == 1 {
+		return a.items[0].Evaluate(variableReader)
+	}
+
 	result := decimal.NewFromInt(1)
 	for _, it := range a.items {
 		variable, err := it.Evaluate(variableReader)
@@ -86,6 +91,40 @@ func (a *AlgExprMulDiv) Evaluate(variableReader VariableReader) (*NumericVariabl
 		numericVar := variable.asNumericVar()
 		subExprValue := numericVar.value
 		result = result.Mul(subExprValue)
+	}
+	return CreateNumericVariable(result).asNumericVar(), nil
+}
+
+type AlgExprPow struct {
+	items []AlgebraicExpressionNode
+}
+
+var _ AlgebraicExpressionNode = (*AlgExprPow)(nil)
+
+func (a *AlgExprPow) Evaluate(variableReader VariableReader) (*NumericVariable, error) {
+
+	if len(a.items) == 1 {
+		return a.items[0].Evaluate(variableReader)
+	}
+
+	fmt.Printf("Pow items(%d):\n", len(a.items))
+	for idx, it := range a.items {
+		fmt.Printf("  - item[%d] = %v\n", idx, it)
+	}
+
+	result := decimal.NewFromInt(1)
+	for i := len(a.items) - 1; i >= 0; i-- {
+		fmt.Printf("i = %d\n", i)
+		variable, err := a.items[i].Evaluate(variableReader)
+		if err != nil {
+			return nil, err
+		}
+		numericVar := variable.asNumericVar()
+		if result.Equal(decimal.NewFromInt(1)) {
+			result = numericVar.value
+		} else {
+			result = numericVar.value.Pow(result)
+		}
 	}
 	return CreateNumericVariable(result).asNumericVar(), nil
 }
@@ -102,6 +141,11 @@ type AlgExprAddSub struct {
 }
 
 func (a *AlgExprAddSub) Evaluate(variableReader VariableReader) (*NumericVariable, error) {
+
+	if len(a.items) == 1 {
+		return a.items[0].Evaluate(variableReader)
+	}
+
 	result := decimal.NewFromInt(0)
 	for idx, it := range a.items {
 		operator := OPERATOR_ADD

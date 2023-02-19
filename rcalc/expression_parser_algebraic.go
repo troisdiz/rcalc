@@ -90,6 +90,24 @@ func (amdc *AlgebraicMulDivContext) CreateFinalAction() (AlgebraicExpressionNode
 	}, nil
 }
 
+type AlgebraicPowerContext struct {
+	AlgebraicExprContext
+}
+
+var _ ParseContext[AlgebraicExpressionNode] = (*AlgebraicPowerContext)(nil)
+
+func (amdc *AlgebraicPowerContext) CreateFinalAction() (AlgebraicExpressionNode, error) {
+	_, err := tokenToPosition([]int{parser.RcalcLexerOP_POW}, amdc.tokens)
+	if err != nil {
+		fmt.Printf("%s\n", err.Error())
+		panic("Unknown token")
+	}
+
+	return &AlgExprPow{
+		items: toNonLocated(amdc.GetItems()),
+	}, nil
+}
+
 type AlgebraicSignedAtomContext struct {
 	AlgebraicExprContext
 }
