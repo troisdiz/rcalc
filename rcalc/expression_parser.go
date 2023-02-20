@@ -313,6 +313,11 @@ func (l *RcalcParserListener) BackToParentAlgebraicContext() {
 }
 
 func (l *RcalcParserListener) TokenVisited(token int) {
+	if token == parser.RcalcLexerWHITESPACE {
+		// ignore whitespace
+		// we cannot ask the grammar to skip it in order to make a diference between 2- 3 and 2 -3
+		return
+	}
 	l.currentPc.TokenVisited(token)
 	if l.currentAlgebraicPc != nil {
 		l.currentAlgebraicPc.TokenVisited(token)

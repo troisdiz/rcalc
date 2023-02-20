@@ -31,8 +31,9 @@ func TestAntlrParse2Numbers(t *testing.T) {
 	for _, expr := range numbersToParse {
 		t.Run(expr, func(t *testing.T) {
 			elt, err := ParseToActions(expr, "Test", registry)
-			assert.NoError(t, err, "Parse error : %s", err)
-			assert.IsType(t, elt[0], &VariablePutOnStackActionDesc{})
+			if assert.NoError(t, err, "Parse error : %s", err) {
+				assert.IsType(t, elt[0], &VariablePutOnStackActionDesc{})
+			}
 		})
 	}
 }
@@ -236,12 +237,9 @@ func TestAlgebraicExpressionParsing(t *testing.T) {
 		{
 			literal: "'1 +2 - 5'", value: decimal.NewFromInt(-2),
 		},
-		/*
-			{
-				//TODO This does not parse
-				literal: "'1 +2 -5'", value: decimal.NewFromInt(-2),
-			},
-		*/
+		{
+			literal: "'1 +2 -5'", value: decimal.NewFromInt(-2),
+		},
 		{
 			literal: "'1+ 2'",
 			value:   decimal.NewFromInt(3),
