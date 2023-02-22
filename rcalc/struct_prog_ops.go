@@ -32,7 +32,7 @@ func UnMarshallActions(registry *ActionRegistry, protoActions []*protostack.Acti
 }
 
 /*
-	Action used to add a variable to the stack in a program (can be seen as Variable wrapper)
+	Action used to add a variable to the stack in a variable (can be seen as Variable wrapper)
 */
 type VariablePutOnStackActionDesc struct {
 	value Variable
@@ -480,31 +480,31 @@ func (a *ForNextLoopActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
 	}
 }
 
-type EvalProgramActionDesc struct {
-	program *ProgramVariable
+type EvalFromArgActionDesc struct {
+	variable Variable
 }
 
-// EvalProgramActionDesc implements Action
-var _ Action = (*EvalProgramActionDesc)(nil)
+// EvalFromArgActionDesc implements Action
+var _ Action = (*EvalFromArgActionDesc)(nil)
 
-func (e *EvalProgramActionDesc) Display() string {
-	return e.program.display()
+func (e *EvalFromArgActionDesc) Display() string {
+	return e.variable.display()
 }
 
-func (e *EvalProgramActionDesc) OpCode() string {
+func (e *EvalFromArgActionDesc) OpCode() string {
 	return "__hidden__" + "EvalProgram"
 }
 
-func (e *EvalProgramActionDesc) NbArgs() int {
+func (e *EvalFromArgActionDesc) NbArgs() int {
 	return 0
 }
 
-func (e *EvalProgramActionDesc) CheckTypes(elts ...Variable) (bool, error) {
+func (e *EvalFromArgActionDesc) CheckTypes(elts ...Variable) (bool, error) {
 	return true, nil
 }
 
-func (e *EvalProgramActionDesc) Apply(runtimeContext *RuntimeContext) error {
-	return executeProgram(runtimeContext, e.program)
+func (e *EvalFromArgActionDesc) Apply(runtimeContext *RuntimeContext) error {
+	return evalVariable(runtimeContext, e.variable)
 }
 
 func executeProgram(runtimeContext *RuntimeContext, program *ProgramVariable) error {
@@ -520,10 +520,10 @@ func executeProgram(runtimeContext *RuntimeContext, program *ProgramVariable) er
 	return nil
 }
 
-func (e *EvalProgramActionDesc) MarshallFunc() ActionMarshallFunc {
+func (e *EvalFromArgActionDesc) MarshallFunc() ActionMarshallFunc {
 	return func(reg *ActionRegistry, action Action) (*protostack.Action, error) {
-		evalProgActionDesc := action.(*EvalProgramActionDesc)
-		progVar := evalProgActionDesc.program
+		evalProgActionDesc := action.(*EvalFromArgActionDesc)
+		progVar := evalProgActionDesc.variable
 		protoProgVar, err := CreateProtoFromVariable(progVar)
 		if err != nil {
 			return nil, err
@@ -538,13 +538,13 @@ func (e *EvalProgramActionDesc) MarshallFunc() ActionMarshallFunc {
 	}
 }
 
-func (e *EvalProgramActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
+func (e *EvalFromArgActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
 	return func(reg *ActionRegistry, protoAction *protostack.Action) (Action, error) {
 		programVar, err := CreateProgramVariableFromProto(reg, protoAction.GetEvalProgramAction().ProgramVariable)
 		if err != nil {
 			return nil, err
 		}
-		return &EvalProgramActionDesc{program: programVar}, nil
+		return &EvalFromArgActionDesc{variable: programVar}, nil
 	}
 }
 
@@ -552,6 +552,9 @@ type VariableDeclarationActionDesc struct {
 	varNames        []string
 	programVariable *ProgramVariable
 }
+
+// VariableDeclarationActionDesc implements Action
+var _ Action = (*VariableDeclarationActionDesc)(nil)
 
 func (a *VariableDeclarationActionDesc) MarshallFunc() ActionMarshallFunc {
 	return func(reg *ActionRegistry, action Action) (*protostack.Action, error) {
@@ -591,9 +594,6 @@ func (a *VariableDeclarationActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
 	}
 }
 
-// VariableDeclarationActionDesc implements Action
-var _ Action = (*VariableDeclarationActionDesc)(nil)
-
 func (a *VariableDeclarationActionDesc) OpCode() string {
 	return "__hidden__" + "VariableDeclarationProgram"
 }
@@ -621,7 +621,7 @@ func (a *VariableDeclarationActionDesc) Apply(runtimeContext *RuntimeContext) er
 			return err
 		}
 	}
-	err := runtimeContext.RunAction(&EvalProgramActionDesc{program: a.programVariable})
+	err := runtimeContext.RunAction(&EvalFromArgActionDesc{variable: a.programVariable})
 	if err != nil {
 		return err
 	}
@@ -659,13 +659,17 @@ func (e *EvalActionDesc) Apply(runtimeContext *RuntimeContext) error {
 	if err != nil {
 		return err
 	}
-	switch v1.getType() {
+	return evalVariable(runtimeContext, v1)
+}
+
+func evalVariable(runtimeContext *RuntimeContext, v Variable) error {
+	switch v.getType() {
 	case TYPE_NUMERIC | TYPE_BOOL | TYPE_STR:
-		runtimeContext.stack.Push(v1)
+		runtimeContext.stack.Push(v)
 	case TYPE_PROGRAM:
-		return executeProgram(runtimeContext, v1.(*ProgramVariable))
+		return executeProgram(runtimeContext, v.(*ProgramVariable))
 	case TYPE_ALG_EXPR:
-		expression, err := evalAlgExpression(runtimeContext, v1.(*AlgebraicExpressionVariable).rootNode)
+		expression, err := evalAlgExpression(runtimeContext, v.(*AlgebraicExpressionVariable).rootNode)
 		if err != nil {
 			return err
 		} else {
@@ -699,7 +703,7 @@ var StructOpsPackage = ActionPackage{
 		evalAct,
 	},
 	dynamicActions: []Action{
-		&EvalProgramActionDesc{},
+		&EvalFromArgActionDesc{},
 		&IfThenElseActionDesc{},
 		&ForNextLoopActionDesc{},
 		&StartNextLoopActionDesc{},

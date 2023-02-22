@@ -247,6 +247,7 @@ type InstrLocalVarCreationContext struct {
 var _ ParseContext[Action] = (*InstrLocalVarCreationContext)(nil)
 
 func (pc *InstrLocalVarCreationContext) CreateFinalAction() (Action, error) {
+	// TODO Handle the algebraic expression case
 	programPutOnStackVariable := pc.BaseParseContext.items[0].item.(*VariablePutOnStackActionDesc)
 	//fmt.Printf("%v\n", programPutOnStackVariable)
 	programVariable := programPutOnStackVariable.value.asProgramVar()
@@ -569,12 +570,24 @@ func (l *RcalcParserListener) ExitProgramDeclaration(c *parser.ProgramDeclaratio
 	l.BackToParentContext()
 }
 
-func (l *RcalcParserListener) EnterInstrLocalVarCreation(c *parser.InstrLocalVarCreationContext) {
+// EnterLocalVarCreationProgram is called when entering the LocalVarCreationProgram production.
+func (l *RcalcParserListener) EnterLocalVarCreationProgram(c *parser.LocalVarCreationProgramContext) {
 	l.StartNewContext(&InstrLocalVarCreationContext{})
 }
 
-// ExitInstrLocalVarCreation is called when exiting the InstrLocalVarCreation production.
-func (l *RcalcParserListener) ExitInstrLocalVarCreation(c *parser.InstrLocalVarCreationContext) {
+// ExitLocalVarCreationProgram is called when exiting the LocalVarCreationProgram production.
+func (l *RcalcParserListener) ExitLocalVarCreationProgram(c *parser.LocalVarCreationProgramContext) {
+	l.BackToParentContext()
+}
+
+// EnterLocalVarCreationAlgebraicExpr is called when entering the LocalVarCreationAlgebraicExpr production.
+func (l *RcalcParserListener) EnterLocalVarCreationAlgebraicExpr(c *parser.LocalVarCreationAlgebraicExprContext) {
+	// TODO Handle AlgExpr case
+	l.StartNewContext(&InstrLocalVarCreationContext{})
+}
+
+// ExitLocalVarCreationAlgebraicExpr is called when exiting the LocalVarCreationAlgebraicExpr production.
+func (l *RcalcParserListener) ExitLocalVarCreationAlgebraicExpr(c *parser.LocalVarCreationAlgebraicExprContext) {
 	l.BackToParentContext()
 }
 

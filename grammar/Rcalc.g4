@@ -91,8 +91,8 @@ program_declaration:
     ;
 
 local_var_creation
-    : '->' (WHITESPACE* variableDeclaration)+ WHITESPACE* program_declaration # LocalVarCreationProgram
-//    | '->' variableDeclaration+ identifier          # LocalVarCreationAlgebraicExpr
+    : '->' (WHITESPACE* variableDeclaration)+ WHITESPACE* program_declaration         # LocalVarCreationProgram
+    | '->' (WHITESPACE* variableDeclaration)+ WHITESPACE* quoted_algebraic_expression # LocalVarCreationAlgebraicExpr
     ;
 
 variableDeclaration: NAME #DeclarationVariable;
