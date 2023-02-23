@@ -549,8 +549,8 @@ func (e *EvalFromArgActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
 }
 
 type VariableDeclarationActionDesc struct {
-	varNames        []string
-	programVariable *ProgramVariable
+	varNames           []string
+	variableToEvaluate Variable
 }
 
 // VariableDeclarationActionDesc implements Action
@@ -560,7 +560,7 @@ func (a *VariableDeclarationActionDesc) MarshallFunc() ActionMarshallFunc {
 	return func(reg *ActionRegistry, action Action) (*protostack.Action, error) {
 
 		variableDeclarationActionDesc := action.(*VariableDeclarationActionDesc)
-		progVar := variableDeclarationActionDesc.programVariable
+		progVar := variableDeclarationActionDesc.variableToEvaluate
 		protoProgVar, err := CreateProtoFromVariable(progVar)
 		if err != nil {
 			return nil, err
@@ -587,8 +587,8 @@ func (a *VariableDeclarationActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
 			return nil, err
 		}
 		return &VariableDeclarationActionDesc{
-				varNames:        protoAction.GetVariableDeclarationAction().GetVarNames(),
-				programVariable: programVar,
+				varNames:           protoAction.GetVariableDeclarationAction().GetVarNames(),
+				variableToEvaluate: programVar,
 			},
 			nil
 	}
@@ -621,7 +621,7 @@ func (a *VariableDeclarationActionDesc) Apply(runtimeContext *RuntimeContext) er
 			return err
 		}
 	}
-	err := runtimeContext.RunAction(&EvalFromArgActionDesc{variable: a.programVariable})
+	err := runtimeContext.RunAction(&EvalFromArgActionDesc{variable: a.variableToEvaluate})
 	if err != nil {
 		return err
 	}
@@ -629,7 +629,7 @@ func (a *VariableDeclarationActionDesc) Apply(runtimeContext *RuntimeContext) er
 }
 
 func (a *VariableDeclarationActionDesc) Display() string {
-	return fmt.Sprintf("-> %s %s", strings.Join(a.varNames, " "), a.programVariable.display())
+	return fmt.Sprintf("-> %s %s", strings.Join(a.varNames, " "), a.variableToEvaluate.display())
 }
 
 type EvalActionDesc struct{}

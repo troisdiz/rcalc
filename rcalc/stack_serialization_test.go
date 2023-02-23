@@ -26,7 +26,7 @@ func getDynamicActionsForTesting() []Action {
 		},
 		&VariableDeclarationActionDesc{
 			varNames: []string{"n", "m"},
-			programVariable: CreateProgramVariable([]Action{&VariablePutOnStackActionDesc{
+			variableToEvaluate: CreateProgramVariable([]Action{&VariablePutOnStackActionDesc{
 				value: CreateNumericVariableFromInt(7)}}),
 		},
 		&EvalFromArgActionDesc{

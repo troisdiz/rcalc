@@ -186,10 +186,13 @@ func TestAntlrParseLocalVariableDeclaration(t *testing.T) {
 				assert.Equal(t, "a", varNames[0])
 				assert.Equal(t, "b", varNames[1])
 			}
-			programVariable := variableDeclarationActionDesc.programVariable
-			if assert.NotNil(t, programVariable) {
-				if assert.Len(t, programVariable.actions, 1) {
-					assert.IsType(t, &VariableEvaluationActionDesc{}, programVariable.actions[0])
+			variable := variableDeclarationActionDesc.variableToEvaluate
+			if assert.IsType(t, &ProgramVariable{}, variable) {
+				programVariable := variable.asProgramVar()
+				if assert.NotNil(t, programVariable) {
+					if assert.Len(t, programVariable.actions, 1) {
+						assert.IsType(t, &VariableEvaluationActionDesc{}, programVariable.actions[0])
+					}
 				}
 			}
 		}

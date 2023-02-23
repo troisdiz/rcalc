@@ -252,8 +252,8 @@ func (pc *InstrLocalVarCreationContext) CreateFinalAction() (Action, error) {
 	//fmt.Printf("%v\n", programPutOnStackVariable)
 	programVariable := programPutOnStackVariable.value.asProgramVar()
 	return &VariableDeclarationActionDesc{
-		varNames:        toNonLocated(pc.BaseParseContext.idDeclarations),
-		programVariable: programVariable,
+		varNames:           toNonLocated(pc.BaseParseContext.idDeclarations),
+		variableToEvaluate: programVariable,
 	}, nil
 }
 

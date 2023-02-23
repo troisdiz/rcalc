@@ -20,8 +20,8 @@ func TestDisplayVariables(t *testing.T) {
 			variable: CreateProgramVariable([]Action{
 				//&VariablePutOnStackActionDesc{value: CreateNumericVariableFromInt(4)},
 				&VariableDeclarationActionDesc{
-					varNames:        []string{"a"},
-					programVariable: CreateProgramVariable([]Action{}),
+					varNames:           []string{"a"},
+					variableToEvaluate: CreateProgramVariable([]Action{}),
 				}}),
 			expectedDisplay: "<< -> a <<  >> >>",
 		}}
