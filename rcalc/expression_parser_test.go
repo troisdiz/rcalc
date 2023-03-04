@@ -75,6 +75,16 @@ func (l *LoggingParserListener) EnterStart(c *parser.StartContext) {
 	l.subListener.EnterStart(c)
 }
 
+func (l *LoggingParserListener) EnterProgram_declaration(c *parser.Program_declarationContext) {
+	l.logMethodCalled()
+	l.subListener.EnterProgram_declaration(c)
+}
+
+func (l *LoggingParserListener) ExitProgram_declaration(c *parser.Program_declarationContext) {
+	l.logMethodCalled()
+	l.subListener.ExitProgram_declaration(c)
+}
+
 func (l *LoggingParserListener) EnterInstr_seq(c *parser.Instr_seqContext) {
 	l.logMethodCalled()
 	l.subListener.EnterInstr_seq(c)
@@ -110,11 +120,6 @@ func (l *LoggingParserListener) EnterInstrForNextLoop(c *parser.InstrForNextLoop
 	l.subListener.EnterInstrForNextLoop(c)
 }
 
-func (l *LoggingParserListener) EnterInstrProgramDeclaration(c *parser.InstrProgramDeclarationContext) {
-	l.logMethodCalled()
-	l.subListener.EnterInstrProgramDeclaration(c)
-}
-
 func (l *LoggingParserListener) EnterInstrLocalVarCreation(c *parser.InstrLocalVarCreationContext) {
 	l.logMethodCalled()
 	l.subListener.EnterInstrLocalVarCreation(c)
@@ -140,24 +145,24 @@ func (l *LoggingParserListener) EnterFor_next_loop(c *parser.For_next_loopContex
 	l.subListener.EnterFor_next_loop(c)
 }
 
-func (l *LoggingParserListener) EnterProgramDeclaration(c *parser.ProgramDeclarationContext) {
+func (l *LoggingParserListener) EnterLocalVarCreation(c *parser.LocalVarCreationContext) {
 	l.logMethodCalled()
-	l.subListener.EnterProgramDeclaration(c)
-}
-
-func (l *LoggingParserListener) EnterLocalVarCreationProgram(c *parser.LocalVarCreationProgramContext) {
-	l.logMethodCalled()
-	l.subListener.EnterLocalVarCreationProgram(c)
-}
-
-func (l *LoggingParserListener) EnterLocalVarCreationAlgebraicExpr(c *parser.LocalVarCreationAlgebraicExprContext) {
-	l.logMethodCalled()
-	l.subListener.EnterLocalVarCreationAlgebraicExpr(c)
+	l.subListener.EnterLocalVarCreation(c)
 }
 
 func (l *LoggingParserListener) EnterDeclarationVariable(c *parser.DeclarationVariableContext) {
 	l.logMethodCalled()
 	l.subListener.EnterDeclarationVariable(c)
+}
+
+func (l *LoggingParserListener) EnterStatementLocalVarProgram(c *parser.StatementLocalVarProgramContext) {
+	l.logMethodCalled()
+	l.subListener.EnterStatementLocalVarProgram(c)
+}
+
+func (l *LoggingParserListener) EnterStatementLocalVarAlgebraicExpression(c *parser.StatementLocalVarAlgebraicExpressionContext) {
+	l.logMethodCalled()
+	l.subListener.EnterStatementLocalVarAlgebraicExpression(c)
 }
 
 func (l *LoggingParserListener) EnterVariableNumber(c *parser.VariableNumberContext) {
@@ -168,6 +173,11 @@ func (l *LoggingParserListener) EnterVariableNumber(c *parser.VariableNumberCont
 func (l *LoggingParserListener) EnterVariableAlgebraicExpression(c *parser.VariableAlgebraicExpressionContext) {
 	l.logMethodCalled()
 	l.subListener.EnterVariableAlgebraicExpression(c)
+}
+
+func (l *LoggingParserListener) EnterVariableProgramDeclaration(c *parser.VariableProgramDeclarationContext) {
+	l.logMethodCalled()
+	l.subListener.EnterVariableProgramDeclaration(c)
 }
 
 func (l *LoggingParserListener) EnterVariableList(c *parser.VariableListContext) {
@@ -300,11 +310,6 @@ func (l *LoggingParserListener) ExitInstrForNextLoop(c *parser.InstrForNextLoopC
 	l.subListener.ExitInstrForNextLoop(c)
 }
 
-func (l *LoggingParserListener) ExitInstrProgramDeclaration(c *parser.InstrProgramDeclarationContext) {
-	l.logMethodCalled()
-	l.subListener.ExitInstrProgramDeclaration(c)
-}
-
 func (l *LoggingParserListener) ExitInstrLocalVarCreation(c *parser.InstrLocalVarCreationContext) {
 	l.logMethodCalled()
 	l.subListener.ExitInstrLocalVarCreation(c)
@@ -330,24 +335,24 @@ func (l *LoggingParserListener) ExitFor_next_loop(c *parser.For_next_loopContext
 	l.subListener.ExitFor_next_loop(c)
 }
 
-func (l *LoggingParserListener) ExitProgramDeclaration(c *parser.ProgramDeclarationContext) {
+func (l *LoggingParserListener) ExitLocalVarCreation(c *parser.LocalVarCreationContext) {
 	l.logMethodCalled()
-	l.subListener.ExitProgramDeclaration(c)
-}
-
-func (l *LoggingParserListener) ExitLocalVarCreationProgram(c *parser.LocalVarCreationProgramContext) {
-	l.logMethodCalled()
-	l.subListener.ExitLocalVarCreationProgram(c)
-}
-
-func (l *LoggingParserListener) ExitLocalVarCreationAlgebraicExpr(c *parser.LocalVarCreationAlgebraicExprContext) {
-	l.logMethodCalled()
-	l.subListener.ExitLocalVarCreationAlgebraicExpr(c)
+	l.subListener.ExitLocalVarCreation(c)
 }
 
 func (l *LoggingParserListener) ExitDeclarationVariable(c *parser.DeclarationVariableContext) {
 	l.logMethodCalled()
 	l.subListener.ExitDeclarationVariable(c)
+}
+
+func (l *LoggingParserListener) ExitStatementLocalVarProgram(c *parser.StatementLocalVarProgramContext) {
+	l.logMethodCalled()
+	l.subListener.ExitStatementLocalVarProgram(c)
+}
+
+func (l *LoggingParserListener) ExitStatementLocalVarAlgebraicExpression(c *parser.StatementLocalVarAlgebraicExpressionContext) {
+	l.logMethodCalled()
+	l.subListener.ExitStatementLocalVarAlgebraicExpression(c)
 }
 
 func (l *LoggingParserListener) ExitVariableNumber(c *parser.VariableNumberContext) {
@@ -358,6 +363,11 @@ func (l *LoggingParserListener) ExitVariableNumber(c *parser.VariableNumberConte
 func (l *LoggingParserListener) ExitVariableAlgebraicExpression(c *parser.VariableAlgebraicExpressionContext) {
 	l.logMethodCalled()
 	l.subListener.ExitVariableAlgebraicExpression(c)
+}
+
+func (l *LoggingParserListener) ExitVariableProgramDeclaration(c *parser.VariableProgramDeclarationContext) {
+	l.logMethodCalled()
+	l.subListener.ExitVariableProgramDeclaration(c)
 }
 
 func (l *LoggingParserListener) ExitVariableList(c *parser.VariableListContext) {
@@ -667,13 +677,9 @@ func TestAntlrParseLocalVariableDeclarationForAlgebraicExpression(t *testing.T) 
 				assert.Equal(t, "b", varNames[1])
 			}
 			variable := variableDeclarationActionDesc.variableToEvaluate
-			if assert.IsType(t, &ProgramVariable{}, variable) {
-				programVariable := variable.asProgramVar()
-				if assert.NotNil(t, programVariable) {
-					if assert.Len(t, programVariable.actions, 1) {
-						assert.IsType(t, &VariableEvaluationActionDesc{}, programVariable.actions[0])
-					}
-				}
+			if assert.IsType(t, &AlgebraicExpressionVariable{}, variable) {
+				algExprVariable := variable.(*AlgebraicExpressionVariable)
+				assert.NotNil(t, algExprVariable)
 			}
 		}
 	}
