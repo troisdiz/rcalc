@@ -105,9 +105,9 @@ func (l *LoggingParserListener) EnterInstrVariable(c *parser.InstrVariableContex
 	l.subListener.EnterInstrVariable(c)
 }
 
-func (l *LoggingParserListener) EnterInstIfThenElse(c *parser.InstIfThenElseContext) {
+func (l *LoggingParserListener) EnterInstrIfThenElse(c *parser.InstrIfThenElseContext) {
 	l.logMethodCalled()
-	l.subListener.EnterInstIfThenElse(c)
+	l.subListener.EnterInstrIfThenElse(c)
 }
 
 func (l *LoggingParserListener) EnterInstrStartNextLoop(c *parser.InstrStartNextLoopContext) {
@@ -295,9 +295,9 @@ func (l *LoggingParserListener) ExitInstrVariable(c *parser.InstrVariableContext
 	l.subListener.ExitInstrVariable(c)
 }
 
-func (l *LoggingParserListener) ExitInstIfThenElse(c *parser.InstIfThenElseContext) {
+func (l *LoggingParserListener) ExitInstrIfThenElse(c *parser.InstrIfThenElseContext) {
 	l.logMethodCalled()
-	l.subListener.ExitInstIfThenElse(c)
+	l.subListener.ExitInstrIfThenElse(c)
 }
 
 func (l *LoggingParserListener) ExitInstrStartNextLoop(c *parser.InstrStartNextLoopContext) {

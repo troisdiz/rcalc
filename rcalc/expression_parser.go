@@ -370,13 +370,13 @@ func (l *RcalcParserListener) VisitTerminal(node antlr.TerminalNode) {
 	//fmt.Printf("VisitTerminal : #%s# / #%d#\n", node.GetSymbol().GetText(), node.GetSymbol().GetTokenType())
 }
 
-// EnterInstIfThenElse is called when entering the InstIfThenElse production.
-func (l *RcalcParserListener) EnterInstIfThenElse(ctx *parser.InstIfThenElseContext) {
+// EnterInstrIfThenElse is called when entering the InstrIfThenElse production.
+func (l *RcalcParserListener) EnterInstrIfThenElse(ctx *parser.InstrIfThenElseContext) {
 	l.StartNewContext(&IfThenElseContext{})
 }
 
-// ExitInstIfThenElse is called when entering the InstIfThenElse production.
-func (l *RcalcParserListener) ExitInstIfThenElse(ctx *parser.InstIfThenElseContext) {
+// ExitInstrIfThenElse is called when entering the InstrIfThenElse production.
+func (l *RcalcParserListener) ExitInstrIfThenElse(ctx *parser.InstrIfThenElseContext) {
 	l.BackToParentContext()
 }
 

@@ -68,7 +68,7 @@ instr
     : action_or_var_call         # InstrActionOrVarCall
     | op                         # InstrOp
     | variable                   # InstrVariable
-    | if_then_else               # InstIfThenElse
+    | if_then_else               # InstrIfThenElse
     | start_next_loop            # InstrStartNextLoop
     | for_next_loop              # InstrForNextLoop
     | local_var_creation         # InstrLocalVarCreation
