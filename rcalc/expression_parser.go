@@ -96,8 +96,8 @@ type LocatedItem[T any] struct {
 func newLocatedItem[T any](item T, start antlr.Token, stop antlr.Token) LocatedItem[T] {
 	return LocatedItem[T]{
 		Location: Location{
-			start: nil,
-			stop:  nil,
+			start: start,
+			stop:  stop,
 		},
 		item: item,
 	}
@@ -116,6 +116,7 @@ func toNonLocated[T any](locatedItems []LocatedItem[T]) []T {
 
 type BaseParseContext[T any] struct {
 	parent           ParseContext[T]
+	location         Location
 	items            []LocatedItem[T]
 	idDeclarations   []LocatedItem[string]
 	validationErrors []ValidationError
@@ -248,12 +249,11 @@ var _ ParseContext[Action] = (*InstrLocalVarCreationContext)(nil)
 
 func (pc *InstrLocalVarCreationContext) CreateFinalAction() (Action, error) {
 	// TODO Handle the algebraic expression case
-	programPutOnStackVariable := pc.BaseParseContext.items[0].item.(*VariablePutOnStackActionDesc)
-	//fmt.Printf("%v\n", programPutOnStackVariable)
-	programVariable := programPutOnStackVariable.value.asProgramVar()
+	putOnStackVariableAction := pc.BaseParseContext.items[0].item.(*VariablePutOnStackActionDesc)
+	//fmt.Printf("%v\n", putOnStackVariableAction)
 	return &VariableDeclarationActionDesc{
 		varNames:           toNonLocated(pc.BaseParseContext.idDeclarations),
-		variableToEvaluate: programVariable,
+		variableToEvaluate: putOnStackVariableAction.value,
 	}, nil
 }
 
@@ -342,6 +342,13 @@ func (l *RcalcParserListener) EnterVariableAlgebraicExpression(ctx *parser.Varia
 	//fmt.Println("EnterVariableAlgebraicExpression")
 
 	l.rootAlgebraicPc = &AlgebraicExprContext{
+		BaseParseContext: BaseParseContext[AlgebraicExpressionNode]{
+			parent: nil,
+			location: Location{
+				start: ctx.GetStart(),
+				stop:  ctx.GetStop(),
+			},
+		},
 		reg: l.registry,
 	}
 	l.currentAlgebraicPc = l.rootAlgebraicPc
@@ -361,12 +368,15 @@ func (l *RcalcParserListener) ExitVariableAlgebraicExpression(ctx *parser.Variab
 
 	rootAlgExpr := l.rootAlgebraicPc.GetItems()
 
+	// TODO check there is only 1 item!
 	identifier, err := parseIdentifier(ctx.GetText(), rootAlgExpr[0].item)
 	if err != nil {
 		ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
 	} else {
 		l.AddAction(newLocatedItem[Action](&VariablePutOnStackActionDesc{value: identifier}, ctx.GetStart(), ctx.GetStop()))
 	}
+	l.rootAlgebraicPc = nil
+	l.currentAlgebraicPc = nil
 	l.BackToParentContext()
 }
 
@@ -418,7 +428,6 @@ func (l *RcalcParserListener) EnterAlgExprFuncCall(ctx *parser.AlgExprFuncCallCo
 
 // ExitAlgExprFuncCall is called when production AlgExprFuncAtom is exited.
 func (l *RcalcParserListener) ExitAlgExprFuncCall(ctx *parser.AlgExprFuncCallContext) {
-
 	l.BackToParentAlgebraicContext()
 }
 
@@ -454,7 +463,14 @@ func (l *RcalcParserListener) ExitAlgExprVariable(ctx *parser.AlgExprVariableCon
 // EnterAlgExprAddSignedAtom is called when production AlgExprAddSignedAtom is entered.
 func (l *RcalcParserListener) EnterAlgExprAddSignedAtom(ctx *parser.AlgExprAddSignedAtomContext) {
 	l.StartNewAlgebraicContext(&AlgebraicAtomContext{
-		AlgebraicExprContext{reg: l.registry},
+		AlgebraicExprContext{
+			BaseParseContext: BaseParseContext[AlgebraicExpressionNode]{
+				location: Location{
+					start: ctx.GetStart(),
+					stop:  ctx.GetStop(),
+				},
+			},
+			reg: l.registry},
 	})
 }
 
@@ -583,11 +599,13 @@ func (l *RcalcParserListener) ExitLocalVarCreationProgram(c *parser.LocalVarCrea
 // EnterLocalVarCreationAlgebraicExpr is called when entering the LocalVarCreationAlgebraicExpr production.
 func (l *RcalcParserListener) EnterLocalVarCreationAlgebraicExpr(c *parser.LocalVarCreationAlgebraicExprContext) {
 	// TODO Handle AlgExpr case
+	GetLogger().Debugf("EnterLocalVarCreationAlgebraicExpr: %s", c.GetText())
 	l.StartNewContext(&InstrLocalVarCreationContext{})
 }
 
 // ExitLocalVarCreationAlgebraicExpr is called when exiting the LocalVarCreationAlgebraicExpr production.
 func (l *RcalcParserListener) ExitLocalVarCreationAlgebraicExpr(c *parser.LocalVarCreationAlgebraicExprContext) {
+	GetLogger().Debugf("ExitLocalVarCreationAlgebraicExpr: %s", c.GetText())
 	l.BackToParentContext()
 }
 
@@ -627,6 +645,12 @@ func (el *RcalcParserErrorListener) ReportContextSensitivity(recognizer antlr.Pa
 }
 
 func ParseToActions(cmds string, lexerName string, registry *ActionRegistry) ([]Action, error) {
+	return parseToActionsImpl(cmds, lexerName, registry, func(listener parser.RcalcListener) parser.RcalcListener {
+		return listener
+	})
+}
+
+func parseToActionsImpl(cmds string, lexerName string, registry *ActionRegistry, listenerTransformer func(listener parser.RcalcListener) parser.RcalcListener) ([]Action, error) {
 
 	is := antlr.NewInputStream(cmds)
 
@@ -648,7 +672,9 @@ func ParseToActions(cmds string, lexerName string, registry *ActionRegistry) ([]
 	if el.HasErrors() {
 		return nil, fmt.Errorf("There are %d error(s):\n - %s", len(el.messages), strings.Join(el.messages, "\n - "))
 	}
-	antlr.ParseTreeWalkerDefault.Walk(listener, parseResult)
+
+	var pluggedListener parser.RcalcListener = listenerTransformer(listener)
+	antlr.ParseTreeWalkerDefault.Walk(pluggedListener, parseResult)
 	if len(listener.rootPc.validationErrors) > 0 {
 		errorsAsString := toErrorMessage(listener.rootPc.validationErrors)
 		return nil, fmt.Errorf("There are %d validations error(s):\n%s", len(listener.rootPc.validationErrors), errorsAsString)

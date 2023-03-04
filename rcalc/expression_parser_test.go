@@ -5,9 +5,450 @@ import (
 	"github.com/antlr/antlr4/runtime/Go/antlr/v4"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
+	"runtime"
+	"strings"
 	"testing"
 	"troisdizaines.com/rcalc/rcalc/parser"
 )
+
+type LoggingParserListener struct {
+	subListener parser.RcalcListener
+	depth       int
+}
+
+var _ parser.RcalcListener = (*LoggingParserListener)(nil)
+
+func (l *LoggingParserListener) spacesForDepth() string {
+	result := ""
+	for i := 0; i < l.depth*4; i++ {
+		result += " "
+	}
+	return result
+}
+
+func (l *LoggingParserListener) logMethodCalled() {
+	pc := make([]uintptr, 15)
+	n := runtime.Callers(2, pc)
+	frames := runtime.CallersFrames(pc[:n])
+	frame, _ := frames.Next()
+
+	// Extract simple function name
+	lastDotPos := strings.LastIndex(frame.Function, ".")
+	functionName := frame.Function[lastDotPos+1:]
+
+	if functionName != "EnterEveryRule" && functionName != "ExitEveryRule" {
+		// EnterEveryRule
+		if strings.HasPrefix(functionName, "Enter") {
+			GetLogger().Debugf("%s%s", l.spacesForDepth(), functionName)
+			l.depth++
+		} else if strings.HasPrefix(functionName, "Exit") {
+			l.depth--
+			GetLogger().Debugf("%s%s", l.spacesForDepth(), functionName)
+		} else {
+			GetLogger().Debugf("%s%s", l.spacesForDepth(), functionName)
+		}
+	}
+}
+
+func (l *LoggingParserListener) VisitTerminal(node antlr.TerminalNode) {
+	l.logMethodCalled()
+	l.subListener.VisitTerminal(node)
+}
+
+func (l *LoggingParserListener) VisitErrorNode(node antlr.ErrorNode) {
+	l.logMethodCalled()
+	l.subListener.VisitErrorNode(node)
+}
+
+func (l *LoggingParserListener) EnterEveryRule(ctx antlr.ParserRuleContext) {
+	l.logMethodCalled()
+	l.subListener.EnterEveryRule(ctx)
+}
+
+func (l *LoggingParserListener) ExitEveryRule(ctx antlr.ParserRuleContext) {
+	l.logMethodCalled()
+	l.subListener.ExitEveryRule(ctx)
+}
+
+func (l *LoggingParserListener) EnterStart(c *parser.StartContext) {
+	l.logMethodCalled()
+	l.subListener.EnterStart(c)
+}
+
+func (l *LoggingParserListener) EnterInstr_seq(c *parser.Instr_seqContext) {
+	l.logMethodCalled()
+	l.subListener.EnterInstr_seq(c)
+}
+
+func (l *LoggingParserListener) EnterInstrActionOrVarCall(c *parser.InstrActionOrVarCallContext) {
+	l.logMethodCalled()
+	l.subListener.EnterInstrActionOrVarCall(c)
+}
+
+func (l *LoggingParserListener) EnterInstrOp(c *parser.InstrOpContext) {
+	l.logMethodCalled()
+	l.subListener.EnterInstrOp(c)
+}
+
+func (l *LoggingParserListener) EnterInstrVariable(c *parser.InstrVariableContext) {
+	l.logMethodCalled()
+	l.subListener.EnterInstrVariable(c)
+}
+
+func (l *LoggingParserListener) EnterInstIfThenElse(c *parser.InstIfThenElseContext) {
+	l.logMethodCalled()
+	l.subListener.EnterInstIfThenElse(c)
+}
+
+func (l *LoggingParserListener) EnterInstrStartNextLoop(c *parser.InstrStartNextLoopContext) {
+	l.logMethodCalled()
+	l.subListener.EnterInstrStartNextLoop(c)
+}
+
+func (l *LoggingParserListener) EnterInstrForNextLoop(c *parser.InstrForNextLoopContext) {
+	l.logMethodCalled()
+	l.subListener.EnterInstrForNextLoop(c)
+}
+
+func (l *LoggingParserListener) EnterInstrProgramDeclaration(c *parser.InstrProgramDeclarationContext) {
+	l.logMethodCalled()
+	l.subListener.EnterInstrProgramDeclaration(c)
+}
+
+func (l *LoggingParserListener) EnterInstrLocalVarCreation(c *parser.InstrLocalVarCreationContext) {
+	l.logMethodCalled()
+	l.subListener.EnterInstrLocalVarCreation(c)
+}
+
+func (l *LoggingParserListener) EnterOp(c *parser.OpContext) {
+	l.logMethodCalled()
+	l.subListener.EnterOp(c)
+}
+
+func (l *LoggingParserListener) EnterIf_then_else(c *parser.If_then_elseContext) {
+	l.logMethodCalled()
+	l.subListener.EnterIf_then_else(c)
+}
+
+func (l *LoggingParserListener) EnterStart_next_loop(c *parser.Start_next_loopContext) {
+	l.logMethodCalled()
+	l.subListener.EnterStart_next_loop(c)
+}
+
+func (l *LoggingParserListener) EnterFor_next_loop(c *parser.For_next_loopContext) {
+	l.logMethodCalled()
+	l.subListener.EnterFor_next_loop(c)
+}
+
+func (l *LoggingParserListener) EnterProgramDeclaration(c *parser.ProgramDeclarationContext) {
+	l.logMethodCalled()
+	l.subListener.EnterProgramDeclaration(c)
+}
+
+func (l *LoggingParserListener) EnterLocalVarCreationProgram(c *parser.LocalVarCreationProgramContext) {
+	l.logMethodCalled()
+	l.subListener.EnterLocalVarCreationProgram(c)
+}
+
+func (l *LoggingParserListener) EnterLocalVarCreationAlgebraicExpr(c *parser.LocalVarCreationAlgebraicExprContext) {
+	l.logMethodCalled()
+	l.subListener.EnterLocalVarCreationAlgebraicExpr(c)
+}
+
+func (l *LoggingParserListener) EnterDeclarationVariable(c *parser.DeclarationVariableContext) {
+	l.logMethodCalled()
+	l.subListener.EnterDeclarationVariable(c)
+}
+
+func (l *LoggingParserListener) EnterVariableNumber(c *parser.VariableNumberContext) {
+	l.logMethodCalled()
+	l.subListener.EnterVariableNumber(c)
+}
+
+func (l *LoggingParserListener) EnterVariableAlgebraicExpression(c *parser.VariableAlgebraicExpressionContext) {
+	l.logMethodCalled()
+	l.subListener.EnterVariableAlgebraicExpression(c)
+}
+
+func (l *LoggingParserListener) EnterVariableList(c *parser.VariableListContext) {
+	l.logMethodCalled()
+	l.subListener.EnterVariableList(c)
+}
+
+func (l *LoggingParserListener) EnterVariableVector(c *parser.VariableVectorContext) {
+	l.logMethodCalled()
+	l.subListener.EnterVariableVector(c)
+}
+
+func (l *LoggingParserListener) EnterQuoted_algebraic_expression(c *parser.Quoted_algebraic_expressionContext) {
+	l.logMethodCalled()
+	l.subListener.EnterQuoted_algebraic_expression(c)
+}
+
+func (l *LoggingParserListener) EnterAlgExprAddSub(c *parser.AlgExprAddSubContext) {
+	l.logMethodCalled()
+	l.subListener.EnterAlgExprAddSub(c)
+}
+
+func (l *LoggingParserListener) EnterAlgExprMulDiv(c *parser.AlgExprMulDivContext) {
+	l.logMethodCalled()
+	l.subListener.EnterAlgExprMulDiv(c)
+}
+
+func (l *LoggingParserListener) EnterAlgExprPow(c *parser.AlgExprPowContext) {
+	l.logMethodCalled()
+	l.subListener.EnterAlgExprPow(c)
+}
+
+func (l *LoggingParserListener) EnterAlgExprAddSignedAtom(c *parser.AlgExprAddSignedAtomContext) {
+	l.logMethodCalled()
+	l.subListener.EnterAlgExprAddSignedAtom(c)
+}
+
+func (l *LoggingParserListener) EnterAlgExprSubSignedAtom(c *parser.AlgExprSubSignedAtomContext) {
+	l.logMethodCalled()
+	l.subListener.EnterAlgExprSubSignedAtom(c)
+}
+
+func (l *LoggingParserListener) EnterAlgExprFuncAtom(c *parser.AlgExprFuncAtomContext) {
+	l.logMethodCalled()
+	l.subListener.EnterAlgExprFuncAtom(c)
+}
+
+func (l *LoggingParserListener) EnterAlgExprAtom(c *parser.AlgExprAtomContext) {
+	l.logMethodCalled()
+	l.subListener.EnterAlgExprAtom(c)
+}
+
+func (l *LoggingParserListener) EnterAlgExprNumber(c *parser.AlgExprNumberContext) {
+	l.logMethodCalled()
+	l.subListener.EnterAlgExprNumber(c)
+}
+
+func (l *LoggingParserListener) EnterAlgExprVariable(c *parser.AlgExprVariableContext) {
+	l.logMethodCalled()
+	l.subListener.EnterAlgExprVariable(c)
+}
+
+func (l *LoggingParserListener) EnterAlgExprParen(c *parser.AlgExprParenContext) {
+	l.logMethodCalled()
+	l.subListener.EnterAlgExprParen(c)
+}
+
+func (l *LoggingParserListener) EnterAlg_variable(c *parser.Alg_variableContext) {
+	l.logMethodCalled()
+	l.subListener.EnterAlg_variable(c)
+}
+
+func (l *LoggingParserListener) EnterAlgExprFuncCall(c *parser.AlgExprFuncCallContext) {
+	l.logMethodCalled()
+	l.subListener.EnterAlgExprFuncCall(c)
+}
+
+func (l *LoggingParserListener) EnterList(c *parser.ListContext) {
+	l.logMethodCalled()
+	l.subListener.EnterList(c)
+}
+
+func (l *LoggingParserListener) EnterVector(c *parser.VectorContext) {
+	l.logMethodCalled()
+	l.subListener.EnterVector(c)
+}
+
+func (l *LoggingParserListener) EnterAction_or_var_call(c *parser.Action_or_var_callContext) {
+	l.logMethodCalled()
+	l.subListener.EnterAction_or_var_call(c)
+}
+
+func (l *LoggingParserListener) ExitStart(c *parser.StartContext) {
+	l.logMethodCalled()
+	l.subListener.ExitStart(c)
+}
+
+func (l *LoggingParserListener) ExitInstr_seq(c *parser.Instr_seqContext) {
+	l.logMethodCalled()
+	l.subListener.ExitInstr_seq(c)
+}
+
+func (l *LoggingParserListener) ExitInstrActionOrVarCall(c *parser.InstrActionOrVarCallContext) {
+	l.logMethodCalled()
+	l.subListener.ExitInstrActionOrVarCall(c)
+}
+
+func (l *LoggingParserListener) ExitInstrOp(c *parser.InstrOpContext) {
+	l.logMethodCalled()
+	l.subListener.ExitInstrOp(c)
+}
+
+func (l *LoggingParserListener) ExitInstrVariable(c *parser.InstrVariableContext) {
+	l.logMethodCalled()
+	l.subListener.ExitInstrVariable(c)
+}
+
+func (l *LoggingParserListener) ExitInstIfThenElse(c *parser.InstIfThenElseContext) {
+	l.logMethodCalled()
+	l.subListener.ExitInstIfThenElse(c)
+}
+
+func (l *LoggingParserListener) ExitInstrStartNextLoop(c *parser.InstrStartNextLoopContext) {
+	l.logMethodCalled()
+	l.subListener.ExitInstrStartNextLoop(c)
+}
+
+func (l *LoggingParserListener) ExitInstrForNextLoop(c *parser.InstrForNextLoopContext) {
+	l.logMethodCalled()
+	l.subListener.ExitInstrForNextLoop(c)
+}
+
+func (l *LoggingParserListener) ExitInstrProgramDeclaration(c *parser.InstrProgramDeclarationContext) {
+	l.logMethodCalled()
+	l.subListener.ExitInstrProgramDeclaration(c)
+}
+
+func (l *LoggingParserListener) ExitInstrLocalVarCreation(c *parser.InstrLocalVarCreationContext) {
+	l.logMethodCalled()
+	l.subListener.ExitInstrLocalVarCreation(c)
+}
+
+func (l *LoggingParserListener) ExitOp(c *parser.OpContext) {
+	l.logMethodCalled()
+	l.subListener.ExitOp(c)
+}
+
+func (l *LoggingParserListener) ExitIf_then_else(c *parser.If_then_elseContext) {
+	l.logMethodCalled()
+	l.subListener.ExitIf_then_else(c)
+}
+
+func (l *LoggingParserListener) ExitStart_next_loop(c *parser.Start_next_loopContext) {
+	l.logMethodCalled()
+	l.subListener.ExitStart_next_loop(c)
+}
+
+func (l *LoggingParserListener) ExitFor_next_loop(c *parser.For_next_loopContext) {
+	l.logMethodCalled()
+	l.subListener.ExitFor_next_loop(c)
+}
+
+func (l *LoggingParserListener) ExitProgramDeclaration(c *parser.ProgramDeclarationContext) {
+	l.logMethodCalled()
+	l.subListener.ExitProgramDeclaration(c)
+}
+
+func (l *LoggingParserListener) ExitLocalVarCreationProgram(c *parser.LocalVarCreationProgramContext) {
+	l.logMethodCalled()
+	l.subListener.ExitLocalVarCreationProgram(c)
+}
+
+func (l *LoggingParserListener) ExitLocalVarCreationAlgebraicExpr(c *parser.LocalVarCreationAlgebraicExprContext) {
+	l.logMethodCalled()
+	l.subListener.ExitLocalVarCreationAlgebraicExpr(c)
+}
+
+func (l *LoggingParserListener) ExitDeclarationVariable(c *parser.DeclarationVariableContext) {
+	l.logMethodCalled()
+	l.subListener.ExitDeclarationVariable(c)
+}
+
+func (l *LoggingParserListener) ExitVariableNumber(c *parser.VariableNumberContext) {
+	l.logMethodCalled()
+	l.subListener.ExitVariableNumber(c)
+}
+
+func (l *LoggingParserListener) ExitVariableAlgebraicExpression(c *parser.VariableAlgebraicExpressionContext) {
+	l.logMethodCalled()
+	l.subListener.ExitVariableAlgebraicExpression(c)
+}
+
+func (l *LoggingParserListener) ExitVariableList(c *parser.VariableListContext) {
+	l.logMethodCalled()
+	l.subListener.ExitVariableList(c)
+}
+
+func (l *LoggingParserListener) ExitVariableVector(c *parser.VariableVectorContext) {
+	l.logMethodCalled()
+	l.subListener.ExitVariableVector(c)
+}
+
+func (l *LoggingParserListener) ExitQuoted_algebraic_expression(c *parser.Quoted_algebraic_expressionContext) {
+	l.logMethodCalled()
+	l.subListener.ExitQuoted_algebraic_expression(c)
+}
+
+func (l *LoggingParserListener) ExitAlgExprAddSub(c *parser.AlgExprAddSubContext) {
+	l.logMethodCalled()
+	l.subListener.ExitAlgExprAddSub(c)
+}
+
+func (l *LoggingParserListener) ExitAlgExprMulDiv(c *parser.AlgExprMulDivContext) {
+	l.logMethodCalled()
+	l.subListener.ExitAlgExprMulDiv(c)
+}
+
+func (l *LoggingParserListener) ExitAlgExprPow(c *parser.AlgExprPowContext) {
+	l.logMethodCalled()
+	l.subListener.ExitAlgExprPow(c)
+}
+
+func (l *LoggingParserListener) ExitAlgExprAddSignedAtom(c *parser.AlgExprAddSignedAtomContext) {
+	l.logMethodCalled()
+	l.subListener.ExitAlgExprAddSignedAtom(c)
+}
+
+func (l *LoggingParserListener) ExitAlgExprSubSignedAtom(c *parser.AlgExprSubSignedAtomContext) {
+	l.logMethodCalled()
+	l.subListener.ExitAlgExprSubSignedAtom(c)
+}
+
+func (l *LoggingParserListener) ExitAlgExprFuncAtom(c *parser.AlgExprFuncAtomContext) {
+	l.logMethodCalled()
+	l.subListener.ExitAlgExprFuncAtom(c)
+}
+
+func (l *LoggingParserListener) ExitAlgExprAtom(c *parser.AlgExprAtomContext) {
+	l.logMethodCalled()
+	l.subListener.ExitAlgExprAtom(c)
+}
+
+func (l *LoggingParserListener) ExitAlgExprNumber(c *parser.AlgExprNumberContext) {
+	l.logMethodCalled()
+	l.subListener.ExitAlgExprNumber(c)
+}
+
+func (l *LoggingParserListener) ExitAlgExprVariable(c *parser.AlgExprVariableContext) {
+	l.logMethodCalled()
+	l.subListener.ExitAlgExprVariable(c)
+}
+
+func (l *LoggingParserListener) ExitAlgExprParen(c *parser.AlgExprParenContext) {
+	l.logMethodCalled()
+	l.subListener.ExitAlgExprParen(c)
+}
+
+func (l *LoggingParserListener) ExitAlg_variable(c *parser.Alg_variableContext) {
+	l.logMethodCalled()
+	l.subListener.ExitAlg_variable(c)
+}
+
+func (l *LoggingParserListener) ExitAlgExprFuncCall(c *parser.AlgExprFuncCallContext) {
+	l.logMethodCalled()
+	l.subListener.ExitAlgExprFuncCall(c)
+}
+
+func (l *LoggingParserListener) ExitList(c *parser.ListContext) {
+	l.logMethodCalled()
+	l.subListener.ExitList(c)
+}
+
+func (l *LoggingParserListener) ExitVector(c *parser.VectorContext) {
+	l.logMethodCalled()
+	l.subListener.ExitVector(c)
+}
+
+func (l *LoggingParserListener) ExitAction_or_var_call(c *parser.Action_or_var_callContext) {
+	l.logMethodCalled()
+	l.subListener.ExitAction_or_var_call(c)
+}
 
 func TestDecimalFormats(t *testing.T) {
 	var strings = []string{"37", "4.5", "-0.4", "+.58", "-1e-12", "-.2e13"}
@@ -171,11 +612,50 @@ func TestAntlrParseProgram(t *testing.T) {
 	}
 }
 
-func TestAntlrParseLocalVariableDeclaration(t *testing.T) {
+func TestAntlrParseLocalVariableDeclarationForProgram(t *testing.T) {
+	InitDevLogger("-")
 	var txt string = " ->  a b << a >>"
 	var registry *ActionRegistry = initRegistry()
 
-	elt, err := ParseToActions(txt, "Test", registry)
+	elt, err := parseToActionsImpl(txt, "Test", registry, func(listener parser.RcalcListener) parser.RcalcListener {
+		return &LoggingParserListener{
+			subListener: listener,
+		}
+	})
+	if assert.NoError(t, err, "Parse error : %s", err) {
+		fmt.Println(elt)
+		if assert.Len(t, elt, 1) {
+			assert.IsType(t, &VariableDeclarationActionDesc{}, elt[0])
+			variableDeclarationActionDesc := elt[0].(*VariableDeclarationActionDesc)
+			varNames := variableDeclarationActionDesc.varNames
+			if assert.Len(t, varNames, 2) {
+				assert.Equal(t, "a", varNames[0])
+				assert.Equal(t, "b", varNames[1])
+			}
+			variable := variableDeclarationActionDesc.variableToEvaluate
+			if assert.IsType(t, &ProgramVariable{}, variable) {
+				programVariable := variable.asProgramVar()
+				if assert.NotNil(t, programVariable) {
+					if assert.Len(t, programVariable.actions, 1) {
+						assert.IsType(t, &VariableEvaluationActionDesc{}, programVariable.actions[0])
+					}
+				}
+			}
+		}
+	}
+}
+
+func TestAntlrParseLocalVariableDeclarationForAlgebraicExpression(t *testing.T) {
+	InitDevLogger("-")
+	//var txt string = " ->  a  'a' "
+	var txt string = " -> a b 'a+b' "
+	var registry *ActionRegistry = initRegistry()
+
+	elt, err := parseToActionsImpl(txt, "Test", registry, func(listener parser.RcalcListener) parser.RcalcListener {
+		return &LoggingParserListener{
+			subListener: listener,
+		}
+	})
 	if assert.NoError(t, err, "Parse error : %s", err) {
 		fmt.Println(elt)
 		if assert.Len(t, elt, 1) {
