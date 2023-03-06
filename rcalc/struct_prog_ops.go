@@ -560,14 +560,14 @@ func (a *VariableDeclarationActionDesc) MarshallFunc() ActionMarshallFunc {
 	return func(reg *ActionRegistry, action Action) (*protostack.Action, error) {
 
 		variableDeclarationActionDesc := action.(*VariableDeclarationActionDesc)
-		progVar := variableDeclarationActionDesc.variableToEvaluate
-		protoProgVar, err := CreateProtoFromVariable(progVar)
+		variableToEvaluate := variableDeclarationActionDesc.variableToEvaluate
+		protoVariableToEvaluate, err := CreateProtoFromVariable(variableToEvaluate)
 		if err != nil {
 			return nil, err
 		}
 		protoVariableDeclaration := &protostack.VariableDeclarationAction{
-			VarNames:        variableDeclarationActionDesc.varNames,
-			ProgramVariable: protoProgVar.GetProgram(),
+			VarNames: variableDeclarationActionDesc.varNames,
+			Variable: protoVariableToEvaluate,
 		}
 		return &protostack.Action{
 				Type:   protostack.ActionType_VARIABLE_DECLARATION,
@@ -582,13 +582,13 @@ func (a *VariableDeclarationActionDesc) MarshallFunc() ActionMarshallFunc {
 
 func (a *VariableDeclarationActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
 	return func(reg *ActionRegistry, protoAction *protostack.Action) (Action, error) {
-		programVar, err := CreateProgramVariableFromProto(reg, protoAction.GetVariableDeclarationAction().GetProgramVariable())
+		variable, err := CreateVariableFromProto(reg, protoAction.GetVariableDeclarationAction().GetVariable())
 		if err != nil {
 			return nil, err
 		}
 		return &VariableDeclarationActionDesc{
 				varNames:           protoAction.GetVariableDeclarationAction().GetVarNames(),
-				variableToEvaluate: programVar,
+				variableToEvaluate: variable,
 			},
 			nil
 	}

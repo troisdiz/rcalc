@@ -315,6 +315,13 @@ func CreateProtoFromProgram(prg *ProgramVariable) (*protostack.ProgramVariable, 
 	return protoProgram, nil
 }
 
+func CreateProtoFromAlgExpr(algExpr *AlgebraicExpressionVariable) (*protostack.AlgebraicExpressionVariable, error) {
+	protoAlgExpr := &protostack.AlgebraicExpressionVariable{
+		FullText: algExpr.value,
+	}
+	return protoAlgExpr, nil
+}
+
 func CreateVariableFromProto(reg *ActionRegistry, protoVariable *protostack.Variable) (Variable, error) {
 	switch protoVariable.GetType() {
 	case protostack.VariableType_NUMBER:
@@ -329,6 +336,8 @@ func CreateVariableFromProto(reg *ActionRegistry, protoVariable *protostack.Vari
 		return CreateBooleanVariable(protoVariable.GetBool().GetValue()), nil
 	case protostack.VariableType_PROGRAM:
 		return CreateProgramVariableFromProto(reg, protoVariable.GetProgram())
+	case protostack.VariableType_ALGEBRAIC_EXPRESSION:
+		return CreateAlgebraicExpressionVariableFromProto(reg, protoVariable.GetAlgExpr())
 	default:
 		return nil, fmt.Errorf("unknown variable type")
 	}
@@ -347,6 +356,13 @@ func CreateProgramVariableFromProto(
 		actions = append(actions, action)
 	}
 	return CreateProgramVariable(actions), nil
+}
+
+func CreateAlgebraicExpressionVariableFromProto(
+	reg *ActionRegistry,
+	protoAlgExpr *protostack.AlgebraicExpressionVariable) (*AlgebraicExpressionVariable, error) {
+	actions, err := ParseToActions(fmt.Sprintf("'%s'", protoAlgExpr.FullText), "", reg)
+	return actions[0].(*VariablePutOnStackActionDesc).value.(*AlgebraicExpressionVariable), err
 }
 
 func CreateProtoFromVariable(variable Variable) (*protostack.Variable, error) {
@@ -377,8 +393,19 @@ func CreateProtoFromVariable(variable Variable) (*protostack.Variable, error) {
 				Type:    protostack.VariableType_PROGRAM,
 				RealVar: &protostack.Variable_Program{Program: protoProgramVar}},
 			nil
+	case TYPE_ALG_EXPR:
+		algExprVar := variable.(*AlgebraicExpressionVariable)
+
+		protoAlgExpr, err := CreateProtoFromAlgExpr(algExprVar)
+		if err != nil {
+			return nil, err
+		}
+		return &protostack.Variable{
+			Type:    protostack.VariableType_ALGEBRAIC_EXPRESSION,
+			RealVar: &protostack.Variable_AlgExpr{AlgExpr: protoAlgExpr},
+		}, nil
 	default:
-		return nil, fmt.Errorf("marshalling of programs not implemented yet")
+		return nil, fmt.Errorf("marshalling of variables of type %d is not implemented yet", variable.getType())
 	}
 
 }
