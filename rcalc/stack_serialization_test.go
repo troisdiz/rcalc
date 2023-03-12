@@ -90,6 +90,12 @@ func TestSaveAndReadStack(t *testing.T) {
 	v3 := CreateProgramVariable([]Action{a1, a2, &addOp})
 	stack.Push(v3)
 
+	v4 := CreateAlgebraicExpressionVariable("abc", &AlgExprSignedElt{
+		items:    &AlgExprVariable{value: "abc"},
+		operator: 0,
+	})
+	stack.Push(v4)
+
 	protoStack, err := CreateProtoFromStack(stack)
 	if assert.NoError(t, err) {
 		out, err := proto.Marshal(protoStack)
