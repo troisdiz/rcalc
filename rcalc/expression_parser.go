@@ -450,8 +450,7 @@ func (l *RcalcParserListener) backFromAlgebraicContext(ctx ParserProvider) {
 	// TODO check there is only 1 item!
 	identifier, err := parseIdentifier(ctx.GetText(), rootAlgExpr[0].item)
 	if err != nil {
-		//TODO restore this feature
-		//ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
+		ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
 	} else {
 		l.AddAction(newLocatedItem[Action](&VariablePutOnStackActionDesc{value: identifier}, ctx.GetStart(), ctx.GetStop()))
 	}
