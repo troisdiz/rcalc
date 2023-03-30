@@ -2,7 +2,7 @@ package rcalc
 
 import (
 	"fmt"
-	"github.com/antlr/antlr4/runtime/Go/antlr/v4"
+	"github.com/antlr4-go/antlr/v4"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"runtime"
@@ -14,6 +14,16 @@ import (
 type LoggingParserListener struct {
 	subListener parser.RcalcListener
 	depth       int
+}
+
+func (l *LoggingParserListener) EnterInstructionSequence(c *parser.InstructionSequenceContext) {
+	l.logMethodCalled()
+	l.subListener.EnterInstructionSequence(c)
+}
+
+func (l *LoggingParserListener) ExitInstructionSequence(c *parser.InstructionSequenceContext) {
+	l.logMethodCalled()
+	l.subListener.ExitInstructionSequence(c)
 }
 
 var _ parser.RcalcListener = (*LoggingParserListener)(nil)
@@ -83,11 +93,6 @@ func (l *LoggingParserListener) EnterProgram_declaration(c *parser.Program_decla
 func (l *LoggingParserListener) ExitProgram_declaration(c *parser.Program_declarationContext) {
 	l.logMethodCalled()
 	l.subListener.ExitProgram_declaration(c)
-}
-
-func (l *LoggingParserListener) EnterInstr_seq(c *parser.Instr_seqContext) {
-	l.logMethodCalled()
-	l.subListener.EnterInstr_seq(c)
 }
 
 func (l *LoggingParserListener) EnterInstrActionOrVarCall(c *parser.InstrActionOrVarCallContext) {
@@ -185,6 +190,16 @@ func (l *LoggingParserListener) EnterVariableList(c *parser.VariableListContext)
 	l.subListener.EnterVariableList(c)
 }
 
+func (l *LoggingParserListener) EnterRecursiveList(c *parser.RecursiveListContext) {
+	l.logMethodCalled()
+	l.subListener.EnterRecursiveList(c)
+}
+
+func (l *LoggingParserListener) ExitRecursiveList(c *parser.RecursiveListContext) {
+	l.logMethodCalled()
+	l.subListener.ExitRecursiveList(c)
+}
+
 func (l *LoggingParserListener) EnterVariableVector(c *parser.VariableVectorContext) {
 	l.logMethodCalled()
 	l.subListener.EnterVariableVector(c)
@@ -255,11 +270,6 @@ func (l *LoggingParserListener) EnterAlgExprFuncCall(c *parser.AlgExprFuncCallCo
 	l.subListener.EnterAlgExprFuncCall(c)
 }
 
-func (l *LoggingParserListener) EnterList(c *parser.ListContext) {
-	l.logMethodCalled()
-	l.subListener.EnterList(c)
-}
-
 func (l *LoggingParserListener) EnterVector(c *parser.VectorContext) {
 	l.logMethodCalled()
 	l.subListener.EnterVector(c)
@@ -273,11 +283,6 @@ func (l *LoggingParserListener) EnterAction_or_var_call(c *parser.Action_or_var_
 func (l *LoggingParserListener) ExitStart(c *parser.StartContext) {
 	l.logMethodCalled()
 	l.subListener.ExitStart(c)
-}
-
-func (l *LoggingParserListener) ExitInstr_seq(c *parser.Instr_seqContext) {
-	l.logMethodCalled()
-	l.subListener.ExitInstr_seq(c)
 }
 
 func (l *LoggingParserListener) ExitInstrActionOrVarCall(c *parser.InstrActionOrVarCallContext) {
@@ -445,11 +450,6 @@ func (l *LoggingParserListener) ExitAlgExprFuncCall(c *parser.AlgExprFuncCallCon
 	l.subListener.ExitAlgExprFuncCall(c)
 }
 
-func (l *LoggingParserListener) ExitList(c *parser.ListContext) {
-	l.logMethodCalled()
-	l.subListener.ExitList(c)
-}
-
 func (l *LoggingParserListener) ExitVector(c *parser.VectorContext) {
 	l.logMethodCalled()
 	l.subListener.ExitVector(c)
@@ -458,6 +458,16 @@ func (l *LoggingParserListener) ExitVector(c *parser.VectorContext) {
 func (l *LoggingParserListener) ExitAction_or_var_call(c *parser.Action_or_var_callContext) {
 	l.logMethodCalled()
 	l.subListener.ExitAction_or_var_call(c)
+}
+
+func (l *LoggingParserListener) EnterNumber(c *parser.NumberContext) {
+	l.logMethodCalled()
+	l.subListener.EnterNumber(c)
+}
+
+func (l *LoggingParserListener) ExitNumber(c *parser.NumberContext) {
+	l.logMethodCalled()
+	l.subListener.ExitNumber(c)
 }
 
 func TestDecimalFormats(t *testing.T) {
@@ -471,6 +481,7 @@ func TestDecimalFormats(t *testing.T) {
 }
 
 func TestAntlrParse2Numbers(t *testing.T) {
+	InitDevLogger("-")
 	var numbersToParse = []string{
 		"37",
 		"4.5",
@@ -481,7 +492,11 @@ func TestAntlrParse2Numbers(t *testing.T) {
 
 	for _, expr := range numbersToParse {
 		t.Run(expr, func(t *testing.T) {
-			elt, err := ParseToActions(expr, "Test", registry)
+			elt, err := parseToActionsImpl(expr, "Test", registry, func(listener parser.RcalcListener) parser.RcalcListener {
+				return &LoggingParserListener{
+					subListener: listener,
+				}
+			})
 			if assert.NoError(t, err, "Parse error : %s", err) {
 				assert.IsType(t, elt[0], &VariablePutOnStackActionDesc{})
 			}
@@ -492,7 +507,11 @@ func TestAntlrParse2Numbers(t *testing.T) {
 func TestAntlrIdentifierParser(t *testing.T) {
 	var txt string = "'ab' 'cd' 'de'"
 	var registry *ActionRegistry = initRegistry()
-	actions, err := ParseToActions(txt, "", registry)
+	actions, err := parseToActionsImpl(txt, "", registry, func(listener parser.RcalcListener) parser.RcalcListener {
+		return &LoggingParserListener{
+			subListener: listener,
+		}
+	})
 	if assert.NoError(t, err, "Parse error: %s", err) {
 		assert.Len(t, actions, 3)
 	}
@@ -573,10 +592,16 @@ func TestAntlrParseForNextLoopError(t *testing.T) {
 }
 
 func TestAntlrParseIfThenElse(t *testing.T) {
+	InitDevLogger("-")
+
 	var txt string = " if 1 1 == then 2 else 3 end"
 	var registry *ActionRegistry = initRegistry()
 
-	elt, err := ParseToActions(txt, "Test", registry)
+	elt, err := parseToActionsImpl(txt, "Test", registry, func(listener parser.RcalcListener) parser.RcalcListener {
+		return &LoggingParserListener{
+			subListener: listener,
+		}
+	})
 	if assert.NoError(t, err, "Parse error : %s", err) {
 		fmt.Println(elt)
 		if assert.Len(t, elt, 1) {
@@ -604,7 +629,11 @@ func TestAntlrParseProgram(t *testing.T) {
 	var txt string = " << 1 3 for i 1 next >>"
 	var registry *ActionRegistry = initRegistry()
 
-	elt, err := ParseToActions(txt, "Test", registry)
+	elt, err := parseToActionsImpl(txt, "Test", registry, func(listener parser.RcalcListener) parser.RcalcListener {
+		return &LoggingParserListener{
+			subListener: listener,
+		}
+	})
 	if assert.NoError(t, err, "Parse error : %s", err) {
 		fmt.Println(elt)
 		if assert.Len(t, elt, 1) {
@@ -685,6 +714,32 @@ func TestAntlrParseLocalVariableDeclarationForAlgebraicExpression(t *testing.T) 
 	}
 }
 
+func TestAntlrParseList(t *testing.T) {
+	InitDevLogger("-")
+	//var txt string = " ->  a  'a' "
+	var txt string = "{ 2 { 3 } }"
+	var registry *ActionRegistry = initRegistry()
+
+	elt, err := parseToActionsImpl(txt, "Test", registry, func(listener parser.RcalcListener) parser.RcalcListener {
+		return &LoggingParserListener{
+			subListener: listener,
+		}
+	})
+	if assert.NoError(t, err, "Parse error : %s", err) {
+		fmt.Println(elt)
+		if assert.Len(t, elt, 1) {
+			assert.IsType(t, &VariablePutOnStackActionDesc{}, elt[0])
+			variablePutListOnStack := elt[0].(*VariablePutOnStackActionDesc)
+			listVar := variablePutListOnStack.value
+			if assert.NotNil(t, listVar) {
+				listVariable := listVar.(*ListVariable)
+				assert.Len(t, listVariable.items, 2)
+				assert.IsType(t, &ListVariable{}, listVariable.items[1])
+			}
+		}
+	}
+}
+
 type TestErrorListener struct {
 	hasErrors bool
 }
@@ -695,13 +750,13 @@ func (t *TestErrorListener) SyntaxError(recognizer antlr.Recognizer, offendingSy
 	t.hasErrors = true
 }
 
-func (t *TestErrorListener) ReportAmbiguity(recognizer antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex int, exact bool, ambigAlts *antlr.BitSet, configs antlr.ATNConfigSet) {
+func (t *TestErrorListener) ReportAmbiguity(recognizer antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex int, exact bool, ambigAlts *antlr.BitSet, configs *antlr.ATNConfigSet) {
 }
 
-func (t *TestErrorListener) ReportAttemptingFullContext(recognizer antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex int, conflictingAlts *antlr.BitSet, configs antlr.ATNConfigSet) {
+func (t *TestErrorListener) ReportAttemptingFullContext(recognizer antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex int, conflictingAlts *antlr.BitSet, configs *antlr.ATNConfigSet) {
 }
 
-func (t *TestErrorListener) ReportContextSensitivity(recognizer antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex, prediction int, configs antlr.ATNConfigSet) {
+func (t *TestErrorListener) ReportContextSensitivity(recognizer antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex, prediction int, configs *antlr.ATNConfigSet) {
 }
 
 type TestParserListener struct {
@@ -802,9 +857,9 @@ func TestAlgebraicExpressionParsing(t *testing.T) {
 			var listener = CreateRcalcParserListener(Registry)
 			//p.RemoveErrorListeners()
 			p.AddErrorListener(el)
-			antlr.ParseTreeWalkerDefault.Walk(listener, p.Start())
+			antlr.ParseTreeWalkerDefault.Walk(listener, p.Start_())
 			assert.False(t, el.hasErrors)
-			expressionNodes := listener.rootPc.GetItems()
+			expressionNodes := listener.contextManager.rootPc.GetItems()
 			variablePutOnStackAction := expressionNodes[0].item.(*VariablePutOnStackActionDesc)
 			algExprVariable := variablePutOnStackAction.value.(*AlgebraicExpressionVariable)
 			if assert.NotNil(t, algExprVariable.rootNode, "Value of PutOnStackAction is nil for expr %s", expr.literal) {
