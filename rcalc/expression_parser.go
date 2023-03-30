@@ -604,6 +604,34 @@ func (l *RcalcParserListener) ExitVariableProgramDeclaration(c *parser.VariableP
 	l.BackToParentContext()
 }
 
+type ListContext struct {
+	BaseParseContext[Action]
+}
+
+var _ ParseContext[Action] = (*ListContext)(nil)
+
+func (pc *ListContext) CreateFinalAction() (Action, error) {
+
+	actions := toNonLocated(pc.BaseParseContext.items)
+	var itemVars []Variable
+	for _, item := range actions {
+		itemAction := item.(*VariablePutOnStackActionDesc)
+		itemVars = append(itemVars, itemAction.value)
+	}
+	listVar := CreateListVariable(itemVars)
+	return &VariablePutOnStackActionDesc{value: listVar}, nil
+}
+
+// EnterVariableList is called when entering the VariableList production.
+func (l *RcalcParserListener) EnterVariableList(c *parser.VariableListContext) {
+	// l.StartNewContext(&ListContext{})
+}
+
+// ExitVariableList is called when exiting the VariableList production.
+func (l *RcalcParserListener) ExitVariableList(c *parser.VariableListContext) {
+	// l.BackToParentContext()
+}
+
 /*********************************************************************************/
 /* Local var creation */
 /*********************************************************************************/

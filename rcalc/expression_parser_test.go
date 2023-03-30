@@ -460,6 +460,16 @@ func (l *LoggingParserListener) ExitAction_or_var_call(c *parser.Action_or_var_c
 	l.subListener.ExitAction_or_var_call(c)
 }
 
+func (l *LoggingParserListener) EnterNumber(c *parser.NumberContext) {
+	l.logMethodCalled()
+	l.subListener.EnterNumber(c)
+}
+
+func (l *LoggingParserListener) ExitNumber(c *parser.NumberContext) {
+	l.logMethodCalled()
+	l.subListener.ExitNumber(c)
+}
+
 func TestDecimalFormats(t *testing.T) {
 	var strings = []string{"37", "4.5", "-0.4", "+.58", "-1e-12", "-.2e13"}
 	for _, str := range strings {

@@ -65,6 +65,28 @@ func CreateBooleanVariable(value bool) Variable {
 	return &result
 }
 
+type ListVariable struct {
+	CommonVariable
+	items []Variable
+}
+
+var _ Variable = (*ListVariable)(nil)
+
+func CreateListVariable(items []Variable) Variable {
+	return &ListVariable{
+		CommonVariable: CommonVariable{fType: TYPE_LIST},
+		items:          items,
+	}
+}
+
+func (l *ListVariable) display() string {
+	displayedItems := make([]string, len(l.items))
+	for i, item := range l.items {
+		displayedItems[i] = item.display()
+	}
+	return fmt.Sprintf("[ %s ]", strings.Join(displayedItems, ", "))
+}
+
 type AlgebraicExpressionNode interface {
 	Evaluate(variableReader VariableReader) (*NumericVariable, error)
 }
@@ -315,6 +337,21 @@ func CreateProtoFromProgram(prg *ProgramVariable) (*protostack.ProgramVariable, 
 	return protoProgram, nil
 }
 
+func CreateProgramVariableFromProto(
+	reg *ActionRegistry,
+	protoProgramVariable *protostack.ProgramVariable) (*ProgramVariable, error) {
+
+	var actions []Action
+	for _, protoAction := range protoProgramVariable.GetActions() {
+		action, err := reg.CreateActionFromProto(protoAction)
+		if err != nil {
+			return nil, err
+		}
+		actions = append(actions, action)
+	}
+	return CreateProgramVariable(actions), nil
+}
+
 func CreateProtoFromAlgExpr(algExpr *AlgebraicExpressionVariable) (*protostack.AlgebraicExpressionVariable, error) {
 	protoAlgExpr := &protostack.AlgebraicExpressionVariable{
 		FullText: algExpr.value,
@@ -341,21 +378,6 @@ func CreateVariableFromProto(reg *ActionRegistry, protoVariable *protostack.Vari
 	default:
 		return nil, fmt.Errorf("unknown variable type")
 	}
-}
-
-func CreateProgramVariableFromProto(
-	reg *ActionRegistry,
-	protoProgramVariable *protostack.ProgramVariable) (*ProgramVariable, error) {
-
-	var actions []Action
-	for _, protoAction := range protoProgramVariable.GetActions() {
-		action, err := reg.CreateActionFromProto(protoAction)
-		if err != nil {
-			return nil, err
-		}
-		actions = append(actions, action)
-	}
-	return CreateProgramVariable(actions), nil
 }
 
 func CreateAlgebraicExpressionVariableFromProto(
@@ -404,6 +426,9 @@ func CreateProtoFromVariable(variable Variable) (*protostack.Variable, error) {
 			Type:    protostack.VariableType_ALGEBRAIC_EXPRESSION,
 			RealVar: &protostack.Variable_AlgExpr{AlgExpr: protoAlgExpr},
 		}, nil
+	case TYPE_LIST:
+		// TODO
+		panic("Implement me")
 	default:
 		return nil, fmt.Errorf("marshalling of variables of type %d is not implemented yet", variable.getType())
 	}

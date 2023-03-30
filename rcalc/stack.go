@@ -16,7 +16,7 @@ const (
 	TYPE_STR      Type = 3
 	TYPE_ALG_EXPR Type = 4
 	TYPE_PROGRAM  Type = 5
-	// TYPE_LIST       Type = 6
+	TYPE_LIST     Type = 6
 	// TYPE_VECTOR     Type = 7
 )
 

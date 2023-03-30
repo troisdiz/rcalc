@@ -8,6 +8,7 @@ enum VariableType {
   BOOLEAN              = 2;
   PROGRAM              = 3;
   ALGEBRAIC_EXPRESSION = 4;
+  LIST                 = 5;
 }
 
 message Variable {
@@ -34,6 +35,10 @@ message ProgramVariable {
 
 message AlgebraicExpressionVariable {
   string fullText = 1;
+}
+
+message ListVariable {
+  repeated Variable items = 1;
 }
 
 message Action {
