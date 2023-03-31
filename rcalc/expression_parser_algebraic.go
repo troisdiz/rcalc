@@ -60,13 +60,18 @@ type AlgebraicAddSubContext struct {
 }
 
 func (asc *AlgebraicAddSubContext) CreateFinalAction() (AlgebraicExpressionNode, error) {
+
+	items := asc.GetItems()
+	if len(items) == 1 {
+		return items[0].item, nil
+	}
 	operators, err := tokenToPosition([]int{parser.RcalcLexerOP_ADD, parser.RcalcLexerOP_SUB}, asc.tokens)
 	fmt.Printf("Length of operators is %d / tokens : %d\n", len(operators), len(asc.tokens))
 	if err != nil {
 		panic("Unknown token")
 	}
 	return &AlgExprAddSub{
-		items:     toNonLocated(asc.GetItems()),
+		items:     toNonLocated(items),
 		operators: operators,
 	}, nil
 }
@@ -78,6 +83,10 @@ type AlgebraicMulDivContext struct {
 var _ ParseContext[AlgebraicExpressionNode] = (*AlgebraicMulDivContext)(nil)
 
 func (amdc *AlgebraicMulDivContext) CreateFinalAction() (AlgebraicExpressionNode, error) {
+	items := amdc.GetItems()
+	if len(items) == 1 {
+		return items[0].item, nil
+	}
 	operators, err := tokenToPosition([]int{parser.RcalcLexerOP_MUL, parser.RcalcLexerOP_DIV}, amdc.tokens)
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())
@@ -97,6 +106,10 @@ type AlgebraicPowerContext struct {
 var _ ParseContext[AlgebraicExpressionNode] = (*AlgebraicPowerContext)(nil)
 
 func (amdc *AlgebraicPowerContext) CreateFinalAction() (AlgebraicExpressionNode, error) {
+	items := amdc.GetItems()
+	if len(items) == 1 {
+		return items[0].item, nil
+	}
 	_, err := tokenToPosition([]int{parser.RcalcLexerOP_POW}, amdc.tokens)
 	if err != nil {
 		fmt.Printf("%s\n", err.Error())

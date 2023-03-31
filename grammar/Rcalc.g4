@@ -68,10 +68,9 @@ instr
     : action_or_var_call         # InstrActionOrVarCall
     | op                         # InstrOp
     | variable                   # InstrVariable
-    | if_then_else               # InstIfThenElse
+    | if_then_else               # InstrIfThenElse
     | start_next_loop            # InstrStartNextLoop
     | for_next_loop              # InstrForNextLoop
-    | program_declaration        # InstrProgramDeclaration
     | local_var_creation         # InstrLocalVarCreation
     ;
 
@@ -86,20 +85,23 @@ if_then_else
 start_next_loop: KW_START instr_seq KW_NEXT ;
 for_next_loop: KW_FOR WHITESPACE* variableDeclaration instr_seq KW_NEXT ;
 
-program_declaration:
-    PROG_OPEN instr_seq PROG_CLOSE  # ProgramDeclaration
-    ;
+program_declaration: PROG_OPEN instr_seq PROG_CLOSE ;
 
 local_var_creation
-    : '->' (WHITESPACE* variableDeclaration)+ WHITESPACE* program_declaration # LocalVarCreationProgram
-//    | '->' variableDeclaration+ identifier          # LocalVarCreationAlgebraicExpr
+    : '->' (WHITESPACE* variableDeclaration)+ WHITESPACE* statement_for_local_var_creation # LocalVarCreation
     ;
 
 variableDeclaration: NAME #DeclarationVariable;
 
+statement_for_local_var_creation
+    : program_declaration         # StatementLocalVarProgram
+    | quoted_algebraic_expression # StatementLocalVarAlgebraicExpression
+    ;
+
 variable
-    : (OP_ADD|OP_SUB)?NUMBER     # VariableNumber
+    : (OP_ADD|OP_SUB)?NUMBER      # VariableNumber
     | quoted_algebraic_expression # VariableAlgebraicExpression
+    | program_declaration         # VariableProgramDeclaration
     | list                        # VariableList
     | vector                      # VariableVector
     ;

@@ -56,8 +56,8 @@ func TestVariableDeclarationProgram(t *testing.T) {
 	})
 
 	varDecl := &VariableDeclarationActionDesc{
-		varNames:        []string{"i", "j"},
-		programVariable: programVariable,
+		varNames:           []string{"i", "j"},
+		variableToEvaluate: programVariable,
 	}
 
 	err := varDecl.Apply(runtimeContext)

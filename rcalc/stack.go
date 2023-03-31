@@ -206,7 +206,7 @@ func (sl *StackSavingListener) SessionStart(s *Stack) {
 func (sl *StackSavingListener) SessionClose(s *Stack) {
 	protoStack, err := CreateProtoFromStack(s)
 	if err != nil {
-		//TODO log error
+		GetLogger().Debugf("Error saving stack: %v", err)
 		return
 	}
 

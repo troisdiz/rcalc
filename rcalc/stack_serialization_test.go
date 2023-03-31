@@ -26,11 +26,11 @@ func getDynamicActionsForTesting() []Action {
 		},
 		&VariableDeclarationActionDesc{
 			varNames: []string{"n", "m"},
-			programVariable: CreateProgramVariable([]Action{&VariablePutOnStackActionDesc{
+			variableToEvaluate: CreateProgramVariable([]Action{&VariablePutOnStackActionDesc{
 				value: CreateNumericVariableFromInt(7)}}),
 		},
-		&EvalProgramActionDesc{
-			program: CreateProgramVariable([]Action{&VariablePutOnStackActionDesc{
+		&EvalFromArgActionDesc{
+			variable: CreateProgramVariable([]Action{&VariablePutOnStackActionDesc{
 				value: CreateNumericVariableFromInt(7)}}),
 		},
 		&VariableEvaluationActionDesc{
@@ -89,6 +89,12 @@ func TestSaveAndReadStack(t *testing.T) {
 	a2 := &VariablePutOnStackActionDesc{value: CreateNumericVariableFromInt(7)}
 	v3 := CreateProgramVariable([]Action{a1, a2, &addOp})
 	stack.Push(v3)
+
+	v4 := CreateAlgebraicExpressionVariable("abc", &AlgExprSignedElt{
+		items:    &AlgExprVariable{value: "abc"},
+		operator: 0,
+	})
+	stack.Push(v4)
 
 	protoStack, err := CreateProtoFromStack(stack)
 	if assert.NoError(t, err) {

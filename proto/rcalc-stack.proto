@@ -3,11 +3,11 @@ syntax= "proto3";
 option go_package = "troisdizaines.com/rcalc/protostack";
 
 enum VariableType {
-  DEFAULT = 0;
-  NUMBER = 1;
-  BOOLEAN = 2;
-  PROGRAM = 3;
-
+  DEFAULT              = 0;
+  NUMBER               = 1;
+  BOOLEAN              = 2;
+  PROGRAM              = 3;
+  ALGEBRAIC_EXPRESSION = 4;
 }
 
 message Variable {
@@ -16,6 +16,7 @@ message Variable {
     NumberVariable number = 2;
     BooleanVariable bool = 3;
     ProgramVariable program = 4;
+    AlgebraicExpressionVariable algExpr = 5;
   }
 }
 
@@ -29,6 +30,10 @@ message BooleanVariable {
 
 message ProgramVariable {
   repeated Action actions = 1;
+}
+
+message AlgebraicExpressionVariable {
+  string fullText = 1;
 }
 
 message Action {
@@ -77,7 +82,7 @@ message ForNextLoopAction {
 
 message VariableDeclarationAction {
   repeated string varNames = 1;
-  ProgramVariable programVariable = 2;
+  Variable variable = 2;
 }
 
 message VariableEvaluationAction {
