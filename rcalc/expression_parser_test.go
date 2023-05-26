@@ -185,6 +185,16 @@ func (l *LoggingParserListener) EnterVariableList(c *parser.VariableListContext)
 	l.subListener.EnterVariableList(c)
 }
 
+func (l *LoggingParserListener) EnterRecursiveList(c *parser.RecursiveListContext) {
+	l.logMethodCalled()
+	l.subListener.EnterRecursiveList(c)
+}
+
+func (l *LoggingParserListener) ExitRecursiveList(c *parser.RecursiveListContext) {
+	l.logMethodCalled()
+	l.subListener.ExitRecursiveList(c)
+}
+
 func (l *LoggingParserListener) EnterVariableVector(c *parser.VariableVectorContext) {
 	l.logMethodCalled()
 	l.subListener.EnterVariableVector(c)
@@ -253,11 +263,6 @@ func (l *LoggingParserListener) EnterAlg_variable(c *parser.Alg_variableContext)
 func (l *LoggingParserListener) EnterAlgExprFuncCall(c *parser.AlgExprFuncCallContext) {
 	l.logMethodCalled()
 	l.subListener.EnterAlgExprFuncCall(c)
-}
-
-func (l *LoggingParserListener) EnterList(c *parser.ListContext) {
-	l.logMethodCalled()
-	l.subListener.EnterList(c)
 }
 
 func (l *LoggingParserListener) EnterVector(c *parser.VectorContext) {
@@ -443,11 +448,6 @@ func (l *LoggingParserListener) ExitAlg_variable(c *parser.Alg_variableContext) 
 func (l *LoggingParserListener) ExitAlgExprFuncCall(c *parser.AlgExprFuncCallContext) {
 	l.logMethodCalled()
 	l.subListener.ExitAlgExprFuncCall(c)
-}
-
-func (l *LoggingParserListener) ExitList(c *parser.ListContext) {
-	l.logMethodCalled()
-	l.subListener.ExitList(c)
 }
 
 func (l *LoggingParserListener) ExitVector(c *parser.VectorContext) {
@@ -695,6 +695,32 @@ func TestAntlrParseLocalVariableDeclarationForAlgebraicExpression(t *testing.T) 
 	}
 }
 
+func TestAntlrParseList(t *testing.T) {
+	InitDevLogger("-")
+	//var txt string = " ->  a  'a' "
+	var txt string = "{ 2 { 3 } }"
+	var registry *ActionRegistry = initRegistry()
+
+	elt, err := parseToActionsImpl(txt, "Test", registry, func(listener parser.RcalcListener) parser.RcalcListener {
+		return &LoggingParserListener{
+			subListener: listener,
+		}
+	})
+	if assert.NoError(t, err, "Parse error : %s", err) {
+		fmt.Println(elt)
+		if assert.Len(t, elt, 1) {
+			assert.IsType(t, &VariablePutOnStackActionDesc{}, elt[0])
+			variablePutListOnStack := elt[0].(*VariablePutOnStackActionDesc)
+			listVar := variablePutListOnStack.value
+			if assert.NotNil(t, listVar) {
+				listVariable := listVar.(*ListVariable)
+				assert.Len(t, listVariable.items, 2)
+				assert.IsType(t, &ListVariable{}, listVariable.items[1])
+			}
+		}
+	}
+}
+
 type TestErrorListener struct {
 	hasErrors bool
 }
@@ -814,7 +840,7 @@ func TestAlgebraicExpressionParsing(t *testing.T) {
 			p.AddErrorListener(el)
 			antlr.ParseTreeWalkerDefault.Walk(listener, p.Start())
 			assert.False(t, el.hasErrors)
-			expressionNodes := listener.rootPc.GetItems()
+			expressionNodes := listener.contextManager.rootPc.GetItems()
 			variablePutOnStackAction := expressionNodes[0].item.(*VariablePutOnStackActionDesc)
 			algExprVariable := variablePutOnStackAction.value.(*AlgebraicExpressionVariable)
 			if assert.NotNil(t, algExprVariable.rootNode, "Value of PutOnStackAction is nil for expr %s", expr.literal) {

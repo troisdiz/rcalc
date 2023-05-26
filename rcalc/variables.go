@@ -72,7 +72,7 @@ type ListVariable struct {
 
 var _ Variable = (*ListVariable)(nil)
 
-func CreateListVariable(items []Variable) Variable {
+func CreateListVariable(items []Variable) *ListVariable {
 	return &ListVariable{
 		CommonVariable: CommonVariable{fType: TYPE_LIST},
 		items:          items,
@@ -84,7 +84,7 @@ func (l *ListVariable) display() string {
 	for i, item := range l.items {
 		displayedItems[i] = item.display()
 	}
-	return fmt.Sprintf("[ %s ]", strings.Join(displayedItems, ", "))
+	return fmt.Sprintf("{ %s }", strings.Join(displayedItems, ", "))
 }
 
 type AlgebraicExpressionNode interface {
@@ -359,6 +359,19 @@ func CreateProtoFromAlgExpr(algExpr *AlgebraicExpressionVariable) (*protostack.A
 	return protoAlgExpr, nil
 }
 
+func CreateListFromProto(reg *ActionRegistry, protoListVariable *protostack.ListVariable) (*ListVariable, error) {
+
+	var items []Variable
+	for _, protoVar := range protoListVariable.GetItems() {
+		action, err := CreateVariableFromProto(reg, protoVar)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, action)
+	}
+	return CreateListVariable(items), nil
+}
+
 func CreateVariableFromProto(reg *ActionRegistry, protoVariable *protostack.Variable) (Variable, error) {
 	switch protoVariable.GetType() {
 	case protostack.VariableType_NUMBER:
@@ -375,6 +388,9 @@ func CreateVariableFromProto(reg *ActionRegistry, protoVariable *protostack.Vari
 		return CreateProgramVariableFromProto(reg, protoVariable.GetProgram())
 	case protostack.VariableType_ALGEBRAIC_EXPRESSION:
 		return CreateAlgebraicExpressionVariableFromProto(reg, protoVariable.GetAlgExpr())
+	case protostack.VariableType_LIST:
+		//TODO
+		return nil, nil
 	default:
 		return nil, fmt.Errorf("unknown variable type")
 	}
@@ -427,8 +443,20 @@ func CreateProtoFromVariable(variable Variable) (*protostack.Variable, error) {
 			RealVar: &protostack.Variable_AlgExpr{AlgExpr: protoAlgExpr},
 		}, nil
 	case TYPE_LIST:
-		// TODO
-		panic("Implement me")
+		listVar := variable.(*ListVariable)
+		protoItems := make([]*protostack.Variable, len(listVar.items))
+		for i := 0; i < len(listVar.items); i++ {
+			protoItem, err := CreateProtoFromVariable(listVar.items[i])
+			if err != nil {
+				return nil, err
+			}
+			protoItems[i] = protoItem
+		}
+		protoListVar := &protostack.ListVariable{Items: protoItems}
+		return &protostack.Variable{
+			Type:    protostack.VariableType_LIST,
+			RealVar: &protostack.Variable_List{List: protoListVar},
+		}, nil
 	default:
 		return nil, fmt.Errorf("marshalling of variables of type %d is not implemented yet", variable.getType())
 	}

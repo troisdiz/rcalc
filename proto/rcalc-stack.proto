@@ -18,6 +18,7 @@ message Variable {
     BooleanVariable bool = 3;
     ProgramVariable program = 4;
     AlgebraicExpressionVariable algExpr = 5;
+    ListVariable list = 6;
   }
 }
 
