@@ -83,7 +83,7 @@ type ParseContext[T any] interface {
 	GetValidationErrors() []ValidationError
 
 	BackFromChild(child ParseContext[T])
-	CreateFinalAction() (T, error)
+	CreateFinalItem() ([]T, error)
 
 	TokenVisited(token int)
 }
@@ -153,17 +153,19 @@ func (g *BaseParseContext[T]) BackFromChild(child ParseContext[T]) {
 	if len(childValidationErrors) > 0 {
 		g.validationErrors = append(g.validationErrors, childValidationErrors...)
 	} else {
-		action, err := child.CreateFinalAction()
+		actions, err := child.CreateFinalItem()
 		if err != nil {
 			g.ReportValidationError(Location{}, err)
 		} else {
-			g.AddItem(newLocatedItem(action, nil, nil))
+			for _, action := range actions {
+				g.AddItem(newLocatedItem(action, nil, nil))
+			}
 		}
 	}
 }
 
-func (g *BaseParseContext[T]) CreateFinalAction() (T, error) {
-	panic("CreateFinalAction must be implemented by sub structures")
+func (g *BaseParseContext[T]) CreateFinalItem() ([]T, error) {
+	panic("CreateFinalItem must be implemented by sub structures")
 }
 
 func (g *BaseParseContext[T]) GetItems() []LocatedItem[T] {
@@ -178,8 +180,8 @@ type SingleVariableContext struct {
 
 var _ ParseContext[Variable] = (*SingleVariableContext)(nil)
 
-func (v *SingleVariableContext) CreateFinalAction() (Variable, error) {
-	return toNonLocated(v.BaseParseContext.items)[0], nil
+func (v *SingleVariableContext) CreateFinalItem() ([]Variable, error) {
+	return toNonLocated(v.BaseParseContext.items), nil
 }
 
 type IfThenElseContext struct {
@@ -209,11 +211,13 @@ func (i *IfThenElseContext) TokenVisited(token int) {
 	}
 }
 
-func (i *IfThenElseContext) CreateFinalAction() (Action, error) {
-	return &IfThenElseActionDesc{
-		ifActions:   toNonLocated(i.actions[0]),
-		thenActions: toNonLocated(i.actions[1]),
-		elseActions: toNonLocated(i.actions[2]),
+func (i *IfThenElseContext) CreateFinalItem() ([]Action, error) {
+	return []Action{
+		&IfThenElseActionDesc{
+			ifActions:   toNonLocated(i.actions[0]),
+			thenActions: toNonLocated(i.actions[1]),
+			elseActions: toNonLocated(i.actions[2]),
+		},
 	}, nil
 }
 
@@ -223,8 +227,10 @@ type StartEndLoopContext struct {
 
 var _ ParseContext[Action] = (*StartEndLoopContext)(nil)
 
-func (pc *StartEndLoopContext) CreateFinalAction() (Action, error) {
-	return &StartNextLoopActionDesc{actions: toNonLocated(pc.BaseParseContext.items)}, nil
+func (pc *StartEndLoopContext) CreateFinalItem() ([]Action, error) {
+	return []Action{
+		&StartNextLoopActionDesc{actions: toNonLocated(pc.BaseParseContext.items)},
+	}, nil
 }
 
 type ForNextLoopContext struct {
@@ -233,10 +239,12 @@ type ForNextLoopContext struct {
 
 var _ ParseContext[Action] = (*ForNextLoopContext)(nil)
 
-func (pc *ForNextLoopContext) CreateFinalAction() (Action, error) {
-	return &ForNextLoopActionDesc{
-		varName: pc.BaseParseContext.idDeclarations[0].item,
-		actions: toNonLocated(pc.BaseParseContext.items),
+func (pc *ForNextLoopContext) CreateFinalItem() ([]Action, error) {
+	return []Action{
+		&ForNextLoopActionDesc{
+			varName: pc.BaseParseContext.idDeclarations[0].item,
+			actions: toNonLocated(pc.BaseParseContext.items),
+		},
 	}, nil
 }
 
@@ -246,9 +254,11 @@ type ProgramContext struct {
 
 var _ ParseContext[Action] = (*ProgramContext)(nil)
 
-func (pc *ProgramContext) CreateFinalAction() (Action, error) {
+func (pc *ProgramContext) CreateFinalItem() ([]Action, error) {
 	progVar := CreateProgramVariable(toNonLocated(pc.items))
-	return &VariablePutOnStackActionDesc{value: progVar}, nil
+	return []Action{
+		&VariablePutOnStackActionDesc{value: progVar},
+	}, nil
 }
 
 type InstrLocalVarCreationContext struct {
@@ -257,13 +267,15 @@ type InstrLocalVarCreationContext struct {
 
 var _ ParseContext[Action] = (*InstrLocalVarCreationContext)(nil)
 
-func (pc *InstrLocalVarCreationContext) CreateFinalAction() (Action, error) {
+func (pc *InstrLocalVarCreationContext) CreateFinalItem() ([]Action, error) {
 	// code is variable type agnostic, only the grammar ensures the variable to use
 	// is either a program or algebraic expression
 	putOnStackVariableAction := pc.BaseParseContext.items[0].item.(*VariablePutOnStackActionDesc)
-	return &VariableDeclarationActionDesc{
-		varNames:           toNonLocated(pc.BaseParseContext.idDeclarations),
-		variableToEvaluate: putOnStackVariableAction.value,
+	return []Action{
+		&VariableDeclarationActionDesc{
+			varNames:           toNonLocated(pc.BaseParseContext.idDeclarations),
+			variableToEvaluate: putOnStackVariableAction.value,
+		},
 	}, nil
 }
 
@@ -273,14 +285,14 @@ type ParseContextManager struct {
 	rootPc    *BaseParseContext[Action]
 	currentPc ParseContext[Action]
 
-	rootAlgebraicPc    ParseContext[AlgebraicExpressionNode]
-	currentAlgebraicPc ParseContext[AlgebraicExpressionNode]
-	lastAlgebraicValue AlgebraicExpressionNode
+	rootAlgebraicPc     ParseContext[AlgebraicExpressionNode]
+	currentAlgebraicPc  ParseContext[AlgebraicExpressionNode]
+	lastAlgebraicValues []AlgebraicExpressionNode
 
 	currentVariablePcIdx int
 	rootVariablePc       []ParseContext[Variable]
 	currentVariablePc    []ParseContext[Variable]
-	lastVariableValue    Variable
+	lastVariableValues   []Variable
 }
 
 func CreateParseContextManager(registry *ActionRegistry) *ParseContextManager {
@@ -363,9 +375,10 @@ type RootVariableContext struct {
 
 var _ ParseContext[Variable] = (*RootVariableContext)(nil)
 
-func (rvc *RootVariableContext) CreateFinalAction() (Variable, error) {
+func (rvc *RootVariableContext) CreateFinalItem() ([]Variable, error) {
+
 	// TODO test length
-	return rvc.items[0].item, nil
+	return []Variable{rvc.items[0].item}, nil
 }
 
 func (l *ParseContextManager) switchToVariableContext(ctx ParserProvider) {
@@ -401,11 +414,11 @@ func (l *ParseContextManager) switchToVariableContext(ctx ParserProvider) {
 }
 
 func (l *ParseContextManager) backFromVariableContext(ctx ParserProvider) {
-	variable, err := l.rootVariablePc[l.currentVariablePcIdx].CreateFinalAction()
+	variable, err := l.rootVariablePc[l.currentVariablePcIdx].CreateFinalItem()
 	if err != nil {
 		panic("Error in backFromVariableContext")
 	}
-	l.lastVariableValue = variable
+	l.lastVariableValues = variable
 	l.currentVariablePc[l.currentVariablePcIdx] = nil
 	l.rootVariablePc[l.currentVariablePcIdx] = nil
 	l.currentVariablePcIdx = l.currentVariablePcIdx - 1
@@ -434,7 +447,7 @@ func (l *ParseContextManager) switchToAlgebraicContext(ctx ParserProvider) {
 }
 
 func (l *ParseContextManager) backFromAlgebraicContext(ctx ParserProvider) {
-	rootAlgExpr, err := l.rootAlgebraicPc.CreateFinalAction()
+	rootAlgExpr, err := l.rootAlgebraicPc.CreateFinalItem()
 	if err != nil {
 		panic("Error in backFromAlgebraicContext")
 	}
@@ -446,7 +459,7 @@ func (l *ParseContextManager) backFromAlgebraicContext(ctx ParserProvider) {
 			l.AddAction(newLocatedItem[Action](&VariablePutOnStackActionDesc{value: identifier}, ctx.GetStart(), ctx.GetStop()))
 		}
 	*/
-	l.lastAlgebraicValue = rootAlgExpr
+	l.lastAlgebraicValues = rootAlgExpr
 	l.rootAlgebraicPc = nil
 	l.currentAlgebraicPc = nil
 }
@@ -557,13 +570,16 @@ type VariableActionContext struct {
 
 var _ ParseContext[Action] = (*VariableActionContext)(nil)
 
-func (vac *VariableActionContext) CreateFinalAction() (Action, error) {
+func (vac *VariableActionContext) CreateFinalItem() ([]Action, error) {
+	if len(vac.parseContextManager.lastVariableValues) > 1 {
+		return nil, fmt.Errorf("cannot have multiple variables at this place")
+	}
 	action := &VariablePutOnStackActionDesc{
-		value: vac.parseContextManager.lastVariableValue,
+		value: vac.parseContextManager.lastVariableValues[0],
 	}
 	// TODO must not be done here!!
-	vac.parseContextManager.lastVariableValue = nil
-	return action, nil
+	vac.parseContextManager.lastVariableValues = nil
+	return []Action{action}, nil
 }
 
 // EnterInstrVariable is called when entering the InstrVariable production.
@@ -758,7 +774,7 @@ type VariableListContext struct {
 
 var _ ParseContext[Action] = (*VariableListContext)(nil)
 
-func (pc *VariableListContext) CreateFinalAction() (Action, error) {
+func (pc *VariableListContext) CreateFinalItem() ([]Action, error) {
 
 	actions := toNonLocated(pc.BaseParseContext.items)
 	var itemVars []Variable
@@ -767,7 +783,9 @@ func (pc *VariableListContext) CreateFinalAction() (Action, error) {
 		itemVars = append(itemVars, itemAction.value)
 	}
 	listVar := CreateListVariable(itemVars)
-	return &VariablePutOnStackActionDesc{value: listVar}, nil
+	return []Action{
+		&VariablePutOnStackActionDesc{value: listVar},
+	}, nil
 }
 
 type RecursiveListContext struct {
