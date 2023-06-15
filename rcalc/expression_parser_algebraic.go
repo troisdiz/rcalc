@@ -7,33 +7,41 @@ import (
 )
 
 type AlgebraicVariableContext struct {
-	BaseParseContext[Action] // to avoid reimplementing the interface
-
-	exprText         string
-	algebraicContext *AlgebraicExprContext
+	BaseParseContext[Variable] // to avoid reimplementing the interface
+	parseContextManager        *ParseContextManager
+	exprText                   string
 }
 
-func (ac *AlgebraicVariableContext) CreateFinalAction() (Action, error) {
+var _ ParseContext[Variable] = (*AlgebraicVariableContext)(nil)
 
-	var algRootNode AlgebraicExpressionNode
-	// TODO
-	if ac.algebraicContext != nil {
-		algRootNode = ac.algebraicContext.GetRootExprNode()
-	}
+func (ac *AlgebraicVariableContext) CreateFinalAction() (Variable, error) {
 
-	//AlgebraicExpressionNode{}
-	return &VariablePutOnStackActionDesc{value: &AlgebraicExpressionVariable{
+	variable := &AlgebraicExpressionVariable{
 		CommonVariable: CommonVariable{
 			fType: TYPE_ALG_EXPR,
 		},
 		value:    ac.exprText,
-		rootNode: algRootNode,
-	}}, nil
+		rootNode: ac.parseContextManager.lastAlgebraicValue,
+	}
+	// TODO must not be done here!!
+	ac.parseContextManager.lastVariableValue = nil
+	return variable, nil
 }
 
 func (ac *AlgebraicVariableContext) TokenVisited(token int) {
 
 }
+
+type RootAlgebraicExprContext struct {
+	BaseParseContext[AlgebraicExpressionNode] // to avoid reimplementing the interface
+}
+
+func (rac *RootAlgebraicExprContext) CreateFinalAction() (AlgebraicExpressionNode, error) {
+	//TODO test length
+	return rac.items[0].item, nil
+}
+
+var _ ParseContext[AlgebraicExpressionNode] = (*RootAlgebraicExprContext)(nil)
 
 type AlgebraicExprContext struct {
 	BaseParseContext[AlgebraicExpressionNode] // to avoid reimplementing the interface

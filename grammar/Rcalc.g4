@@ -62,7 +62,7 @@ WHITESPACE: [ \r\n\t]+;
 // Rules
 start : instr_seq EOF;
 
-instr_seq: WHITESPACE* instr (WHITESPACE+ instr)* WHITESPACE*;
+instr_seq: WHITESPACE* instr (WHITESPACE+ instr)* WHITESPACE* # InstructionSequence;
 
 instr
     : action_or_var_call         # InstrActionOrVarCall

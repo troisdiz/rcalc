@@ -2,7 +2,7 @@ package rcalc
 
 import (
 	"fmt"
-	"github.com/antlr/antlr4/runtime/Go/antlr/v4"
+	"github.com/antlr4-go/antlr/v4"
 	"github.com/shopspring/decimal"
 	"strings"
 	parser "troisdizaines.com/rcalc/rcalc/parser"
@@ -172,6 +172,16 @@ func (g *BaseParseContext[T]) GetItems() []LocatedItem[T] {
 
 func (g *BaseParseContext[T]) TokenVisited(token int) {}
 
+type SingleVariableContext struct {
+	BaseParseContext[Variable] // to avoid reimplementing the interface
+}
+
+var _ ParseContext[Variable] = (*SingleVariableContext)(nil)
+
+func (v *SingleVariableContext) CreateFinalAction() (Variable, error) {
+	return toNonLocated(v.BaseParseContext.items)[0], nil
+}
+
 type IfThenElseContext struct {
 	BaseParseContext[Action] // to avoid reimplementing the interface
 
@@ -263,8 +273,14 @@ type ParseContextManager struct {
 	rootPc    *BaseParseContext[Action]
 	currentPc ParseContext[Action]
 
-	rootAlgebraicPc    *AlgebraicExprContext
+	rootAlgebraicPc    ParseContext[AlgebraicExpressionNode]
 	currentAlgebraicPc ParseContext[AlgebraicExpressionNode]
+	lastAlgebraicValue AlgebraicExpressionNode
+
+	currentVariablePcIdx int
+	rootVariablePc       []ParseContext[Variable]
+	currentVariablePc    []ParseContext[Variable]
+	lastVariableValue    Variable
 }
 
 func CreateParseContextManager(registry *ActionRegistry) *ParseContextManager {
@@ -273,14 +289,23 @@ func CreateParseContextManager(registry *ActionRegistry) *ParseContextManager {
 		items:  nil,
 	}
 	return &ParseContextManager{
-		registry:  registry,
-		rootPc:    rootPc,
-		currentPc: rootPc,
+		registry:             registry,
+		rootPc:               rootPc,
+		currentPc:            rootPc,
+		rootAlgebraicPc:      nil,
+		currentAlgebraicPc:   nil,
+		currentVariablePcIdx: -1,
+		rootVariablePc:       nil,
+		currentVariablePc:    nil,
 	}
 }
 
 func (l *ParseContextManager) AddAction(action LocatedItem[Action]) {
 	l.currentPc.AddItem(action)
+}
+
+func (l *ParseContextManager) AddVariable(variable LocatedItem[Variable]) {
+	l.currentVariablePc[l.currentVariablePcIdx].AddItem(variable)
 }
 
 func (l *ParseContextManager) AddVarName(varName LocatedItem[string]) {
@@ -296,6 +321,17 @@ func (l *ParseContextManager) BackToParentContext() {
 	oldCurrent := l.currentPc
 	l.currentPc = l.currentPc.GetParent()
 	l.currentPc.BackFromChild(oldCurrent)
+}
+
+func (l *ParseContextManager) StartNewVariableContext(ctx ParseContext[Variable]) {
+	ctx.SetParent(l.currentVariablePc[l.currentVariablePcIdx])
+	l.currentVariablePc[l.currentVariablePcIdx] = ctx
+}
+
+func (l *ParseContextManager) BackToParentVariableContext() {
+	oldCurrent := l.currentVariablePc[l.currentVariablePcIdx]
+	l.currentVariablePc[l.currentVariablePcIdx] = l.currentVariablePc[l.currentVariablePcIdx].GetParent()
+	l.currentVariablePc[l.currentVariablePcIdx].BackFromChild(oldCurrent)
 }
 
 func (l *ParseContextManager) StartNewAlgebraicContext(ctx ParseContext[AlgebraicExpressionNode]) {
@@ -321,8 +357,66 @@ func (l *ParseContextManager) TokenVisited(token int) {
 	}
 }
 
+type RootVariableContext struct {
+	BaseParseContext[Variable]
+}
+
+var _ ParseContext[Variable] = (*RootVariableContext)(nil)
+
+func (rvc *RootVariableContext) CreateFinalAction() (Variable, error) {
+	// TODO test length
+	return rvc.items[0].item, nil
+}
+
+func (l *ParseContextManager) switchToVariableContext(ctx ParserProvider) {
+
+	if len(l.rootVariablePc)-1 == l.currentVariablePcIdx {
+		l.rootVariablePc = append(l.rootVariablePc, &RootVariableContext{
+			BaseParseContext: BaseParseContext[Variable]{
+				parent: nil,
+				location: Location{
+					start: ctx.GetStart(),
+					stop:  ctx.GetStop(),
+				},
+			},
+		})
+		l.currentVariablePcIdx = l.currentVariablePcIdx + 1
+		GetLogger().Debugf("Variable context depth = %d", l.currentVariablePcIdx)
+		l.currentVariablePc = append(l.currentVariablePc, l.rootVariablePc[l.currentVariablePcIdx])
+	} else {
+		l.currentVariablePcIdx = l.currentVariablePcIdx + 1
+		GetLogger().Debugf("Variable context depth = %d", l.currentVariablePcIdx)
+
+		l.rootVariablePc[l.currentVariablePcIdx] = &RootVariableContext{
+			BaseParseContext: BaseParseContext[Variable]{
+				parent: nil,
+				location: Location{
+					start: ctx.GetStart(),
+					stop:  ctx.GetStop(),
+				},
+			},
+		}
+		l.currentVariablePc[l.currentVariablePcIdx] = l.rootVariablePc[l.currentVariablePcIdx]
+	}
+}
+
+func (l *ParseContextManager) backFromVariableContext(ctx ParserProvider) {
+	variable, err := l.rootVariablePc[l.currentVariablePcIdx].CreateFinalAction()
+	if err != nil {
+		panic("Error in backFromVariableContext")
+	}
+	l.lastVariableValue = variable
+	l.currentVariablePc[l.currentVariablePcIdx] = nil
+	l.rootVariablePc[l.currentVariablePcIdx] = nil
+	l.currentVariablePcIdx = l.currentVariablePcIdx - 1
+	GetLogger().Debugf("Variable context depth = %d", l.currentVariablePcIdx)
+}
+
 func (l *ParseContextManager) switchToAlgebraicContext(ctx ParserProvider) {
-	l.rootAlgebraicPc = &AlgebraicExprContext{
+	if l.rootAlgebraicPc != nil {
+		panic("Cannot switch to Algebraic Context when already in it")
+	}
+	l.rootAlgebraicPc = &RootAlgebraicExprContext{
 		BaseParseContext: BaseParseContext[AlgebraicExpressionNode]{
 			parent: nil,
 			location: Location{
@@ -330,32 +424,31 @@ func (l *ParseContextManager) switchToAlgebraicContext(ctx ParserProvider) {
 				stop:  ctx.GetStop(),
 			},
 		},
-		reg: l.registry,
 	}
 	l.currentAlgebraicPc = l.rootAlgebraicPc
 
-	text := ctx.GetText()
-	lenText := len(text)
-	exprText := text[1 : lenText-1]
-	l.StartNewContext(&AlgebraicVariableContext{
-		exprText:         exprText,
-		algebraicContext: l.rootAlgebraicPc,
-	})
+	/*
+		l.StartNewContext(&AlgebraicVariableContext{
+			algebraicContext: l.rootAlgebraicPc,
+		})*/
 }
 
 func (l *ParseContextManager) backFromAlgebraicContext(ctx ParserProvider) {
-	rootAlgExpr := l.rootAlgebraicPc.GetItems()
-
-	// TODO check there is only 1 item!
-	identifier, err := parseIdentifier(ctx.GetText(), rootAlgExpr[0].item)
+	rootAlgExpr, err := l.rootAlgebraicPc.CreateFinalAction()
 	if err != nil {
-		ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
-	} else {
-		l.AddAction(newLocatedItem[Action](&VariablePutOnStackActionDesc{value: identifier}, ctx.GetStart(), ctx.GetStop()))
+		panic("Error in backFromAlgebraicContext")
 	}
+	/*
+		identifier, err := parseIdentifier(ctx.GetText(), rootAlgExpr[0].item)
+		if err != nil {
+			ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
+		} else {
+			l.AddAction(newLocatedItem[Action](&VariablePutOnStackActionDesc{value: identifier}, ctx.GetStart(), ctx.GetStop()))
+		}
+	*/
+	l.lastAlgebraicValue = rootAlgExpr
 	l.rootAlgebraicPc = nil
 	l.currentAlgebraicPc = nil
-	l.BackToParentContext()
 }
 
 type RcalcParserListener struct {
@@ -455,6 +548,38 @@ func (l *RcalcParserListener) ExitInstrForNextLoop(c *parser.InstrForNextLoopCon
 /* Variables */
 /*********************************************************************************/
 
+type VariableActionContext struct {
+	BaseParseContext[Action] // to avoid reimplementing the interface
+	// TODO should be part of API or keep it here ?
+	// Maybe interface to only be a variable/action/algebraicexpr provider
+	parseContextManager *ParseContextManager
+}
+
+var _ ParseContext[Action] = (*VariableActionContext)(nil)
+
+func (vac *VariableActionContext) CreateFinalAction() (Action, error) {
+	action := &VariablePutOnStackActionDesc{
+		value: vac.parseContextManager.lastVariableValue,
+	}
+	// TODO must not be done here!!
+	vac.parseContextManager.lastVariableValue = nil
+	return action, nil
+}
+
+// EnterInstrVariable is called when entering the InstrVariable production.
+func (l *RcalcParserListener) EnterInstrVariable(c *parser.InstrVariableContext) {
+	l.contextManager.StartNewContext(&VariableActionContext{
+		parseContextManager: l.contextManager,
+	})
+	l.contextManager.switchToVariableContext(c)
+}
+
+// ExitInstrVariable is called when exiting the InstrVariable production.
+func (l *RcalcParserListener) ExitInstrVariable(c *parser.InstrVariableContext) {
+	l.contextManager.backFromVariableContext(c)
+	l.contextManager.BackToParentContext()
+}
+
 // ExitVariableNumber is called when production InstrNumber is exited.
 func (l *RcalcParserListener) ExitVariableNumber(ctx *parser.VariableNumberContext) {
 	//fmt.Printf("ExitInstrNumber: %s\n", ctx.GetText())
@@ -462,7 +587,8 @@ func (l *RcalcParserListener) ExitVariableNumber(ctx *parser.VariableNumberConte
 	if err != nil {
 		ctx.AddErrorNode(ctx.GetParser().GetCurrentToken())
 	} else {
-		l.contextManager.AddAction(newLocatedItem[Action](&VariablePutOnStackActionDesc{number}, ctx.GetStart(), ctx.GetStop()))
+		//l.contextManager.AddAction(newLocatedItem[Action](&VariablePutOnStackActionDesc{number}, ctx.GetStart(), ctx.GetStop()))
+		l.contextManager.AddVariable(newLocatedItem[Variable](number, ctx.GetStart(), ctx.GetStop()))
 	}
 }
 
@@ -475,14 +601,22 @@ type ParserProvider interface {
 
 // EnterVariableAlgebraicExpression is called when production VariableAlgebraicExpression is entered.
 func (l *RcalcParserListener) EnterVariableAlgebraicExpression(ctx *parser.VariableAlgebraicExpressionContext) {
-	//fmt.Println("EnterVariableAlgebraicExpression")
+	// root for Algebraic expressions
+	text := ctx.GetText()
+	lenText := len(text)
+	exprText := text[1 : lenText-1]
+
+	l.contextManager.StartNewVariableContext(&AlgebraicVariableContext{
+		parseContextManager: l.contextManager,
+		exprText:            exprText,
+	})
 	l.contextManager.switchToAlgebraicContext(ctx)
 }
 
 // ExitVariableAlgebraicExpression is called when production VariableAlgebraicExpression is exited.
 func (l *RcalcParserListener) ExitVariableAlgebraicExpression(ctx *parser.VariableAlgebraicExpressionContext) {
-	//fmt.Println("ExitVariableAlgebraicExpression")
 	l.contextManager.backFromAlgebraicContext(ctx)
+	l.contextManager.BackToParentVariableContext()
 }
 
 // EnterAlgExprAddSub is called when entering the AlgExprAddSub production.
@@ -719,17 +853,17 @@ func (el *RcalcParserErrorListener) SyntaxError(recognizer antlr.Recognizer, off
 	el.messages = append(el.messages, message)
 }
 
-func (el *RcalcParserErrorListener) ReportAmbiguity(recognizer antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex int, exact bool, ambigAlts *antlr.BitSet, configs antlr.ATNConfigSet) {
+func (el *RcalcParserErrorListener) ReportAmbiguity(recognizer antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex int, exact bool, ambigAlts *antlr.BitSet, configs *antlr.ATNConfigSet) {
 	/*	message := "ReportAmbiguity"
 		el.messages = append(el.messages, message)*/
 }
 
-func (el *RcalcParserErrorListener) ReportAttemptingFullContext(recognizer antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex int, conflictingAlts *antlr.BitSet, configs antlr.ATNConfigSet) {
+func (el *RcalcParserErrorListener) ReportAttemptingFullContext(recognizer antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex int, conflictingAlts *antlr.BitSet, configs *antlr.ATNConfigSet) {
 	/*	message := "ReportAttemptingFullContext"
 		el.messages = append(el.messages, message)*/
 }
 
-func (el *RcalcParserErrorListener) ReportContextSensitivity(recognizer antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex, prediction int, configs antlr.ATNConfigSet) {
+func (el *RcalcParserErrorListener) ReportContextSensitivity(recognizer antlr.Parser, dfa *antlr.DFA, startIndex, stopIndex, prediction int, configs *antlr.ATNConfigSet) {
 	message := "ReportContextSensitivity"
 	el.messages = append(el.messages, message)
 }
@@ -758,7 +892,7 @@ func parseToActionsImpl(cmds string, lexerName string, registry *ActionRegistry,
 	var listener *RcalcParserListener = CreateRcalcParserListener(registry)
 	//p.RemoveErrorListeners()
 	p.AddErrorListener(el)
-	parseResult := p.Start()
+	parseResult := p.Start_()
 	if el.HasErrors() {
 		return nil, fmt.Errorf("There are %d error(s):\n - %s", len(el.messages), strings.Join(el.messages, "\n - "))
 	}
