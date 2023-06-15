@@ -498,7 +498,7 @@ func TestAntlrParse2Numbers(t *testing.T) {
 				}
 			})
 			if assert.NoError(t, err, "Parse error : %s", err) {
-				assert.IsType(t, elt[0], &VariablePutOnStackActionDesc{})
+				assert.IsType(t, elt[0], &VariablePutOnStackActionDesc{}, "type %t is not VariablePutOnStackActionDesc", elt[0])
 			}
 		})
 	}
@@ -597,6 +597,7 @@ func TestAntlrParseIfThenElse(t *testing.T) {
 	var txt string = " if 1 1 == then 2 else 3 end"
 	var registry *ActionRegistry = initRegistry()
 
+	GetLogger().Debugf("Parsing %s", txt)
 	elt, err := parseToActionsImpl(txt, "Test", registry, func(listener parser.RcalcListener) parser.RcalcListener {
 		return &LoggingParserListener{
 			subListener: listener,
