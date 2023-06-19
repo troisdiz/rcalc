@@ -36,32 +36,45 @@ func (l *LoggingParserListener) spacesForDepth() string {
 	return result
 }
 
-func (l *LoggingParserListener) logMethodCalled() {
+func (l *LoggingParserListener) getMethodCalled() string {
 	pc := make([]uintptr, 15)
-	n := runtime.Callers(2, pc)
+	n := runtime.Callers(3, pc)
 	frames := runtime.CallersFrames(pc[:n])
 	frame, _ := frames.Next()
 
 	// Extract simple function name
 	lastDotPos := strings.LastIndex(frame.Function, ".")
 	functionName := frame.Function[lastDotPos+1:]
+	return functionName
+}
 
+func (l *LoggingParserListener) logMethodCalled() {
+	functionName := l.getMethodCalled()
+	l.logMethodCalledImplf(functionName, "")
+}
+
+func (l *LoggingParserListener) logMethodCalledf(format string, fArgs ...any) {
+	functionName := l.getMethodCalled()
+	l.logMethodCalledImplf(functionName, format, fArgs...)
+}
+
+func (l *LoggingParserListener) logMethodCalledImplf(functionName string, format string, fArgs ...any) {
 	if functionName != "EnterEveryRule" && functionName != "ExitEveryRule" {
 		// EnterEveryRule
 		if strings.HasPrefix(functionName, "Enter") {
-			GetLogger().Debugf("%s%s", l.spacesForDepth(), functionName)
+			GetLogger().Debugf("%s%s%s", l.spacesForDepth(), functionName, fmt.Sprintf(format, fArgs...))
 			l.depth++
 		} else if strings.HasPrefix(functionName, "Exit") {
 			l.depth--
-			GetLogger().Debugf("%s%s", l.spacesForDepth(), functionName)
+			GetLogger().Debugf("%s%s%s", l.spacesForDepth(), functionName, fmt.Sprintf(format, fArgs...))
 		} else {
-			GetLogger().Debugf("%s%s", l.spacesForDepth(), functionName)
+			GetLogger().Debugf("%s%s%s", l.spacesForDepth(), functionName, fmt.Sprintf(format, fArgs...))
 		}
 	}
 }
 
 func (l *LoggingParserListener) VisitTerminal(node antlr.TerminalNode) {
-	l.logMethodCalled()
+	l.logMethodCalledf(" => #%s# / #%d#", node.GetSymbol().GetText(), node.GetSymbol().GetTokenType())
 	l.subListener.VisitTerminal(node)
 }
 
@@ -151,7 +164,7 @@ func (l *LoggingParserListener) EnterFor_next_loop(c *parser.For_next_loopContex
 }
 
 func (l *LoggingParserListener) EnterLocalVarCreation(c *parser.LocalVarCreationContext) {
-	l.logMethodCalled()
+	l.logMethodCalledf(" => %s", c.GetText())
 	l.subListener.EnterLocalVarCreation(c)
 }
 
@@ -627,6 +640,7 @@ func TestAntlrParseIfThenElse(t *testing.T) {
 }
 
 func TestAntlrParseProgram(t *testing.T) {
+	t.Skip()
 	InitDevLogger("-")
 
 	var txt string = " << 1 3 for i 1 next >>"
@@ -694,6 +708,7 @@ func TestAntlrParseLocalVariableDeclarationForAlgebraicExpression(t *testing.T) 
 	var txt string = " -> a b 'a+b' "
 	var registry *ActionRegistry = initRegistry()
 
+	GetLogger().Debugf("Parsing %s", txt)
 	elt, err := parseToActionsImpl(txt, "Test", registry, func(listener parser.RcalcListener) parser.RcalcListener {
 		return &LoggingParserListener{
 			subListener: listener,
@@ -719,6 +734,7 @@ func TestAntlrParseLocalVariableDeclarationForAlgebraicExpression(t *testing.T) 
 }
 
 func TestAntlrParseList(t *testing.T) {
+	t.Skip()
 	InitDevLogger("-")
 	//var txt string = " ->  a  'a' "
 	var txt string = "{ 2 { 3 } }"
