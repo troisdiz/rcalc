@@ -82,7 +82,8 @@ type ParseContext[T any] interface {
 	ReportValidationError(location Location, err error)
 	GetValidationErrors() []ValidationError
 
-	BackFromChild(child ParseContext[T])
+	// BackFromChild Add self as argument to get polymorphism
+	BackFromChild(self ParseContext[T], child ParseContext[T])
 	CreateFinalItem() ([]T, error)
 
 	TokenVisited(token int)
@@ -149,18 +150,18 @@ func (g *BaseParseContext[T]) GetValidationErrors() []ValidationError {
 	return g.validationErrors
 }
 
-func (g *BaseParseContext[T]) BackFromChild(child ParseContext[T]) {
+func (g *BaseParseContext[T]) BackFromChild(self ParseContext[T], child ParseContext[T]) {
 	childValidationErrors := child.GetValidationErrors()
 	if len(childValidationErrors) > 0 {
 		g.validationErrors = append(g.validationErrors, childValidationErrors...)
 	} else {
 		actions, err := child.CreateFinalItem()
 		if err != nil {
-			g.ReportValidationError(Location{}, err)
+			self.ReportValidationError(Location{}, err)
 		} else {
 			for _, action := range actions {
 				GetLogger().Debugf("BaseParseContextt : AddItem called for an action")
-				g.AddItem(newLocatedItem(action, nil, nil))
+				self.AddItem(newLocatedItem(action, nil, nil))
 			}
 		}
 	}
@@ -354,7 +355,7 @@ func (l *ParseContextManager) BackToParentContext() {
 
 	oldCurrent := l.currentPc
 	l.currentPc = l.currentPc.GetParent()
-	l.currentPc.BackFromChild(oldCurrent)
+	l.currentPc.BackFromChild(l.currentPc, oldCurrent)
 }
 
 func (l *ParseContextManager) StartNewVariableContext(ctx ParseContext[Variable]) {
@@ -365,7 +366,7 @@ func (l *ParseContextManager) StartNewVariableContext(ctx ParseContext[Variable]
 func (l *ParseContextManager) BackToParentVariableContext() {
 	oldCurrent := l.currentVariablePc[l.currentVariablePcIdx]
 	l.currentVariablePc[l.currentVariablePcIdx] = l.currentVariablePc[l.currentVariablePcIdx].GetParent()
-	l.currentVariablePc[l.currentVariablePcIdx].BackFromChild(oldCurrent)
+	l.currentVariablePc[l.currentVariablePcIdx].BackFromChild(l.currentVariablePc[l.currentVariablePcIdx], oldCurrent)
 }
 
 func (l *ParseContextManager) StartNewAlgebraicContext(ctx ParseContext[AlgebraicExpressionNode]) {
@@ -376,7 +377,7 @@ func (l *ParseContextManager) StartNewAlgebraicContext(ctx ParseContext[Algebrai
 func (l *ParseContextManager) BackToParentAlgebraicContext() {
 	oldCurrent := l.currentAlgebraicPc
 	l.currentAlgebraicPc = l.currentAlgebraicPc.GetParent()
-	l.currentAlgebraicPc.BackFromChild(oldCurrent)
+	l.currentAlgebraicPc.BackFromChild(l.currentAlgebraicPc, oldCurrent)
 }
 
 func (l *ParseContextManager) TokenVisited(token int) {
