@@ -133,6 +133,7 @@ func (g *BaseParseContext[T]) SetParent(ctx ParseContext[T]) {
 }
 
 func (g *BaseParseContext[T]) AddItem(item LocatedItem[T]) {
+	GetLogger().Debugf("AddItem called in BaseParseContext")
 	g.items = append(g.items, item)
 }
 
@@ -158,6 +159,7 @@ func (g *BaseParseContext[T]) BackFromChild(child ParseContext[T]) {
 			g.ReportValidationError(Location{}, err)
 		} else {
 			for _, action := range actions {
+				GetLogger().Debugf("BaseParseContextt : AddItem called for an action")
 				g.AddItem(newLocatedItem(action, nil, nil))
 			}
 		}
@@ -193,8 +195,9 @@ type IfThenElseContext struct {
 
 var _ ParseContext[Action] = (*IfThenElseContext)(nil)
 
-func (i *IfThenElseContext) AddItem(action LocatedItem[Action]) {
-	i.actions[i.currentAction] = append(i.actions[i.currentAction], action)
+func (i *IfThenElseContext) AddItem(item LocatedItem[Action]) {
+	GetLogger().Debugf("AddItem called in IfThenElseContext")
+	i.actions[i.currentAction] = append(i.actions[i.currentAction], item)
 }
 
 func (i *IfThenElseContext) TokenVisited(token int) {
@@ -203,10 +206,13 @@ func (i *IfThenElseContext) TokenVisited(token int) {
 	}
 	switch token {
 	case parser.RcalcLexerKW_IF:
+		GetLogger().Debugf("TokenVisited in IfThenElseContext : IF")
 		i.currentAction = 0
 	case parser.RcalcLexerKW_THEN:
+		GetLogger().Debugf("TokenVisited in IfThenElseContext : THEN")
 		i.currentAction = 1
 	case parser.RcalcLexerKW_ELSE:
+		GetLogger().Debugf("TokenVisited in IfThenElseContext : ELSE")
 		i.currentAction = 2
 	}
 }
@@ -282,6 +288,8 @@ func (pc *InstrLocalVarCreationContext) CreateFinalItem() ([]Action, error) {
 type ParseContextManager struct {
 	registry *ActionRegistry
 
+	parserContextDepth int // for pretty logging
+
 	rootPc    *BaseParseContext[Action]
 	currentPc ParseContext[Action]
 
@@ -324,12 +332,26 @@ func (l *ParseContextManager) AddVarName(varName LocatedItem[string]) {
 	l.currentPc.AddIdentifier(varName)
 }
 
+func (l *ParseContextManager) spacesForDepth() string {
+	result := ""
+	for i := 0; i < l.parserContextDepth*4; i++ {
+		result += " "
+	}
+	return result
+}
+
 func (l *ParseContextManager) StartNewContext(ctx ParseContext[Action]) {
+
+	GetLogger().Debugf("%sCTX: Switch to context %T", l.spacesForDepth(), ctx)
+	l.parserContextDepth++
 	ctx.SetParent(l.currentPc)
 	l.currentPc = ctx
 }
 
 func (l *ParseContextManager) BackToParentContext() {
+	l.parserContextDepth--
+	GetLogger().Debugf("%sCTX: Back from context %T", l.spacesForDepth(), l.currentPc)
+
 	oldCurrent := l.currentPc
 	l.currentPc = l.currentPc.GetParent()
 	l.currentPc.BackFromChild(oldCurrent)
@@ -523,6 +545,27 @@ func (l *RcalcParserListener) ExitInstrOp(ctx *parser.InstrOpContext) {
 func (l *RcalcParserListener) VisitTerminal(node antlr.TerminalNode) {
 	l.contextManager.TokenVisited(node.GetSymbol().GetTokenType())
 	//fmt.Printf("VisitTerminal : #%s# / #%d#\n", node.GetSymbol().GetText(), node.GetSymbol().GetTokenType())
+}
+
+type InstructionSequenceParseContext struct {
+	BaseParseContext[Action]
+}
+
+var _ ParseContext[Action] = (*InstructionSequenceParseContext)(nil)
+
+func (ispc *InstructionSequenceParseContext) CreateFinalItem() ([]Action, error) {
+	return toNonLocated(ispc.BaseParseContext.items), nil
+}
+
+// EnterInstructionSequence is called when entering the InstructionSequence production.
+func (l *RcalcParserListener) EnterInstructionSequence(c *parser.InstructionSequenceContext) {
+	l.contextManager.StartNewContext(&InstructionSequenceParseContext{})
+}
+
+// ExitInstructionSequence is called when exiting the InstructionSequence production.
+func (l *RcalcParserListener) ExitInstructionSequence(c *parser.InstructionSequenceContext) {
+	l.contextManager.BackToParentContext()
+
 }
 
 // EnterInstrIfThenElse is called when entering the InstrIfThenElse production.
