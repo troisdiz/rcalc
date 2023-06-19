@@ -24,7 +24,7 @@ jobs:
       - name: Install Antlr4
         uses: StoneMoe/setup-antlr4@v2
         with:
-          download_url: 'https://www.antlr.org/download/antlr-4.11.1-complete.jar'
+          download_url: 'https://www.antlr.org/download/antlr-4.13.0-complete.jar'
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
         with:
