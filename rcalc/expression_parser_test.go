@@ -627,9 +627,12 @@ func TestAntlrParseIfThenElse(t *testing.T) {
 }
 
 func TestAntlrParseProgram(t *testing.T) {
+	InitDevLogger("-")
+
 	var txt string = " << 1 3 for i 1 next >>"
 	var registry *ActionRegistry = initRegistry()
 
+	GetLogger().Debugf("Parsing %s", txt)
 	elt, err := parseToActionsImpl(txt, "Test", registry, func(listener parser.RcalcListener) parser.RcalcListener {
 		return &LoggingParserListener{
 			subListener: listener,
