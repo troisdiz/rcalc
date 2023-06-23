@@ -880,7 +880,7 @@ func TestAlgebraicExpressionParsing(t *testing.T) {
 			p.AddErrorListener(el)
 			antlr.ParseTreeWalkerDefault.Walk(listener, p.Start_())
 			assert.False(t, el.hasErrors)
-			expressionNodes, _ := listener.contextManager.rootPc[listener.contextManager.currentActionPcIdx].CreateFinalItem()
+			expressionNodes, _ := listener.contextManager.rootActionPc[listener.contextManager.currentActionPcIdx].CreateFinalItem()
 			variablePutOnStackAction := expressionNodes[0].(*VariablePutOnStackActionDesc)
 			algExprVariable := variablePutOnStackAction.value.(*AlgebraicExpressionVariable)
 			if assert.NotNil(t, algExprVariable.rootNode, "Value of PutOnStackAction is nil for expr %s", expr.literal) {
