@@ -275,8 +275,8 @@ type ParseContextManager struct {
 	parserContextDepth int // for pretty logging
 
 	currentActionPcIdx int
-	rootPc             []ParseContext[Action]
-	currentPc          []ParseContext[Action]
+	rootActionPc       []ParseContext[Action]
+	currentActionPc    []ParseContext[Action]
 	lastActionValues   []Action
 
 	rootAlgebraicPc     ParseContext[AlgebraicExpressionNode]
@@ -295,8 +295,8 @@ func CreateParseContextManager(registry *ActionRegistry) *ParseContextManager {
 	return &ParseContextManager{
 		registry:             registry,
 		currentActionPcIdx:   0,
-		rootPc:               []ParseContext[Action]{rootPc},
-		currentPc:            []ParseContext[Action]{rootPc},
+		rootActionPc:         []ParseContext[Action]{rootPc},
+		currentActionPc:      []ParseContext[Action]{rootPc},
 		rootAlgebraicPc:      nil,
 		currentAlgebraicPc:   nil,
 		currentVariablePcIdx: -1,
@@ -306,7 +306,7 @@ func CreateParseContextManager(registry *ActionRegistry) *ParseContextManager {
 }
 
 func (l *ParseContextManager) AddAction(action LocatedItem[Action]) {
-	l.currentPc[l.currentActionPcIdx].AddItem(action)
+	l.currentActionPc[l.currentActionPcIdx].AddItem(action)
 }
 
 func (l *ParseContextManager) AddVariable(variable LocatedItem[Variable]) {
@@ -314,7 +314,7 @@ func (l *ParseContextManager) AddVariable(variable LocatedItem[Variable]) {
 }
 
 func (l *ParseContextManager) AddVarName(varName LocatedItem[string]) {
-	l.currentPc[l.currentActionPcIdx].AddIdentifier(varName)
+	l.currentActionPc[l.currentActionPcIdx].AddIdentifier(varName)
 }
 
 func (l *ParseContextManager) spacesForDepth() string {
@@ -329,17 +329,17 @@ func (l *ParseContextManager) StartNewContext(ctx ParseContext[Action]) {
 
 	GetLogger().Debugf("%sCTX: Switch to context %T", l.spacesForDepth(), ctx)
 	l.parserContextDepth++
-	ctx.SetParent(l.currentPc[l.currentActionPcIdx])
-	l.currentPc[l.currentActionPcIdx] = ctx
+	ctx.SetParent(l.currentActionPc[l.currentActionPcIdx])
+	l.currentActionPc[l.currentActionPcIdx] = ctx
 }
 
 func (l *ParseContextManager) BackToParentContext() {
 	l.parserContextDepth--
-	GetLogger().Debugf("%sCTX: Back from context %T", l.spacesForDepth(), l.currentPc[l.currentActionPcIdx])
+	GetLogger().Debugf("%sCTX: Back from context %T", l.spacesForDepth(), l.currentActionPc[l.currentActionPcIdx])
 
-	oldCurrent := l.currentPc[l.currentActionPcIdx]
-	l.currentPc[l.currentActionPcIdx] = l.currentPc[l.currentActionPcIdx].GetParent()
-	l.currentPc[l.currentActionPcIdx].BackFromChild(l.currentPc[l.currentActionPcIdx], oldCurrent)
+	oldCurrent := l.currentActionPc[l.currentActionPcIdx]
+	l.currentActionPc[l.currentActionPcIdx] = l.currentActionPc[l.currentActionPcIdx].GetParent()
+	l.currentActionPc[l.currentActionPcIdx].BackFromChild(l.currentActionPc[l.currentActionPcIdx], oldCurrent)
 }
 
 func (l *ParseContextManager) StartNewVariableContext(ctx ParseContext[Variable]) {
@@ -370,7 +370,7 @@ func (l *ParseContextManager) TokenVisited(token int) {
 		// we cannot ask the grammar to skip it in order to make a diference between 2- 3 and 2 -3
 		return
 	}
-	l.currentPc[l.currentActionPcIdx].TokenVisited(token)
+	l.currentActionPc[l.currentActionPcIdx].TokenVisited(token)
 	if l.currentAlgebraicPc != nil {
 		l.currentAlgebraicPc.TokenVisited(token)
 	}
@@ -388,8 +388,8 @@ func (rac *RootActionContext) CreateFinalItem() ([]Action, error) {
 
 func (l *ParseContextManager) switchToActionContext(ctx ParserProvider) {
 
-	if len(l.rootPc)-1 == l.currentActionPcIdx {
-		l.rootPc = append(l.rootPc, &RootActionContext{
+	if len(l.rootActionPc)-1 == l.currentActionPcIdx {
+		l.rootActionPc = append(l.rootActionPc, &RootActionContext{
 			BaseParseContext: BaseParseContext[Action]{
 				parent: nil,
 				location: Location{
@@ -400,12 +400,12 @@ func (l *ParseContextManager) switchToActionContext(ctx ParserProvider) {
 		})
 		l.currentActionPcIdx = l.currentActionPcIdx + 1
 		GetLogger().Debugf("switchToActionContext: depth = %d", l.currentActionPcIdx+1)
-		l.currentPc = append(l.currentPc, l.rootPc[l.currentActionPcIdx])
+		l.currentActionPc = append(l.currentActionPc, l.rootActionPc[l.currentActionPcIdx])
 	} else {
 		l.currentActionPcIdx = l.currentActionPcIdx + 1
 		GetLogger().Debugf("switchToActionContext: depth = %d", l.currentActionPcIdx+1)
 
-		l.rootPc[l.currentActionPcIdx] = &RootActionContext{
+		l.rootActionPc[l.currentActionPcIdx] = &RootActionContext{
 			BaseParseContext: BaseParseContext[Action]{
 				parent: nil,
 				location: Location{
@@ -414,18 +414,18 @@ func (l *ParseContextManager) switchToActionContext(ctx ParserProvider) {
 				},
 			},
 		}
-		l.currentPc[l.currentActionPcIdx] = l.rootPc[l.currentActionPcIdx]
+		l.currentActionPc[l.currentActionPcIdx] = l.rootActionPc[l.currentActionPcIdx]
 	}
 }
 
 func (l *ParseContextManager) backFromActionContext(ctx ParserProvider) {
-	action, err := l.rootPc[l.currentActionPcIdx].CreateFinalItem()
+	action, err := l.rootActionPc[l.currentActionPcIdx].CreateFinalItem()
 	if err != nil {
 		panic("Error in backFromActionContext")
 	}
 	l.lastActionValues = action
-	l.currentPc[l.currentActionPcIdx] = nil
-	l.rootPc[l.currentActionPcIdx] = nil
+	l.currentActionPc[l.currentActionPcIdx] = nil
+	l.rootActionPc[l.currentActionPcIdx] = nil
 	l.currentActionPcIdx = l.currentActionPcIdx - 1
 	GetLogger().Debugf("backFromActionContext: depth after = %d", l.currentActionPcIdx+1)
 }
@@ -1001,10 +1001,10 @@ func parseToActionsImpl(cmds string, lexerName string, registry *ActionRegistry,
 
 	var pluggedListener parser.RcalcListener = listenerTransformer(listener)
 	antlr.ParseTreeWalkerDefault.Walk(pluggedListener, parseResult)
-	if len(listener.contextManager.rootPc[listener.contextManager.currentActionPcIdx].GetValidationErrors()) > 0 {
-		errorsAsString := toErrorMessage(listener.contextManager.rootPc[listener.contextManager.currentActionPcIdx].GetValidationErrors())
-		return nil, fmt.Errorf("There are %d validations error(s):\n%s", len(listener.contextManager.rootPc[listener.contextManager.currentActionPcIdx].GetValidationErrors()), errorsAsString)
+	if len(listener.contextManager.rootActionPc[listener.contextManager.currentActionPcIdx].GetValidationErrors()) > 0 {
+		errorsAsString := toErrorMessage(listener.contextManager.rootActionPc[listener.contextManager.currentActionPcIdx].GetValidationErrors())
+		return nil, fmt.Errorf("There are %d validations error(s):\n%s", len(listener.contextManager.rootActionPc[listener.contextManager.currentActionPcIdx].GetValidationErrors()), errorsAsString)
 	}
 
-	return listener.contextManager.rootPc[listener.contextManager.currentActionPcIdx].CreateFinalItem()
+	return listener.contextManager.rootActionPc[listener.contextManager.currentActionPcIdx].CreateFinalItem()
 }
