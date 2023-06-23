@@ -37,12 +37,6 @@ func parserNumber(txt string) (Variable, error) {
 	return CreateNumericVariable(number), nil
 }
 
-func parseIdentifier(txt string, node AlgebraicExpressionNode) (Variable, error) {
-	l := len(txt)
-	// TODO is identifier also ?
-	return CreateAlgebraicExpressionVariable(txt[1:l-1], node), nil
-}
-
 func parseAction(txt string, registry *ActionRegistry) (Action, error) {
 	lowerTxt := strings.ToLower(txt)
 	if registry.ContainsOpCode(lowerTxt) {
