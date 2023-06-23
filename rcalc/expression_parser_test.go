@@ -640,10 +640,10 @@ func TestAntlrParseIfThenElse(t *testing.T) {
 }
 
 func TestAntlrParseProgram(t *testing.T) {
-	t.Skip()
 	InitDevLogger("-")
 
 	var txt string = " << 1 3 for i 1 next >>"
+	//var txt string = " << 1 >>"
 	var registry *ActionRegistry = initRegistry()
 
 	GetLogger().Debugf("Parsing %s", txt)
@@ -670,6 +670,7 @@ func TestAntlrParseProgram(t *testing.T) {
 }
 
 func TestAntlrParseLocalVariableDeclarationForProgram(t *testing.T) {
+	//t.Skip()
 	InitDevLogger("-")
 	var txt string = " ->  a b << a >>"
 	var registry *ActionRegistry = initRegistry()
@@ -879,8 +880,8 @@ func TestAlgebraicExpressionParsing(t *testing.T) {
 			p.AddErrorListener(el)
 			antlr.ParseTreeWalkerDefault.Walk(listener, p.Start_())
 			assert.False(t, el.hasErrors)
-			expressionNodes := listener.contextManager.rootPc.GetItems()
-			variablePutOnStackAction := expressionNodes[0].item.(*VariablePutOnStackActionDesc)
+			expressionNodes, _ := listener.contextManager.rootPc[listener.contextManager.currentActionPcIdx].CreateFinalItem()
+			variablePutOnStackAction := expressionNodes[0].(*VariablePutOnStackActionDesc)
 			algExprVariable := variablePutOnStackAction.value.(*AlgebraicExpressionVariable)
 			if assert.NotNil(t, algExprVariable.rootNode, "Value of PutOnStackAction is nil for expr %s", expr.literal) {
 				nodeByExpression[expr.literal] = algExprVariable.rootNode
