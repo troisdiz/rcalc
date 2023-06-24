@@ -25,8 +25,6 @@ func (ac *AlgebraicVariableContext) CreateFinalItem() ([]Variable, error) {
 		value:    ac.exprText,
 		rootNode: ac.parseContextManager.lastAlgebraicValues[0],
 	}
-	// TODO must not be done here!!
-	ac.parseContextManager.lastVariableValues = nil
 	return []Variable{variable}, nil
 }
 
