@@ -15,7 +15,7 @@ type AlgebraicVariableContext struct {
 var _ ParseContext[Variable] = (*AlgebraicVariableContext)(nil)
 
 func (ac *AlgebraicVariableContext) CreateFinalItem() ([]Variable, error) {
-	if len(ac.parseContextManager.lastAlgebraicValues) > 1 {
+	if len(ac.parseContextManager.algebraicCtxStack.GetLastValues()) > 1 {
 		return nil, fmt.Errorf("cannot create multiple variables with a single algebraic expression (should panic?)")
 	}
 	variable := &AlgebraicExpressionVariable{
@@ -23,27 +23,14 @@ func (ac *AlgebraicVariableContext) CreateFinalItem() ([]Variable, error) {
 			fType: TYPE_ALG_EXPR,
 		},
 		value:    ac.exprText,
-		rootNode: ac.parseContextManager.lastAlgebraicValues[0],
+		rootNode: ac.parseContextManager.algebraicCtxStack.GetLastValues()[0],
 	}
-	// TODO must not be done here!!
-	ac.parseContextManager.lastVariableValues = nil
 	return []Variable{variable}, nil
 }
 
 func (ac *AlgebraicVariableContext) TokenVisited(token int) {
 
 }
-
-type RootAlgebraicExprContext struct {
-	BaseParseContext[AlgebraicExpressionNode] // to avoid reimplementing the interface
-}
-
-func (rac *RootAlgebraicExprContext) CreateFinalItem() ([]AlgebraicExpressionNode, error) {
-	//TODO test length
-	return []AlgebraicExpressionNode{rac.items[0].item}, nil
-}
-
-var _ ParseContext[AlgebraicExpressionNode] = (*RootAlgebraicExprContext)(nil)
 
 type AlgebraicExprContext struct {
 	BaseParseContext[AlgebraicExpressionNode] // to avoid reimplementing the interface
