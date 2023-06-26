@@ -62,7 +62,7 @@ WHITESPACE: [ \r\n\t]+;
 // Rules
 start : instr_seq EOF;
 
-instr_seq: WHITESPACE* instr (WHITESPACE+ instr)* WHITESPACE*;
+instr_seq: WHITESPACE* instr (WHITESPACE+ instr)* WHITESPACE* # InstructionSequence;
 
 instr
     : action_or_var_call         # InstrActionOrVarCall
@@ -99,12 +99,14 @@ statement_for_local_var_creation
     ;
 
 variable
-    : (OP_ADD|OP_SUB)?NUMBER      # VariableNumber
+    : number                      # VariableNumber
     | quoted_algebraic_expression # VariableAlgebraicExpression
     | program_declaration         # VariableProgramDeclaration
     | list                        # VariableList
     | vector                      # VariableVector
     ;
+
+number: (OP_ADD|OP_SUB)?NUMBER ;
 
 quoted_algebraic_expression: QUOTE WHITESPACE* alg_expression WHITESPACE* QUOTE ;
 
@@ -141,8 +143,10 @@ alg_func_call
    : function_name=NAME PAREN_OPEN alg_expression (COMMA alg_expression)* PAREN_CLOSE # AlgExprFuncCall
    ;
 
-list : CURLY_OPEN variable* CURLY_CLOSE ;
+list : CURLY_OPEN WHITESPACE* (list_item WHITESPACE*)* CURLY_CLOSE;
 
-vector : BRACKET_OPEN variable* BRACKET_CLOSE ;
+list_item : variable # ListItem;
+
+vector : BRACKET_OPEN (vector+|number+) BRACKET_CLOSE ;
 
 action_or_var_call: NAME;

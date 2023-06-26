@@ -1,6 +1,7 @@
 package rcalc
 
 import (
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/protobuf/proto"
 	"testing"
@@ -77,7 +78,7 @@ func TestSaveAndReadActions(t *testing.T) {
 }
 
 func TestSaveAndReadStack(t *testing.T) {
-
+	InitDevLogger("-")
 	var stack *Stack = CreateStack()
 	v1 := CreateNumericVariableFromInt(2)
 	stack.Push(v1)
@@ -88,6 +89,7 @@ func TestSaveAndReadStack(t *testing.T) {
 	a1 := &VariablePutOnStackActionDesc{value: CreateNumericVariableFromInt(5)}
 	a2 := &VariablePutOnStackActionDesc{value: CreateNumericVariableFromInt(7)}
 	v3 := CreateProgramVariable([]Action{a1, a2, &addOp})
+
 	stack.Push(v3)
 
 	v4 := CreateAlgebraicExpressionVariable("abc", &AlgExprSignedElt{
@@ -95,6 +97,18 @@ func TestSaveAndReadStack(t *testing.T) {
 		operator: 0,
 	})
 	stack.Push(v4)
+
+	v5 := CreateListVariable([]Variable{
+		CreateNumericVariable(decimal.NewFromInt(45)),
+		CreateBooleanVariable(false),
+		CreateListVariable([]Variable{
+			CreateAlgebraicExpressionVariable("abcd", &AlgExprSignedElt{
+				items:    &AlgExprVariable{value: "abcd"},
+				operator: 0,
+			}),
+		}),
+	})
+	stack.Push(v5)
 
 	protoStack, err := CreateProtoFromStack(stack)
 	if assert.NoError(t, err) {
