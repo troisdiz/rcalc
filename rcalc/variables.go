@@ -359,7 +359,7 @@ func CreateProtoFromAlgExpr(algExpr *AlgebraicExpressionVariable) (*protostack.A
 	return protoAlgExpr, nil
 }
 
-func CreateListFromProto(reg *ActionRegistry, protoListVariable *protostack.ListVariable) (*ListVariable, error) {
+func CreateListFromProto(reg *ActionRegistry, protoListVariable *protostack.ListVariable) (Variable, error) {
 
 	var items []Variable
 	for _, protoVar := range protoListVariable.GetItems() {
@@ -389,8 +389,7 @@ func CreateVariableFromProto(reg *ActionRegistry, protoVariable *protostack.Vari
 	case protostack.VariableType_ALGEBRAIC_EXPRESSION:
 		return CreateAlgebraicExpressionVariableFromProto(reg, protoVariable.GetAlgExpr())
 	case protostack.VariableType_LIST:
-		//TODO
-		return nil, nil
+		return CreateListFromProto(reg, protoVariable.GetList())
 	default:
 		return nil, fmt.Errorf("unknown variable type")
 	}
