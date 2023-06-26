@@ -143,7 +143,9 @@ alg_func_call
    : function_name=NAME PAREN_OPEN alg_expression (COMMA alg_expression)* PAREN_CLOSE # AlgExprFuncCall
    ;
 
-list : CURLY_OPEN (list|variable|WHITESPACE)* CURLY_CLOSE # RecursiveList;
+list : CURLY_OPEN WHITESPACE* (list_item WHITESPACE*)* CURLY_CLOSE;
+
+list_item : variable # ListItem;
 
 vector : BRACKET_OPEN (vector+|number+) BRACKET_CLOSE ;
 

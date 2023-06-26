@@ -306,7 +306,7 @@ func (pcs *ParseContextStack[T]) startNewSubContext(ctx ParseContext[T]) {
 
 func (pcs *ParseContextStack[T]) backToParentContext() {
 	//pcs.parserContextDepth--
-	GetLogger().Debugf("sCTX: backToParentContext %T", pcs.currentActionPc[pcs.currentActionPcIdx])
+	GetLogger().Debugf("CTX: backToParentContext %T", pcs.currentActionPc[pcs.currentActionPcIdx])
 
 	oldCurrent := pcs.currentActionPc[pcs.currentActionPcIdx]
 	pcs.currentActionPc[pcs.currentActionPcIdx] = pcs.currentActionPc[pcs.currentActionPcIdx].GetParent()
@@ -772,31 +772,33 @@ func (pc *VariableListContext) CreateFinalItem() ([]Action, error) {
 	}, nil
 }
 
-type RecursiveListContext struct {
+type ListItemContext struct {
 	BaseParseContext[Variable] // to avoid reimplementing the interface
 }
 
-var _ ParseContext[Variable] = (*RecursiveListContext)(nil)
+func (rlc *ListItemContext) CreateFinalItem() ([]Variable, error) {
+	listVariable := CreateListVariable(toNonLocated(rlc.BaseParseContext.items))
+	return []Variable{listVariable}, nil
+}
+
+var _ ParseContext[Variable] = (*ListItemContext)(nil)
 
 // EnterVariableList is called when entering the VariableList production.
 func (l *RcalcParserListener) EnterVariableList(c *parser.VariableListContext) {
-	l.contextManager.actionCtxStack.startNewSubContext(&VariableListContext{})
-	// TODO switch to list context
+	l.contextManager.variableCtxStack.startNewSubContext(&ListItemContext{})
 }
 
 // ExitVariableList is called when exiting the VariableList production.
 func (l *RcalcParserListener) ExitVariableList(c *parser.VariableListContext) {
-	l.contextManager.actionCtxStack.backToParentContext()
+	l.contextManager.variableCtxStack.backToParentContext()
 }
 
-// EnterRecursiveList is called when entering the RecursiveList production.
-func (l *RcalcParserListener) EnterRecursiveList(c *parser.RecursiveListContext) {
-	// TODO new type of list context
+func (l *RcalcParserListener) EnterListItem(c *parser.ListItemContext) {
+	l.contextManager.variableCtxStack.startNewSubContext(&RootContext[Variable]{})
 }
 
-// ExitRecursiveList is called when exiting the RecursiveList production.
-func (l *RcalcParserListener) ExitRecursiveList(c *parser.RecursiveListContext) {
-	// TODO switch to previous type of context
+func (l *RcalcParserListener) ExitListItem(c *parser.ListItemContext) {
+	l.contextManager.variableCtxStack.backToParentContext()
 }
 
 /*********************************************************************************/

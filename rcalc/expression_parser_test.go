@@ -202,15 +202,22 @@ func (l *LoggingParserListener) EnterVariableList(c *parser.VariableListContext)
 	l.logMethodCalled()
 	l.subListener.EnterVariableList(c)
 }
-
-func (l *LoggingParserListener) EnterRecursiveList(c *parser.RecursiveListContext) {
+func (l *LoggingParserListener) EnterList(c *parser.ListContext) {
 	l.logMethodCalled()
-	l.subListener.EnterRecursiveList(c)
+	l.subListener.EnterList(c)
 }
 
-func (l *LoggingParserListener) ExitRecursiveList(c *parser.RecursiveListContext) {
+func (l *LoggingParserListener) ExitList(c *parser.ListContext) {
 	l.logMethodCalled()
-	l.subListener.ExitRecursiveList(c)
+	l.subListener.ExitList(c)
+}
+
+func (l *LoggingParserListener) EnterListItem(c *parser.ListItemContext) {
+	l.logMethodCalled()
+}
+
+func (l *LoggingParserListener) ExitListItem(c *parser.ListItemContext) {
+	l.logMethodCalled()
 }
 
 func (l *LoggingParserListener) EnterVariableVector(c *parser.VariableVectorContext) {
@@ -735,9 +742,7 @@ func TestAntlrParseLocalVariableDeclarationForAlgebraicExpression(t *testing.T) 
 }
 
 func TestAntlrParseList(t *testing.T) {
-	t.Skip()
 	InitDevLogger("-")
-	//var txt string = " ->  a  'a' "
 	var txt string = "{ 2 { 3 } }"
 	var registry *ActionRegistry = initRegistry()
 
@@ -753,9 +758,11 @@ func TestAntlrParseList(t *testing.T) {
 			variablePutListOnStack := elt[0].(*VariablePutOnStackActionDesc)
 			listVar := variablePutListOnStack.value
 			if assert.NotNil(t, listVar) {
-				listVariable := listVar.(*ListVariable)
-				assert.Len(t, listVariable.items, 2)
-				assert.IsType(t, &ListVariable{}, listVariable.items[1])
+				if assert.IsType(t, &ListVariable{}, listVar) {
+					listVariable := listVar.(*ListVariable)
+					assert.Len(t, listVariable.items, 2)
+					assert.IsType(t, &ListVariable{}, listVariable.items[1])
+				}
 			}
 		}
 	}
