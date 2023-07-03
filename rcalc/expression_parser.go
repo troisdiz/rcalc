@@ -804,6 +804,30 @@ func (l *RcalcParserListener) ExitListItem(c *parser.ListItemContext) {
 	l.contextManager.variableCtxStack.backToParentContext()
 }
 
+func (l *RcalcParserListener) EnterVariableVector(c *parser.VariableVectorContext) {
+}
+
+func (l *RcalcParserListener) ExitVariableVector(c *parser.VariableVectorContext) {
+}
+
+func (l *RcalcParserListener) EnterVector(c *parser.VectorContext) {
+}
+
+func (l *RcalcParserListener) ExitVector(c *parser.VectorContext) {
+}
+
+func (l *RcalcParserListener) EnterVectorItemNumber(c *parser.VectorItemNumberContext) {
+}
+
+func (l *RcalcParserListener) ExitVectorItemNumber(c *parser.VectorItemNumberContext) {
+}
+
+func (l *RcalcParserListener) EnterVectorItemVector(c *parser.VectorItemVectorContext) {
+}
+
+func (l *RcalcParserListener) ExitVectorItemVector(c *parser.VectorItemVectorContext) {
+}
+
 /*********************************************************************************/
 /* Local var creation */
 /*********************************************************************************/

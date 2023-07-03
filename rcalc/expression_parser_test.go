@@ -226,6 +226,26 @@ func (l *LoggingParserListener) EnterVariableVector(c *parser.VariableVectorCont
 	l.subListener.EnterVariableVector(c)
 }
 
+func (l *LoggingParserListener) EnterVectorItemNumber(c *parser.VectorItemNumberContext) {
+	l.logMethodCalled()
+	l.subListener.EnterVectorItemNumber(c)
+}
+
+func (l *LoggingParserListener) ExitVectorItemNumber(c *parser.VectorItemNumberContext) {
+	l.logMethodCalled()
+	l.subListener.ExitVectorItemNumber(c)
+}
+
+func (l *LoggingParserListener) EnterVectorItemVector(c *parser.VectorItemVectorContext) {
+	l.logMethodCalled()
+	l.subListener.EnterVectorItemVector(c)
+}
+
+func (l *LoggingParserListener) ExitVectorItemVector(c *parser.VectorItemVectorContext) {
+	l.logMethodCalled()
+	l.subListener.ExitVectorItemVector(c)
+}
+
 func (l *LoggingParserListener) EnterQuoted_algebraic_expression(c *parser.Quoted_algebraic_expressionContext) {
 	l.logMethodCalled()
 	l.subListener.EnterQuoted_algebraic_expression(c)
