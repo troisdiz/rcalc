@@ -26,9 +26,9 @@ jobs:
         with:
           download_url: 'https://www.antlr.org/download/antlr-4.13.0-complete.jar'
       - name: Install Protoc
-        uses: arduino/setup-protoc@v1
+        uses: arduino/setup-protoc@v2
         with:
-          version: '3.x'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install proto-gen-go
         run: go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
       - name: Generate source from antlr grammar and protobuf files
