@@ -9,7 +9,7 @@ var addOp = NewA2R1NumericOp("+", func(num1 decimal.Decimal, num2 decimal.Decima
 })
 
 var subOp = NewA2R1NumericOp("-", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
-	return num1.Sub(num2)
+	return num2.Sub(num1)
 })
 
 var mulOp = NewA2R1NumericOp("*", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
@@ -17,11 +17,11 @@ var mulOp = NewA2R1NumericOp("*", func(num1 decimal.Decimal, num2 decimal.Decima
 })
 
 var divOp = NewA2R1NumericOp("/", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
-	return num1.Div(num2)
+	return num2.Div(num1)
 })
 
 var powOp = NewA2R1NumericOp("^", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
-	return num1.Pow(num2)
+	return num2.Pow(num1)
 })
 
 var ArithmeticPackage = ActionPackage{
