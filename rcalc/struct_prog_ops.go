@@ -611,7 +611,10 @@ func (a *VariableDeclarationActionDesc) Apply(runtimeContext *RuntimeContext) er
 	defer func() {
 		runtimeContext.LeaveScope()
 	}()
-	for _, varName := range a.varNames {
+	// Need to go in reverse order since we Pop elements one by one and we want the last variable to be filled with
+	// the lowest element of the stack (lowest = the first to be popped)
+	for i := len(a.varNames) - 1; i >= 0; i-- {
+		varName := a.varNames[i]
 		varValue, err := runtimeContext.stack.Pop()
 		if err != nil {
 			return err

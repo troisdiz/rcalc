@@ -75,7 +75,7 @@ instr
     ;
 
 op
-    : OP_ADD | OP_SUB | OP_MUL | OP_DIV
+    : OP_ADD | OP_SUB | OP_MUL | OP_DIV | OP_POW
     | OP_TEST_EQUAL | OP_TEST_GT | OP_TEST_GET | OP_TEST_LT | OP_TEST_LET
     ;
 
