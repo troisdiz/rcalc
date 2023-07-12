@@ -3,10 +3,20 @@ package rcalc
 import (
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 	"testing"
 )
 
-func TestOpsPow(t *testing.T) {
+type ArithmeticTestSuite struct {
+	suite.Suite
+}
+
+func TestArithmeticTestSuite(t *testing.T) {
+
+	suite.Run(t, new(ArithmeticTestSuite))
+}
+
+func (suite *ArithmeticTestSuite) TestOpsPow() {
 
 	var x = CreateNumericVariable(decimal.NewFromInt(2))
 	var y = CreateNumericVariable(decimal.NewFromInt(3))
@@ -19,16 +29,16 @@ func TestOpsPow(t *testing.T) {
 	runtimeContext := CreateRuntimeContext(system, stack)
 
 	var err = powOp.Apply(runtimeContext)
-	if assert.NoError(t, err) {
+	if assert.NoError(suite.T(), err) {
 		var result Variable
 		result, err = stack.Pop()
-		if assert.NoError(t, err) {
-			assert.Equal(t, decimal.NewFromInt(8), result.asNumericVar().value)
+		if assert.NoError(suite.T(), err) {
+			assert.Equal(suite.T(), decimal.NewFromInt(8), result.asNumericVar().value)
 		}
 	}
 }
 
-func TestOpsSub(t *testing.T) {
+func (suite *ArithmeticTestSuite) TestOpsSub() {
 
 	var x = CreateNumericVariable(decimal.NewFromInt(2))
 	var y = CreateNumericVariable(decimal.NewFromInt(3))
@@ -41,16 +51,16 @@ func TestOpsSub(t *testing.T) {
 	runtimeContext := CreateRuntimeContext(system, stack)
 
 	var err = subOp.Apply(runtimeContext)
-	if assert.NoError(t, err) {
+	if assert.NoError(suite.T(), err) {
 		var result Variable
 		result, err = stack.Pop()
-		if assert.NoError(t, err) {
-			assert.Equal(t, decimal.NewFromInt(-1), result.asNumericVar().value)
+		if assert.NoError(suite.T(), err) {
+			assert.Equal(suite.T(), decimal.NewFromInt(-1), result.asNumericVar().value)
 		}
 	}
 }
 
-func TestOpsDiv(t *testing.T) {
+func (suite *ArithmeticTestSuite) TestOpsDiv() {
 
 	var x = CreateNumericVariable(decimal.NewFromInt(27))
 	var y = CreateNumericVariable(decimal.NewFromInt(3))
@@ -63,11 +73,11 @@ func TestOpsDiv(t *testing.T) {
 	runtimeContext := CreateRuntimeContext(system, stack)
 
 	var err = divOp.Apply(runtimeContext)
-	if assert.NoError(t, err) {
+	if assert.NoError(suite.T(), err) {
 		var result Variable
 		result, err = stack.Pop()
-		if assert.NoError(t, err) {
-			assert.True(t, decimal.NewFromInt(9).Equal(result.asNumericVar().value))
+		if assert.NoError(suite.T(), err) {
+			assert.True(suite.T(), decimal.NewFromInt(9).Equal(result.asNumericVar().value))
 		}
 	}
 }
