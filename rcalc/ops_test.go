@@ -11,6 +11,31 @@ type ArithmeticTestSuite struct {
 	suite.Suite
 }
 
+func (suite *ArithmeticTestSuite) testOperation(operation OperationDesc, inputVars []Variable, expectedOutputVars []*NumericVariable) {
+	stack := CreateStack()
+	for _, inputVar := range inputVars {
+		stack.Push(inputVar)
+
+	}
+	system := CreateSystemInstance()
+	runtimeContext := CreateRuntimeContext(system, stack)
+
+	var err = operation.Apply(runtimeContext)
+	if assert.NoError(suite.T(), err) {
+		var results []Variable
+
+		results, err = stack.PopN(len(expectedOutputVars))
+		if assert.NoError(suite.T(), err) {
+			for i, expectedOutputVar := range expectedOutputVars {
+				assert.True(suite.T(), expectedOutputVar.Equals(results[i].asNumericVar()),
+					"Expected %s, got %s",
+					expectedOutputVar.value.String(),
+					results[i].asNumericVar().value.String())
+			}
+		}
+	}
+}
+
 func TestArithmeticTestSuite(t *testing.T) {
 
 	suite.Run(t, new(ArithmeticTestSuite))
@@ -18,68 +43,39 @@ func TestArithmeticTestSuite(t *testing.T) {
 
 func (suite *ArithmeticTestSuite) TestOpsPow() {
 
-	var x = CreateNumericVariable(decimal.NewFromInt(2))
-	var y = CreateNumericVariable(decimal.NewFromInt(3))
-
-	stack := CreateStack()
-	stack.Push(x)
-	stack.Push(y)
-
-	system := CreateSystemInstance()
-	runtimeContext := CreateRuntimeContext(system, stack)
-
-	var err = powOp.Apply(runtimeContext)
-	if assert.NoError(suite.T(), err) {
-		var result Variable
-		result, err = stack.Pop()
-		if assert.NoError(suite.T(), err) {
-			assert.Equal(suite.T(), decimal.NewFromInt(8), result.asNumericVar().value)
-		}
-	}
+	suite.testOperation(powOp,
+		[]Variable{
+			CreateNumericVariable(decimal.NewFromInt(2)),
+			CreateNumericVariable(decimal.NewFromInt(3)),
+		},
+		[]*NumericVariable{
+			CreateNumericVariable(decimal.NewFromInt(8)).asNumericVar(),
+		},
+	)
 }
 
 func (suite *ArithmeticTestSuite) TestOpsSub() {
-
-	var x = CreateNumericVariable(decimal.NewFromInt(2))
-	var y = CreateNumericVariable(decimal.NewFromInt(3))
-
-	stack := CreateStack()
-	stack.Push(x)
-	stack.Push(y)
-
-	system := CreateSystemInstance()
-	runtimeContext := CreateRuntimeContext(system, stack)
-
-	var err = subOp.Apply(runtimeContext)
-	if assert.NoError(suite.T(), err) {
-		var result Variable
-		result, err = stack.Pop()
-		if assert.NoError(suite.T(), err) {
-			assert.Equal(suite.T(), decimal.NewFromInt(-1), result.asNumericVar().value)
-		}
-	}
+	suite.testOperation(subOp,
+		[]Variable{
+			CreateNumericVariable(decimal.NewFromInt(2)),
+			CreateNumericVariable(decimal.NewFromInt(3)),
+		},
+		[]*NumericVariable{
+			CreateNumericVariable(decimal.NewFromInt(-1)).asNumericVar(),
+		},
+	)
 }
 
 func (suite *ArithmeticTestSuite) TestOpsDiv() {
-
-	var x = CreateNumericVariable(decimal.NewFromInt(27))
-	var y = CreateNumericVariable(decimal.NewFromInt(3))
-
-	stack := CreateStack()
-	stack.Push(x)
-	stack.Push(y)
-
-	system := CreateSystemInstance()
-	runtimeContext := CreateRuntimeContext(system, stack)
-
-	var err = divOp.Apply(runtimeContext)
-	if assert.NoError(suite.T(), err) {
-		var result Variable
-		result, err = stack.Pop()
-		if assert.NoError(suite.T(), err) {
-			assert.True(suite.T(), decimal.NewFromInt(9).Equal(result.asNumericVar().value))
-		}
-	}
+	suite.testOperation(divOp,
+		[]Variable{
+			CreateNumericVariable(decimal.NewFromInt(27)),
+			CreateNumericVariable(decimal.NewFromInt(3)),
+		},
+		[]*NumericVariable{
+			CreateNumericVariable(decimal.NewFromInt(9)).asNumericVar(),
+		},
+	)
 }
 
 func TestCrDirAction(t *testing.T) {

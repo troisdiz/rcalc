@@ -40,6 +40,13 @@ func CreateNumericVariableFromInt(value int) Variable {
 	return &result
 }
 
+func (se *NumericVariable) Equals(other *NumericVariable) bool {
+	if other != nil {
+		return se.value.Equals(other.value)
+	}
+	return false
+}
+
 type BooleanVariable struct {
 	CommonVariable
 	value bool
