@@ -5,6 +5,7 @@ import (
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 	"runtime"
 	"strings"
 	"testing"
@@ -490,18 +491,34 @@ func (l *LoggingParserListener) ExitNumber(c *parser.NumberContext) {
 	l.subListener.ExitNumber(c)
 }
 
-func TestDecimalFormats(t *testing.T) {
+type ParsingTestSuite struct {
+	suite.Suite
+}
+
+func TestParsingSuite(t *testing.T) {
+	InitDevLogger("-")
+	suite.Run(t, new(ParsingTestSuite))
+}
+
+func (suite *ParsingTestSuite) parseWithDebugLogging(txt string, registry *ActionRegistry) ([]Action, error) {
+	return parseToActionsImpl(txt, "Test", registry, func(listener parser.RcalcListener) parser.RcalcListener {
+		return &LoggingParserListener{
+			subListener: listener,
+		}
+	})
+}
+
+func (suite *ParsingTestSuite) TestDecimalFormats() {
 	var strings = []string{"37", "4.5", "-0.4", "+.58", "-1e-12", "-.2e13"}
 	for _, str := range strings {
 		number, err := decimal.NewFromString(str)
-		if assert.NoError(t, err, "could not parse: %s", str) {
+		if assert.NoError(suite.T(), err, "could not parse: %s", str) {
 			fmt.Printf("%s -> %v\n", str, number)
 		}
 	}
 }
 
-func TestAntlrParse2Numbers(t *testing.T) {
-	InitDevLogger("-")
+func (suite *ParsingTestSuite) TestAntlrParse2Numbers() {
 	var numbersToParse = []string{
 		"37",
 		"4.5",
@@ -511,198 +528,174 @@ func TestAntlrParse2Numbers(t *testing.T) {
 	var registry *ActionRegistry = initRegistry()
 
 	for _, expr := range numbersToParse {
-		t.Run(expr, func(t *testing.T) {
-			elt, err := parseToActionsImpl(expr, "Test", registry, func(listener parser.RcalcListener) parser.RcalcListener {
-				return &LoggingParserListener{
-					subListener: listener,
-				}
-			})
-			if assert.NoError(t, err, "Parse error : %s", err) {
-				assert.IsType(t, elt[0], &VariablePutOnStackActionDesc{}, "type %t is not VariablePutOnStackActionDesc", elt[0])
+		suite.Run(expr, func() {
+			elt, err := suite.parseWithDebugLogging(expr, registry)
+			if assert.NoError(suite.T(), err, "Parse error : %s", err) {
+				assert.IsType(suite.T(), elt[0], &VariablePutOnStackActionDesc{}, "type %t is not VariablePutOnStackActionDesc", elt[0])
 			}
 		})
 	}
 }
 
-func TestAntlrIdentifierParser(t *testing.T) {
+func (suite *ParsingTestSuite) TestAntlrIdentifierParser() {
 	var txt string = "'ab' 'cd' 'de'"
 	var registry *ActionRegistry = initRegistry()
-	actions, err := parseToActionsImpl(txt, "", registry, func(listener parser.RcalcListener) parser.RcalcListener {
-		return &LoggingParserListener{
-			subListener: listener,
-		}
-	})
-	if assert.NoError(t, err, "Parse error: %s", err) {
-		assert.Len(t, actions, 3)
+	actions, err := suite.parseWithDebugLogging(txt, registry)
+	if assert.NoError(suite.T(), err, "Parse error: %s", err) {
+		assert.Len(suite.T(), actions, 3)
 	}
 }
 
-func TestAntlrAlgebraicExprParser(t *testing.T) {
+func (suite *ParsingTestSuite) TestAntlrAlgebraicExprParser() {
 	var txt string = "'1+2'"
 	var registry *ActionRegistry = initRegistry()
-	actions, err := ParseToActions(txt, "", registry)
-	if assert.NoError(t, err, "Parse error: %s", err) {
-		assert.Len(t, actions, 1)
+	actions, err := suite.parseWithDebugLogging(txt, registry)
+	if assert.NoError(suite.T(), err, "Parse error: %s", err) {
+		assert.Len(suite.T(), actions, 1)
 
-		assert.IsType(t, &VariablePutOnStackActionDesc{}, actions[0])
+		assert.IsType(suite.T(), &VariablePutOnStackActionDesc{}, actions[0])
 
 		actionDesc := actions[0].(*VariablePutOnStackActionDesc)
-		assert.NotNil(t, actionDesc.value)
-		assert.IsType(t, &AlgebraicExpressionVariable{}, actionDesc.value)
+		assert.NotNil(suite.T(), actionDesc.value)
+		assert.IsType(suite.T(), &AlgebraicExpressionVariable{}, actionDesc.value)
 
 		algExprVar := actionDesc.value.(*AlgebraicExpressionVariable)
-		assert.NotNil(t, algExprVar.rootNode)
+		assert.NotNil(suite.T(), algExprVar.rootNode)
 		numericValue, _ := algExprVar.rootNode.Evaluate(nil)
 		expected := decimal.NewFromInt(3)
-		assert.Equal(t, expected, numericValue.value, "Expected %v / Value %v", expected, numericValue.value)
+		assert.Equal(suite.T(), expected, numericValue.value, "Expected %v / Value %v", expected, numericValue.value)
 	}
 }
 
-func TestAntlrParseActionInRegistry(t *testing.T) {
+func (suite *ParsingTestSuite) TestAntlrParseActionInRegistry() {
 	var txt string = "quit sto"
 	var registry *ActionRegistry = initRegistry()
 
-	elt, err := ParseToActions(txt, "Test", registry)
-	if assert.NoError(t, err, "Parse error : %s", err) {
+	elt, err := suite.parseWithDebugLogging(txt, registry)
+	if assert.NoError(suite.T(), err, "Parse error : %s", err) {
 		fmt.Println(elt)
-		if assert.Len(t, elt, 2) {
-			assert.Equal(t, elt[0], &EXIT_ACTION)
+		if assert.Len(suite.T(), elt, 2) {
+			assert.Equal(suite.T(), elt[0], &EXIT_ACTION)
 		}
 	}
 }
 
-func TestAntlrParseStartNextLoop(t *testing.T) {
+func (suite *ParsingTestSuite) TestAntlrParseStartNextLoop() {
 	var txt string = "1 3 start 1 next"
 	var registry *ActionRegistry = initRegistry()
 
-	elt, err := ParseToActions(txt, "Test", registry)
-	if assert.NoError(t, err, "Parse error : %s", err) {
+	elt, err := suite.parseWithDebugLogging(txt, registry)
+	if assert.NoError(suite.T(), err, "Parse error : %s", err) {
 		fmt.Println(elt)
-		if assert.Len(t, elt, 3) {
-			assert.IsType(t, &StartNextLoopActionDesc{}, elt[2])
+		if assert.Len(suite.T(), elt, 3) {
+			assert.IsType(suite.T(), &StartNextLoopActionDesc{}, elt[2])
 		}
 	}
 }
 
-func TestAntlrParseForNextLoop(t *testing.T) {
+func (suite *ParsingTestSuite) TestAntlrParseForNextLoop() {
 	var txt string = "1 3 for i 1 next"
 	var registry *ActionRegistry = initRegistry()
 
-	elt, err := ParseToActions(txt, "Test", registry)
-	if assert.NoError(t, err, "Parse error : %s", err) {
+	elt, err := suite.parseWithDebugLogging(txt, registry)
+	if assert.NoError(suite.T(), err, "Parse error : %s", err) {
 		fmt.Println(elt)
-		if assert.Len(t, elt, 3) {
-			assert.IsType(t, &ForNextLoopActionDesc{}, elt[2])
+		if assert.Len(suite.T(), elt, 3) {
+			assert.IsType(suite.T(), &ForNextLoopActionDesc{}, elt[2])
 			forNextLoopActionDesc := elt[2].(*ForNextLoopActionDesc)
 			loopActions := forNextLoopActionDesc.actions
-			if assert.Len(t, loopActions, 1) {
-				assert.IsType(t, &VariablePutOnStackActionDesc{}, loopActions[0])
+			if assert.Len(suite.T(), loopActions, 1) {
+				assert.IsType(suite.T(), &VariablePutOnStackActionDesc{}, loopActions[0])
 			}
 		}
 	}
 }
 
-func TestAntlrParseForNextLoopError(t *testing.T) {
+func (suite *ParsingTestSuite) TestAntlrParseForNextLoopError() {
 	var txt string = "1 3 for i 1"
 	var registry *ActionRegistry = initRegistry()
 
-	_, err := ParseToActions(txt, "Test", registry)
+	_, err := suite.parseWithDebugLogging(txt, registry)
 
-	assert.Errorf(t, err, "")
+	assert.Errorf(suite.T(), err, "")
 }
 
-func TestAntlrParseIfThenElse(t *testing.T) {
-	InitDevLogger("-")
+func (suite *ParsingTestSuite) TestAntlrParseIfThenElse() {
 
 	var txt string = " if 1 1 == then 2 else 3 end"
 	var registry *ActionRegistry = initRegistry()
 
 	GetLogger().Debugf("Parsing %s", txt)
-	elt, err := parseToActionsImpl(txt, "Test", registry, func(listener parser.RcalcListener) parser.RcalcListener {
-		return &LoggingParserListener{
-			subListener: listener,
-		}
-	})
-	if assert.NoError(t, err, "Parse error : %s", err) {
+	elt, err := suite.parseWithDebugLogging(txt, registry)
+	if assert.NoError(suite.T(), err, "Parse error : %s", err) {
 		fmt.Println(elt)
-		if assert.Len(t, elt, 1) {
-			assert.IsType(t, &IfThenElseActionDesc{}, elt[0])
+		if assert.Len(suite.T(), elt, 1) {
+			assert.IsType(suite.T(), &IfThenElseActionDesc{}, elt[0])
 			ifThenElseActionDesc := elt[0].(*IfThenElseActionDesc)
 			ifActions := ifThenElseActionDesc.ifActions
 			thenActions := ifThenElseActionDesc.thenActions
 			elseActions := ifThenElseActionDesc.elseActions
 
-			if assert.Len(t, ifActions, 3) {
-				assert.IsType(t, &eqNumOp, ifActions[2])
+			if assert.Len(suite.T(), ifActions, 3) {
+				assert.IsType(suite.T(), &eqNumOp, ifActions[2])
 			}
-			if assert.Len(t, thenActions, 1) {
-				assert.IsType(t, &VariablePutOnStackActionDesc{}, thenActions[0])
+			if assert.Len(suite.T(), thenActions, 1) {
+				assert.IsType(suite.T(), &VariablePutOnStackActionDesc{}, thenActions[0])
 			}
-			if assert.Len(t, elseActions, 1) {
-				assert.IsType(t, &VariablePutOnStackActionDesc{}, elseActions[0])
+			if assert.Len(suite.T(), elseActions, 1) {
+				assert.IsType(suite.T(), &VariablePutOnStackActionDesc{}, elseActions[0])
 			}
 
 		}
 	}
 }
 
-func TestAntlrParseProgram(t *testing.T) {
-	InitDevLogger("-")
+func (suite *ParsingTestSuite) TestAntlrParseProgram() {
 
 	var txt string = " << 1 3 for i 1 next >>"
 	//var txt string = " << 1 >>"
 	var registry *ActionRegistry = initRegistry()
 
 	GetLogger().Debugf("Parsing %s", txt)
-	elt, err := parseToActionsImpl(txt, "Test", registry, func(listener parser.RcalcListener) parser.RcalcListener {
-		return &LoggingParserListener{
-			subListener: listener,
-		}
-	})
-	if assert.NoError(t, err, "Parse error : %s", err) {
+	elt, err := suite.parseWithDebugLogging(txt, registry)
+	if assert.NoError(suite.T(), err, "Parse error : %s", err) {
 		fmt.Println(elt)
-		if assert.Len(t, elt, 1) {
-			assert.IsType(t, &VariablePutOnStackActionDesc{}, elt[0])
+		if assert.Len(suite.T(), elt, 1) {
+			assert.IsType(suite.T(), &VariablePutOnStackActionDesc{}, elt[0])
 			variablePutOnStackActionDesc := elt[0].(*VariablePutOnStackActionDesc)
 			genericVariable := variablePutOnStackActionDesc.value
-			if assert.IsType(t, &ProgramVariable{}, genericVariable) {
+			if assert.IsType(suite.T(), &ProgramVariable{}, genericVariable) {
 				programVariable := genericVariable.(*ProgramVariable)
 
-				if assert.Len(t, programVariable.actions, 3) {
-					assert.IsType(t, &ForNextLoopActionDesc{}, programVariable.actions[2])
+				if assert.Len(suite.T(), programVariable.actions, 3) {
+					assert.IsType(suite.T(), &ForNextLoopActionDesc{}, programVariable.actions[2])
 				}
 			}
 		}
 	}
 }
 
-func TestAntlrParseLocalVariableDeclarationForProgram(t *testing.T) {
-	//t.Skip()
-	InitDevLogger("-")
+func (suite *ParsingTestSuite) TestAntlrParseLocalVariableDeclarationForProgram() {
 	var txt string = " ->  a b << a >>"
 	var registry *ActionRegistry = initRegistry()
 
-	elt, err := parseToActionsImpl(txt, "Test", registry, func(listener parser.RcalcListener) parser.RcalcListener {
-		return &LoggingParserListener{
-			subListener: listener,
-		}
-	})
-	if assert.NoError(t, err, "Parse error : %s", err) {
+	elt, err := suite.parseWithDebugLogging(txt, registry)
+	if assert.NoError(suite.T(), err, "Parse error : %s", err) {
 		fmt.Println(elt)
-		if assert.Len(t, elt, 1) {
-			assert.IsType(t, &VariableDeclarationActionDesc{}, elt[0])
+		if assert.Len(suite.T(), elt, 1) {
+			assert.IsType(suite.T(), &VariableDeclarationActionDesc{}, elt[0])
 			variableDeclarationActionDesc := elt[0].(*VariableDeclarationActionDesc)
 			varNames := variableDeclarationActionDesc.varNames
-			if assert.Len(t, varNames, 2) {
-				assert.Equal(t, "a", varNames[0])
-				assert.Equal(t, "b", varNames[1])
+			if assert.Len(suite.T(), varNames, 2) {
+				assert.Equal(suite.T(), "a", varNames[0])
+				assert.Equal(suite.T(), "b", varNames[1])
 			}
 			variable := variableDeclarationActionDesc.variableToEvaluate
-			if assert.IsType(t, &ProgramVariable{}, variable) {
+			if assert.IsType(suite.T(), &ProgramVariable{}, variable) {
 				programVariable := variable.asProgramVar()
-				if assert.NotNil(t, programVariable) {
-					if assert.Len(t, programVariable.actions, 1) {
-						assert.IsType(t, &VariableEvaluationActionDesc{}, programVariable.actions[0])
+				if assert.NotNil(suite.T(), programVariable) {
+					if assert.Len(suite.T(), programVariable.actions, 1) {
+						assert.IsType(suite.T(), &VariableEvaluationActionDesc{}, programVariable.actions[0])
 					}
 				}
 			}
@@ -710,58 +703,47 @@ func TestAntlrParseLocalVariableDeclarationForProgram(t *testing.T) {
 	}
 }
 
-func TestAntlrParseLocalVariableDeclarationForAlgebraicExpression(t *testing.T) {
-	InitDevLogger("-")
-	//var txt string = " ->  a  'a' "
+func (suite *ParsingTestSuite) TestAntlrParseLocalVariableDeclarationForAlgebraicExpression() {
 	var txt string = " -> a b 'a+b' "
 	var registry *ActionRegistry = initRegistry()
 
 	GetLogger().Debugf("Parsing %s", txt)
-	elt, err := parseToActionsImpl(txt, "Test", registry, func(listener parser.RcalcListener) parser.RcalcListener {
-		return &LoggingParserListener{
-			subListener: listener,
-		}
-	})
-	if assert.NoError(t, err, "Parse error : %s", err) {
+	elt, err := suite.parseWithDebugLogging(txt, registry)
+	if assert.NoError(suite.T(), err, "Parse error : %s", err) {
 		fmt.Println(elt)
-		if assert.Len(t, elt, 1) {
-			assert.IsType(t, &VariableDeclarationActionDesc{}, elt[0])
+		if assert.Len(suite.T(), elt, 1) {
+			assert.IsType(suite.T(), &VariableDeclarationActionDesc{}, elt[0])
 			variableDeclarationActionDesc := elt[0].(*VariableDeclarationActionDesc)
 			varNames := variableDeclarationActionDesc.varNames
-			if assert.Len(t, varNames, 2) {
-				assert.Equal(t, "a", varNames[0])
-				assert.Equal(t, "b", varNames[1])
+			if assert.Len(suite.T(), varNames, 2) {
+				assert.Equal(suite.T(), "a", varNames[0])
+				assert.Equal(suite.T(), "b", varNames[1])
 			}
 			variable := variableDeclarationActionDesc.variableToEvaluate
-			if assert.IsType(t, &AlgebraicExpressionVariable{}, variable) {
+			if assert.IsType(suite.T(), &AlgebraicExpressionVariable{}, variable) {
 				algExprVariable := variable.(*AlgebraicExpressionVariable)
-				assert.NotNil(t, algExprVariable)
+				assert.NotNil(suite.T(), algExprVariable)
 			}
 		}
 	}
 }
 
-func TestAntlrParseList(t *testing.T) {
-	InitDevLogger("-")
+func (suite *ParsingTestSuite) TestAntlrParseList() {
 	var txt string = "{ 2 { 3 } }"
 	var registry *ActionRegistry = initRegistry()
 
-	elt, err := parseToActionsImpl(txt, "Test", registry, func(listener parser.RcalcListener) parser.RcalcListener {
-		return &LoggingParserListener{
-			subListener: listener,
-		}
-	})
-	if assert.NoError(t, err, "Parse error : %s", err) {
+	elt, err := suite.parseWithDebugLogging(txt, registry)
+	if assert.NoError(suite.T(), err, "Parse error : %s", err) {
 		fmt.Println(elt)
-		if assert.Len(t, elt, 1) {
-			assert.IsType(t, &VariablePutOnStackActionDesc{}, elt[0])
+		if assert.Len(suite.T(), elt, 1) {
+			assert.IsType(suite.T(), &VariablePutOnStackActionDesc{}, elt[0])
 			variablePutListOnStack := elt[0].(*VariablePutOnStackActionDesc)
 			listVar := variablePutListOnStack.value
-			if assert.NotNil(t, listVar) {
-				if assert.IsType(t, &ListVariable{}, listVar) {
+			if assert.NotNil(suite.T(), listVar) {
+				if assert.IsType(suite.T(), &ListVariable{}, listVar) {
 					listVariable := listVar.(*ListVariable)
-					assert.Len(t, listVariable.items, 2)
-					assert.IsType(t, &ListVariable{}, listVariable.items[1])
+					assert.Len(suite.T(), listVariable.items, 2)
+					assert.IsType(suite.T(), &ListVariable{}, listVariable.items[1])
 				}
 			}
 		}
@@ -793,7 +775,7 @@ type TestParserListener struct {
 
 var _ parser.RcalcListener = (*TestParserListener)(nil)
 
-func TestAlgebraicExpressionParsing(t *testing.T) {
+func (suite *ParsingTestSuite) TestAlgebraicExpressionParsing() {
 
 	expressions := []struct {
 		literal string
@@ -866,47 +848,51 @@ func TestAlgebraicExpressionParsing(t *testing.T) {
 		},
 	}
 
-	var nodeByExpression map[string]AlgebraicExpressionNode = make(map[string]AlgebraicExpressionNode)
-
-	for idx, expr := range expressions {
-		t.Run(fmt.Sprintf("Parse %02d-%s", idx+1, expr.literal), func(t *testing.T) {
-			is := antlr.NewInputStream(expr.literal)
-			// Create the Lexer
-			lexer := parser.NewRcalcLexer(is)
-			stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
-
-			// Create the Parser
-			p := parser.NewRcalcParser(stream)
-
-			// Error Listener
-			el := &TestErrorListener{}
-
-			// Finally parse the expression (by walking the tree)
-			var listener = CreateRcalcParserListener(Registry)
-			//p.RemoveErrorListeners()
-			p.AddErrorListener(el)
-			antlr.ParseTreeWalkerDefault.Walk(listener, p.Start_())
-			assert.False(t, el.hasErrors)
-			expressionNodes, _ := listener.contextManager.actionCtxStack.GetCurrentRoot().CreateFinalItem()
-			variablePutOnStackAction := expressionNodes[0].(*VariablePutOnStackActionDesc)
-			algExprVariable := variablePutOnStackAction.value.(*AlgebraicExpressionVariable)
-			if assert.NotNil(t, algExprVariable.rootNode, "Value of PutOnStackAction is nil for expr %s", expr.literal) {
-				nodeByExpression[expr.literal] = algExprVariable.rootNode
-			}
-		})
-	}
+	//var nodeByExpression map[string]AlgebraicExpressionNode = make(map[string]AlgebraicExpressionNode)
 	stack := CreateStack()
 	system := CreateSystemInstance()
 	_, err := system.memory.createVariable(
 		"a",
 		system.memory.getRoot(),
 		CreateNumericVariable(decimal.NewFromInt(7)))
-	if assert.NoError(t, err, "Cannot create variable") {
+	var runtimeContext *RuntimeContext
+	if assert.NoError(suite.T(), err, "Cannot create variable") {
 
-		runtimeContext := CreateRuntimeContext(system, stack)
-		for idx, expr := range expressions {
-			t.Run(fmt.Sprintf("Compute %02d-%s", idx+1, expr.literal), func(t *testing.T) {
-				algExprNode := nodeByExpression[expr.literal]
+		runtimeContext = CreateRuntimeContext(system, stack)
+
+	}
+	for idx, expr := range expressions {
+		suite.Run(fmt.Sprintf("%02d-%s", idx+1, expr.literal), func() {
+
+			var nodeExpr AlgebraicExpressionNode
+			suite.T().Run("a - Parse", func(t *testing.T) {
+				is := antlr.NewInputStream(expr.literal)
+				// Create the Lexer
+				lexer := parser.NewRcalcLexer(is)
+				stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
+
+				// Create the Parser
+				p := parser.NewRcalcParser(stream)
+
+				// Error Listener
+				el := &TestErrorListener{}
+
+				// Finally parse the expression (by walking the tree)
+				var listener = CreateRcalcParserListener(Registry)
+				//p.RemoveErrorListeners()
+				p.AddErrorListener(el)
+				antlr.ParseTreeWalkerDefault.Walk(listener, p.Start_())
+				assert.False(t, el.hasErrors, "errors while parsing")
+				expressionNodes, _ := listener.contextManager.actionCtxStack.GetCurrentRoot().CreateFinalItem()
+				variablePutOnStackAction := expressionNodes[0].(*VariablePutOnStackActionDesc)
+				algExprVariable := variablePutOnStackAction.value.(*AlgebraicExpressionVariable)
+				if assert.NotNil(t, algExprVariable.rootNode, "Value of PutOnStackAction is nil for expr %s", expr.literal) {
+					nodeExpr = algExprVariable.rootNode
+				}
+			})
+
+			suite.T().Run("b - Compute", func(t *testing.T) {
+				algExprNode := nodeExpr
 				if algExprNode == nil {
 					assert.Failf(t, "Parsing failed, cannot do compute test", "")
 				}
@@ -916,9 +902,8 @@ func TestAlgebraicExpressionParsing(t *testing.T) {
 						expr.value.Equal(numericVariable.value),
 						"%s -> %v instead of %v\n", expr.literal, numericVariable.value, expr.value)
 				}
-
 			})
-		}
+		})
 	}
 }
 

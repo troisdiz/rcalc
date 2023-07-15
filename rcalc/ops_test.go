@@ -3,73 +3,79 @@ package rcalc
 import (
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 	"testing"
 )
 
-func TestOpsPow(t *testing.T) {
+type ArithmeticTestSuite struct {
+	suite.Suite
+}
 
-	var x = CreateNumericVariable(decimal.NewFromInt(2))
-	var y = CreateNumericVariable(decimal.NewFromInt(3))
-
+func (suite *ArithmeticTestSuite) testOperation(operation OperationDesc, inputVars []Variable, expectedOutputVars []*NumericVariable) {
 	stack := CreateStack()
-	stack.Push(x)
-	stack.Push(y)
+	for _, inputVar := range inputVars {
+		stack.Push(inputVar)
 
+	}
 	system := CreateSystemInstance()
 	runtimeContext := CreateRuntimeContext(system, stack)
 
-	var err = powOp.Apply(runtimeContext)
-	if assert.NoError(t, err) {
-		var result Variable
-		result, err = stack.Pop()
-		if assert.NoError(t, err) {
-			assert.Equal(t, decimal.NewFromInt(8), result.asNumericVar().value)
+	var err = operation.Apply(runtimeContext)
+	if assert.NoError(suite.T(), err) {
+		var results []Variable
+
+		results, err = stack.PopN(len(expectedOutputVars))
+		if assert.NoError(suite.T(), err) {
+			for i, expectedOutputVar := range expectedOutputVars {
+				assert.True(suite.T(), expectedOutputVar.Equals(results[i].asNumericVar()),
+					"Expected %s, got %s",
+					expectedOutputVar.value.String(),
+					results[i].asNumericVar().value.String())
+			}
 		}
 	}
 }
 
-func TestOpsSub(t *testing.T) {
+func TestArithmeticTestSuite(t *testing.T) {
 
-	var x = CreateNumericVariable(decimal.NewFromInt(2))
-	var y = CreateNumericVariable(decimal.NewFromInt(3))
-
-	stack := CreateStack()
-	stack.Push(x)
-	stack.Push(y)
-
-	system := CreateSystemInstance()
-	runtimeContext := CreateRuntimeContext(system, stack)
-
-	var err = subOp.Apply(runtimeContext)
-	if assert.NoError(t, err) {
-		var result Variable
-		result, err = stack.Pop()
-		if assert.NoError(t, err) {
-			assert.Equal(t, decimal.NewFromInt(-1), result.asNumericVar().value)
-		}
-	}
+	suite.Run(t, new(ArithmeticTestSuite))
 }
 
-func TestOpsDiv(t *testing.T) {
+func (suite *ArithmeticTestSuite) TestOpsPow() {
 
-	var x = CreateNumericVariable(decimal.NewFromInt(27))
-	var y = CreateNumericVariable(decimal.NewFromInt(3))
+	suite.testOperation(powOp,
+		[]Variable{
+			CreateNumericVariable(decimal.NewFromInt(2)),
+			CreateNumericVariable(decimal.NewFromInt(3)),
+		},
+		[]*NumericVariable{
+			CreateNumericVariable(decimal.NewFromInt(8)).asNumericVar(),
+		},
+	)
+}
 
-	stack := CreateStack()
-	stack.Push(x)
-	stack.Push(y)
+func (suite *ArithmeticTestSuite) TestOpsSub() {
+	suite.testOperation(subOp,
+		[]Variable{
+			CreateNumericVariable(decimal.NewFromInt(2)),
+			CreateNumericVariable(decimal.NewFromInt(3)),
+		},
+		[]*NumericVariable{
+			CreateNumericVariable(decimal.NewFromInt(-1)).asNumericVar(),
+		},
+	)
+}
 
-	system := CreateSystemInstance()
-	runtimeContext := CreateRuntimeContext(system, stack)
-
-	var err = divOp.Apply(runtimeContext)
-	if assert.NoError(t, err) {
-		var result Variable
-		result, err = stack.Pop()
-		if assert.NoError(t, err) {
-			assert.True(t, decimal.NewFromInt(9).Equal(result.asNumericVar().value))
-		}
-	}
+func (suite *ArithmeticTestSuite) TestOpsDiv() {
+	suite.testOperation(divOp,
+		[]Variable{
+			CreateNumericVariable(decimal.NewFromInt(27)),
+			CreateNumericVariable(decimal.NewFromInt(3)),
+		},
+		[]*NumericVariable{
+			CreateNumericVariable(decimal.NewFromInt(9)).asNumericVar(),
+		},
+	)
 }
 
 func TestCrDirAction(t *testing.T) {
