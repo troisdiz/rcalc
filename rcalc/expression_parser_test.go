@@ -493,15 +493,20 @@ func (l *LoggingParserListener) ExitNumber(c *parser.NumberContext) {
 
 type ParsingTestSuite struct {
 	suite.Suite
+
+	registry *ActionRegistry
 }
 
 func TestParsingSuite(t *testing.T) {
 	InitDevLogger("-")
-	suite.Run(t, new(ParsingTestSuite))
+
+	testingSuite := new(ParsingTestSuite)
+	testingSuite.registry = initRegistry()
+	suite.Run(t, testingSuite)
 }
 
-func (suite *ParsingTestSuite) parseWithDebugLogging(txt string, registry *ActionRegistry) ([]Action, error) {
-	return parseToActionsImpl(txt, "Test", registry, func(listener parser.RcalcListener) parser.RcalcListener {
+func (suite *ParsingTestSuite) parseWithDebugLogging(txt string) ([]Action, error) {
+	return parseToActionsImpl(txt, "Test", suite.registry, func(listener parser.RcalcListener) parser.RcalcListener {
 		return &LoggingParserListener{
 			subListener: listener,
 		}
@@ -525,11 +530,10 @@ func (suite *ParsingTestSuite) TestAntlrParse2Numbers() {
 		"-0.4",
 		".58",
 	}
-	var registry *ActionRegistry = initRegistry()
 
 	for _, expr := range numbersToParse {
 		suite.Run(expr, func() {
-			elt, err := suite.parseWithDebugLogging(expr, registry)
+			elt, err := suite.parseWithDebugLogging(expr)
 			if assert.NoError(suite.T(), err, "Parse error : %s", err) {
 				assert.IsType(suite.T(), elt[0], &VariablePutOnStackActionDesc{}, "type %t is not VariablePutOnStackActionDesc", elt[0])
 			}
@@ -539,8 +543,7 @@ func (suite *ParsingTestSuite) TestAntlrParse2Numbers() {
 
 func (suite *ParsingTestSuite) TestAntlrIdentifierParser() {
 	var txt string = "'ab' 'cd' 'de'"
-	var registry *ActionRegistry = initRegistry()
-	actions, err := suite.parseWithDebugLogging(txt, registry)
+	actions, err := suite.parseWithDebugLogging(txt)
 	if assert.NoError(suite.T(), err, "Parse error: %s", err) {
 		assert.Len(suite.T(), actions, 3)
 	}
@@ -548,8 +551,7 @@ func (suite *ParsingTestSuite) TestAntlrIdentifierParser() {
 
 func (suite *ParsingTestSuite) TestAntlrAlgebraicExprParser() {
 	var txt string = "'1+2'"
-	var registry *ActionRegistry = initRegistry()
-	actions, err := suite.parseWithDebugLogging(txt, registry)
+	actions, err := suite.parseWithDebugLogging(txt)
 	if assert.NoError(suite.T(), err, "Parse error: %s", err) {
 		assert.Len(suite.T(), actions, 1)
 
@@ -569,9 +571,8 @@ func (suite *ParsingTestSuite) TestAntlrAlgebraicExprParser() {
 
 func (suite *ParsingTestSuite) TestAntlrParseActionInRegistry() {
 	var txt string = "quit sto"
-	var registry *ActionRegistry = initRegistry()
 
-	elt, err := suite.parseWithDebugLogging(txt, registry)
+	elt, err := suite.parseWithDebugLogging(txt)
 	if assert.NoError(suite.T(), err, "Parse error : %s", err) {
 		fmt.Println(elt)
 		if assert.Len(suite.T(), elt, 2) {
@@ -582,9 +583,8 @@ func (suite *ParsingTestSuite) TestAntlrParseActionInRegistry() {
 
 func (suite *ParsingTestSuite) TestAntlrParseStartNextLoop() {
 	var txt string = "1 3 start 1 next"
-	var registry *ActionRegistry = initRegistry()
 
-	elt, err := suite.parseWithDebugLogging(txt, registry)
+	elt, err := suite.parseWithDebugLogging(txt)
 	if assert.NoError(suite.T(), err, "Parse error : %s", err) {
 		fmt.Println(elt)
 		if assert.Len(suite.T(), elt, 3) {
@@ -595,9 +595,8 @@ func (suite *ParsingTestSuite) TestAntlrParseStartNextLoop() {
 
 func (suite *ParsingTestSuite) TestAntlrParseForNextLoop() {
 	var txt string = "1 3 for i 1 next"
-	var registry *ActionRegistry = initRegistry()
 
-	elt, err := suite.parseWithDebugLogging(txt, registry)
+	elt, err := suite.parseWithDebugLogging(txt)
 	if assert.NoError(suite.T(), err, "Parse error : %s", err) {
 		fmt.Println(elt)
 		if assert.Len(suite.T(), elt, 3) {
@@ -613,9 +612,8 @@ func (suite *ParsingTestSuite) TestAntlrParseForNextLoop() {
 
 func (suite *ParsingTestSuite) TestAntlrParseForNextLoopError() {
 	var txt string = "1 3 for i 1"
-	var registry *ActionRegistry = initRegistry()
 
-	_, err := suite.parseWithDebugLogging(txt, registry)
+	_, err := suite.parseWithDebugLogging(txt)
 
 	assert.Errorf(suite.T(), err, "")
 }
@@ -623,10 +621,9 @@ func (suite *ParsingTestSuite) TestAntlrParseForNextLoopError() {
 func (suite *ParsingTestSuite) TestAntlrParseIfThenElse() {
 
 	var txt string = " if 1 1 == then 2 else 3 end"
-	var registry *ActionRegistry = initRegistry()
 
 	GetLogger().Debugf("Parsing %s", txt)
-	elt, err := suite.parseWithDebugLogging(txt, registry)
+	elt, err := suite.parseWithDebugLogging(txt)
 	if assert.NoError(suite.T(), err, "Parse error : %s", err) {
 		fmt.Println(elt)
 		if assert.Len(suite.T(), elt, 1) {
@@ -654,10 +651,9 @@ func (suite *ParsingTestSuite) TestAntlrParseProgram() {
 
 	var txt string = " << 1 3 for i 1 next >>"
 	//var txt string = " << 1 >>"
-	var registry *ActionRegistry = initRegistry()
 
 	GetLogger().Debugf("Parsing %s", txt)
-	elt, err := suite.parseWithDebugLogging(txt, registry)
+	elt, err := suite.parseWithDebugLogging(txt)
 	if assert.NoError(suite.T(), err, "Parse error : %s", err) {
 		fmt.Println(elt)
 		if assert.Len(suite.T(), elt, 1) {
@@ -677,9 +673,8 @@ func (suite *ParsingTestSuite) TestAntlrParseProgram() {
 
 func (suite *ParsingTestSuite) TestAntlrParseLocalVariableDeclarationForProgram() {
 	var txt string = " ->  a b << a >>"
-	var registry *ActionRegistry = initRegistry()
 
-	elt, err := suite.parseWithDebugLogging(txt, registry)
+	elt, err := suite.parseWithDebugLogging(txt)
 	if assert.NoError(suite.T(), err, "Parse error : %s", err) {
 		fmt.Println(elt)
 		if assert.Len(suite.T(), elt, 1) {
@@ -705,10 +700,9 @@ func (suite *ParsingTestSuite) TestAntlrParseLocalVariableDeclarationForProgram(
 
 func (suite *ParsingTestSuite) TestAntlrParseLocalVariableDeclarationForAlgebraicExpression() {
 	var txt string = " -> a b 'a+b' "
-	var registry *ActionRegistry = initRegistry()
 
 	GetLogger().Debugf("Parsing %s", txt)
-	elt, err := suite.parseWithDebugLogging(txt, registry)
+	elt, err := suite.parseWithDebugLogging(txt)
 	if assert.NoError(suite.T(), err, "Parse error : %s", err) {
 		fmt.Println(elt)
 		if assert.Len(suite.T(), elt, 1) {
@@ -730,9 +724,8 @@ func (suite *ParsingTestSuite) TestAntlrParseLocalVariableDeclarationForAlgebrai
 
 func (suite *ParsingTestSuite) TestAntlrParseList() {
 	var txt string = "{ 2 { 3 } }"
-	var registry *ActionRegistry = initRegistry()
 
-	elt, err := suite.parseWithDebugLogging(txt, registry)
+	elt, err := suite.parseWithDebugLogging(txt)
 	if assert.NoError(suite.T(), err, "Parse error : %s", err) {
 		fmt.Println(elt)
 		if assert.Len(suite.T(), elt, 1) {
