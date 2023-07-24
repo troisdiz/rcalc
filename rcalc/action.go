@@ -236,6 +236,7 @@ func initRegistry() *ActionRegistry {
 	reg.RegisterActions(&StackPackage)
 	reg.RegisterActions(&MemoryPackage)
 	reg.RegisterActions(&StructOpsPackage)
+	reg.RegisterActions(&ListPackage)
 	reg.Register(&DebugOp)
 	reg.Register(&VersionOp)
 	reg.Register(&EXIT_ACTION)
