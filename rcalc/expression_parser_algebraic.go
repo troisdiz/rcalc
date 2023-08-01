@@ -2,6 +2,7 @@ package rcalc
 
 import (
 	"fmt"
+
 	"github.com/shopspring/decimal"
 	"troisdizaines.com/rcalc/rcalc/parser"
 )
