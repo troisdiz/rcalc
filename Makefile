@@ -42,6 +42,9 @@ compile: $(TARGET)
 test: $(GRAMMAR_WITNESS)
 	go test ./rcalc ./main
 
+run: $(TARGET)
+	$(TARGET)
+
 clean:
 	$(RM) -vrf bin
 	$(RM) -vrf $(GRAMMAR_OUTPUT_DIR)

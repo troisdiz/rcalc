@@ -137,23 +137,23 @@ var BooleanLogicPackage = ActionPackage{
 
 // Stack package
 
-var dupOp = NewStackOp("dup", 1, func(elts ...Variable) []Variable {
+var dupOp = NewStackOp("dup", 1, 2, func(elts ...Variable) []Variable {
 	return []Variable{elts[0], elts[0]}
 })
 
-var dup2Op = NewStackOp("dup2", 2, func(elts ...Variable) []Variable {
+var dup2Op = NewStackOp("dup2", 2, 4, func(elts ...Variable) []Variable {
 	return []Variable{elts[1], elts[0], elts[1], elts[0]}
 })
 
-var dropOp = NewStackOp("drop", 1, func(elts ...Variable) []Variable {
+var dropOp = NewStackOp("drop", 1, 0, func(elts ...Variable) []Variable {
 	return []Variable{}
 })
 
-var drop2Op = NewStackOp("drop2", 2, func(elts ...Variable) []Variable {
+var drop2Op = NewStackOp("drop2", 2, 0, func(elts ...Variable) []Variable {
 	return []Variable{}
 })
 
-var swapOp = NewStackOp("swap", 2, func(elts ...Variable) []Variable {
+var swapOp = NewStackOp("swap", 2, 2, func(elts ...Variable) []Variable {
 	return []Variable{elts[1], elts[0]}
 })
 

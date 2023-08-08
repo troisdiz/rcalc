@@ -2,8 +2,9 @@ package rcalc
 
 import (
 	"fmt"
-	"google.golang.org/protobuf/proto"
 	"os"
+
+	"google.golang.org/protobuf/proto"
 	"troisdizaines.com/rcalc/rcalc/protostack"
 )
 
@@ -26,6 +27,7 @@ type Variable interface {
 	asBooleanVar() *BooleanVariable
 	asIdentifierVar() *AlgebraicExpressionVariable
 	asProgramVar() *ProgramVariable
+	asListVar() *ListVariable
 	display() string
 	String() string
 }
@@ -52,6 +54,10 @@ func (se *CommonVariable) asIdentifierVar() *AlgebraicExpressionVariable {
 
 func (se *CommonVariable) asProgramVar() *ProgramVariable {
 	panic("This is not a Program variable")
+}
+
+func (se *CommonVariable) asListVar() *ListVariable {
+	panic("This is not a List variable")
 }
 
 func (se *CommonVariable) String() string {

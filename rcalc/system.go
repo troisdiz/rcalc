@@ -38,6 +38,7 @@ var EXIT_ACTION = NewOperationDesc(
 	"quit",
 	0,
 	func(elts ...Variable) (bool, error) { return true, nil },
+	0,
 	func(system System, elts ...Variable) []Variable {
 		system.exit()
 		return nil
