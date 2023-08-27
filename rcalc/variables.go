@@ -92,7 +92,7 @@ func (l *ListVariable) display() string {
 	for i, item := range l.items {
 		displayedItems[i] = item.display()
 	}
-	return fmt.Sprintf("{ %s }", strings.Join(displayedItems, ", "))
+	return fmt.Sprintf("{ %s }", strings.Join(displayedItems, " "))
 }
 
 func (l *ListVariable) asListVar() *ListVariable {
