@@ -148,7 +148,45 @@ func (op *OperationDesc) NbArgs() int {
 }
 
 func (op *OperationDesc) CheckTypes(elts ...Variable) (bool, error) {
-	return op.checkTypeFn(elts...)
+
+	// TODO This code has a lot of duplicate with Apply, next step is to change the
+	// interface to make this create a context that Apply can use
+	if op.expandable {
+		argIsList := make([]bool, op.NbArgs())
+		isExpanded := false
+		listLength := 0
+		for argIdx := 0; argIdx < op.NbArgs(); argIdx++ {
+			if elts[argIdx].getType() == TYPE_LIST {
+				argIsList[argIdx] = true
+				listLength = elts[argIdx].asListVar().Size()
+				isExpanded = true
+			}
+		}
+		// TODO check on listLength consistency
+		if isExpanded {
+			for i := 0; i < listLength; i++ {
+				tempInputs := make([]Variable, op.NbArgs())
+				for inputIdx := 0; inputIdx < op.NbArgs(); inputIdx++ {
+					if argIsList[inputIdx] {
+						tempInputs[inputIdx] = elts[inputIdx].asListVar().items[i]
+					} else {
+						tempInputs[inputIdx] = elts[inputIdx]
+					}
+				}
+				check, err := op.CheckTypes(tempInputs...)
+				if err != nil {
+					// TODO more precise error location message
+					return check, err
+				}
+			}
+			return true, nil
+		} else {
+			// not expanded case
+			return op.checkTypeFn(elts...)
+		}
+	} else {
+		return op.checkTypeFn(elts...)
+	}
 }
 
 func (op *OperationDesc) NbResults() int {
