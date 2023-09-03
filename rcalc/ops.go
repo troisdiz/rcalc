@@ -4,23 +4,23 @@ import "github.com/shopspring/decimal"
 
 // Arithmetic package
 
-var addOp = NewA2R1NumericOp("+", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
+var addOp = NewExpandedA2R1NumericOp("+", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
 	return num1.Add(num2)
 })
 
-var subOp = NewA2R1NumericOp("-", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
+var subOp = NewExpandedA2R1NumericOp("-", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
 	return num2.Sub(num1)
 })
 
-var mulOp = NewA2R1NumericOp("*", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
+var mulOp = NewExpandedA2R1NumericOp("*", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
 	return num1.Mul(num2)
 })
 
-var divOp = NewA2R1NumericOp("/", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
+var divOp = NewExpandedA2R1NumericOp("/", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
 	return num2.Div(num1)
 })
 
-var powOp = NewA2R1NumericOp("^", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
+var powOp = NewExpandedA2R1NumericOp("^", func(num1 decimal.Decimal, num2 decimal.Decimal) decimal.Decimal {
 	return num2.Pow(num1)
 })
 
@@ -137,23 +137,23 @@ var BooleanLogicPackage = ActionPackage{
 
 // Stack package
 
-var dupOp = NewStackOp("dup", 1, func(elts ...Variable) []Variable {
+var dupOp = NewStackOp("dup", 1, 2, func(elts ...Variable) []Variable {
 	return []Variable{elts[0], elts[0]}
 })
 
-var dup2Op = NewStackOp("dup2", 2, func(elts ...Variable) []Variable {
+var dup2Op = NewStackOp("dup2", 2, 4, func(elts ...Variable) []Variable {
 	return []Variable{elts[1], elts[0], elts[1], elts[0]}
 })
 
-var dropOp = NewStackOp("drop", 1, func(elts ...Variable) []Variable {
+var dropOp = NewStackOp("drop", 1, 0, func(elts ...Variable) []Variable {
 	return []Variable{}
 })
 
-var drop2Op = NewStackOp("drop2", 2, func(elts ...Variable) []Variable {
+var drop2Op = NewStackOp("drop2", 2, 0, func(elts ...Variable) []Variable {
 	return []Variable{}
 })
 
-var swapOp = NewStackOp("swap", 2, func(elts ...Variable) []Variable {
+var swapOp = NewStackOp("swap", 2, 2, func(elts ...Variable) []Variable {
 	return []Variable{elts[1], elts[0]}
 })
 

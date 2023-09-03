@@ -2,6 +2,7 @@ package rcalc
 
 import (
 	"fmt"
+
 	"github.com/shopspring/decimal"
 	"troisdizaines.com/rcalc/rcalc/protostack"
 )
@@ -99,7 +100,8 @@ func (a *ActionDesc) Display() string {
 // OperationDesc implementation of Action interface
 type OperationCommonDesc struct {
 	ActionCommonDesc
-	nbArgs int
+	nbArgs    int
+	nbResults int
 }
 
 type CheckTypeFn func(elts ...Variable) (bool, error)
@@ -107,23 +109,34 @@ type OperationApplyFn func(system System, elts ...Variable) []Variable
 
 type OperationDesc struct {
 	OperationCommonDesc
+	expandable  bool
 	checkTypeFn CheckTypeFn
 	applyFn     OperationApplyFn
 }
 
 var _ Action = (*OperationDesc)(nil)
 
-func NewOperationDesc(opCode string, nbArgs int, checkTypeFn CheckTypeFn, applyFn OperationApplyFn) OperationDesc {
+func newOperationDesc(opCode string, nbArgs int, checkTypeFn CheckTypeFn, nbResults int, applyFn OperationApplyFn, expandable bool) OperationDesc {
 	return OperationDesc{
 		OperationCommonDesc: OperationCommonDesc{
 			ActionCommonDesc: ActionCommonDesc{
 				opCode: opCode,
 			},
-			nbArgs: nbArgs,
+			nbArgs:    nbArgs,
+			nbResults: nbResults,
 		},
+		expandable:  expandable,
 		checkTypeFn: checkTypeFn,
 		applyFn:     applyFn,
 	}
+}
+
+func NewOperationDesc(opCode string, nbArgs int, checkTypeFn CheckTypeFn, nbResults int, applyFn OperationApplyFn) OperationDesc {
+	return newOperationDesc(opCode, nbArgs, checkTypeFn, nbResults, applyFn, false)
+}
+
+func NewExpandableOperationDesc(opCode string, nbArgs int, checkTypeFn CheckTypeFn, nbResults int, applyFn OperationApplyFn) OperationDesc {
+	return newOperationDesc(opCode, nbArgs, checkTypeFn, nbResults, applyFn, true)
 }
 
 func (op *OperationDesc) String() string {
@@ -135,7 +148,49 @@ func (op *OperationDesc) NbArgs() int {
 }
 
 func (op *OperationDesc) CheckTypes(elts ...Variable) (bool, error) {
-	return op.checkTypeFn(elts...)
+
+	// TODO This code has a lot of duplicate with Apply, next step is to change the
+	// interface to make this create a context that Apply can use
+	if op.expandable {
+		argIsList := make([]bool, op.NbArgs())
+		isExpanded := false
+		listLength := 0
+		for argIdx := 0; argIdx < op.NbArgs(); argIdx++ {
+			if elts[argIdx].getType() == TYPE_LIST {
+				argIsList[argIdx] = true
+				listLength = elts[argIdx].asListVar().Size()
+				isExpanded = true
+			}
+		}
+		// TODO check on listLength consistency
+		if isExpanded {
+			for i := 0; i < listLength; i++ {
+				tempInputs := make([]Variable, op.NbArgs())
+				for inputIdx := 0; inputIdx < op.NbArgs(); inputIdx++ {
+					if argIsList[inputIdx] {
+						tempInputs[inputIdx] = elts[inputIdx].asListVar().items[i]
+					} else {
+						tempInputs[inputIdx] = elts[inputIdx]
+					}
+				}
+				check, err := op.CheckTypes(tempInputs...)
+				if err != nil {
+					// TODO more precise error location message
+					return check, err
+				}
+			}
+			return true, nil
+		} else {
+			// not expanded case
+			return op.checkTypeFn(elts...)
+		}
+	} else {
+		return op.checkTypeFn(elts...)
+	}
+}
+
+func (op *OperationDesc) NbResults() int {
+	return op.nbResults
 }
 
 func (op *OperationDesc) Apply(runtimeContext *RuntimeContext) error {
@@ -143,9 +198,56 @@ func (op *OperationDesc) Apply(runtimeContext *RuntimeContext) error {
 	if err != nil {
 		return err
 	}
-	results := op.applyFn(runtimeContext.system, inputs...)
-	for _, elt := range results {
-		runtimeContext.stack.Push(elt)
+	if op.expandable {
+		argIsList := make([]bool, op.NbArgs())
+		isExpanded := false
+		listLength := 0
+		for argIdx := 0; argIdx < op.NbArgs(); argIdx++ {
+			if inputs[argIdx].getType() == TYPE_LIST {
+				argIsList[argIdx] = true
+				listLength = inputs[argIdx].asListVar().Size()
+				isExpanded = true
+			}
+		}
+		// TODO check on listLength consistency
+		if isExpanded {
+			// We need as many result list as the applied function return results
+			results := make([][]Variable, op.NbResults())
+			for idx := range results {
+				results[idx] = make([]Variable, listLength)
+			}
+			for i := 0; i < listLength; i++ {
+				tempInputs := make([]Variable, op.NbArgs())
+				for inputIdx := 0; inputIdx < op.NbArgs(); inputIdx++ {
+					if argIsList[inputIdx] {
+						tempInputs[inputIdx] = inputs[inputIdx].asListVar().items[i]
+					} else {
+						tempInputs[inputIdx] = inputs[inputIdx]
+					}
+				}
+				tempResults := op.applyFn(runtimeContext.system, tempInputs...)
+
+				for tmpResultIdx, tempResult := range tempResults {
+					results[tmpResultIdx][i] = tempResult
+				}
+			}
+			for _, result := range results {
+				resultAsList := CreateListVariable(result)
+				fmt.Printf("Result: %s\n", resultAsList.display())
+				runtimeContext.stack.Push(resultAsList)
+			}
+		} else {
+			// not expanded case
+			results := op.applyFn(runtimeContext.system, inputs...)
+			for _, elt := range results {
+				runtimeContext.stack.Push(elt)
+			}
+		}
+	} else {
+		results := op.applyFn(runtimeContext.system, inputs...)
+		for _, elt := range results {
+			runtimeContext.stack.Push(elt)
+		}
 	}
 	return nil
 }
@@ -236,6 +338,7 @@ func initRegistry() *ActionRegistry {
 	reg.RegisterActions(&StackPackage)
 	reg.RegisterActions(&MemoryPackage)
 	reg.RegisterActions(&StructOpsPackage)
+	reg.RegisterActions(&ListPackage)
 	reg.Register(&DebugOp)
 	reg.Register(&VersionOp)
 	reg.Register(&EXIT_ACTION)

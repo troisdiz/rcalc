@@ -2,8 +2,9 @@ package rcalc
 
 import (
 	"fmt"
-	"github.com/shopspring/decimal"
 	"strings"
+
+	"github.com/shopspring/decimal"
 	"troisdizaines.com/rcalc/rcalc/protostack"
 )
 
@@ -91,7 +92,15 @@ func (l *ListVariable) display() string {
 	for i, item := range l.items {
 		displayedItems[i] = item.display()
 	}
-	return fmt.Sprintf("{ %s }", strings.Join(displayedItems, ", "))
+	return fmt.Sprintf("{ %s }", strings.Join(displayedItems, " "))
+}
+
+func (l *ListVariable) asListVar() *ListVariable {
+	return l
+}
+
+func (l *ListVariable) Size() int {
+	return len(l.items)
 }
 
 type AlgebraicExpressionNode interface {
