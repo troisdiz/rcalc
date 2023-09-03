@@ -107,7 +107,7 @@ func NewA2R1NumericOp(opCode string, decimalFunc A2R1NumericFn) OperationDesc {
 }
 
 func NewExpandedA2R1NumericOp(opCode string, decimalFunc A2R1NumericFn) OperationDesc {
-	return NewOperationDesc(opCode, 2, CheckAllNumerics, 1, OpToActionFn(A2R1NumericApplyFn(decimalFunc)))
+	return NewExpandableOperationDesc(opCode, 2, CheckAllNumerics, 1, OpToActionFn(A2R1NumericApplyFn(decimalFunc)))
 }
 
 func GetEltAsBoolean(elts []Variable, idx int) bool {
