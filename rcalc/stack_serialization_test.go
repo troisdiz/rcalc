@@ -114,12 +114,14 @@ func TestSaveAndReadStack(t *testing.T) {
 	if assert.NoError(t, err) {
 		out, err := proto.Marshal(protoStack)
 		if assert.NoError(t, err) {
-			readStack := protostack.Stack{}
+			readStack := protostack.StackWithHistory{}
 
 			err = proto.Unmarshal(out, &readStack)
 			if assert.NoError(t, err) {
 				stack2, err := CreateStackFromProto(Registry, &readStack)
 				if assert.NoError(t, err) {
+					assert.Equal(t, stack.HistoryLength(), stack2.HistoryLength())
+					GetLogger().Debugf("Test: History = %d / History2 = %d", stack.HistoryLength(), stack2.HistoryLength())
 					assert.Equal(t, stack, stack2)
 				}
 			}

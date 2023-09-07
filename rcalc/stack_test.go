@@ -71,7 +71,6 @@ func TestPushAndSize(t *testing.T) {
 	var s *Stack = CreateStack()
 	se := CreateNumericVariableFromInt(2)
 	s.Push(se)
-	// fmt.Printf("Size after 1 Push %d / %d\n", s.Size(), len(s.elts))
 	se2 := CreateNumericVariableFromInt(2)
 	s.Push(se2)
 
@@ -82,7 +81,7 @@ func TestDisplayStack(t *testing.T) {
 	var s *Stack = CreateStack()
 	se := CreateNumericVariable(decimal.NewFromInt(2))
 	s.Push(se)
-	fmt.Printf("Size after 1 Push %d / %d\n", s.Size(), len(s.elts))
+	fmt.Printf("Size after 1 Push %d / %d\n", s.Size(), len(s.current))
 	se2 := CreateNumericVariable(decimal.NewFromInt(3))
 	s.Push(se2)
 	DisplayStack(s, "", 4, false)
