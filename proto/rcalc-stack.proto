@@ -99,6 +99,11 @@ message EvalProgramAction {
   ProgramVariable programVariable = 1;
 }
 
+message StackWithHistory {
+  Stack current = 1;
+  repeated Stack history = 2;
+}
+
 message Stack {
-  repeated Variable elements= 1;
+  repeated Variable elements = 1;
 }

@@ -66,8 +66,10 @@ func (se *CommonVariable) String() string {
 }
 
 type Stack struct {
-	// Storge of the stack, top element at index 0, bottom at length-1 (end of array)
-	elts           []Variable
+	// Store of the stack, top element at index 0, bottom at length-1 (end of array)
+	current []Variable
+	// Last item = more recent
+	history        [][]Variable
 	onGoingSession bool
 	listeners      []StackSessionListener
 }
@@ -82,54 +84,72 @@ type StackSessionListener interface {
 	SessionClose(s *Stack)
 }
 
-func CreateStackFromProto(reg *ActionRegistry, protoStack *protostack.Stack) (*Stack, error) {
+func CreateStackFromProto(reg *ActionRegistry, protoStackWithHistory *protostack.StackWithHistory) (*Stack, error) {
 	stack := CreateStack()
-	for _, protoElt := range protoStack.Elements {
+	for _, protoElt := range protoStackWithHistory.Current.Elements {
 		variable, err := CreateVariableFromProto(reg, protoElt)
 		if err != nil {
 			return nil, err
 		}
-		stack.elts = append(stack.elts, variable)
+		stack.current = append(stack.current, variable)
+	}
+	for _, protoHistoricStack := range protoStackWithHistory.History {
+		var historicStack []Variable
+		for _, protoElt := range protoHistoricStack.Elements {
+			variable, err := CreateVariableFromProto(reg, protoElt)
+			if err != nil {
+				return nil, err
+			}
+			historicStack = append(historicStack, variable)
+		}
+		stack.history = append(stack.history, historicStack)
 	}
 	return stack, nil
 }
 
-func CreateProtoFromStack(stack *Stack) (*protostack.Stack, error) {
-	protoStack := &protostack.Stack{}
-	for _, variable := range stack.elts {
+func CreateProtoFromStack(stack *Stack) (*protostack.StackWithHistory, error) {
+	protoStackWithHistory := &protostack.StackWithHistory{}
+	protoStackWithHistory.Current = &protostack.Stack{}
+	for _, variable := range stack.current {
 		protoVar, err := CreateProtoFromVariable(variable)
 		if err != nil {
 			return nil, fmt.Errorf("cannot marshal variable %w", err)
 		}
-		protoStack.Elements = append(protoStack.Elements, protoVar)
+		protoStackWithHistory.Current.Elements = append(protoStackWithHistory.Current.Elements, protoVar)
 	}
-	return protoStack, nil
+	for _, historicStack := range stack.history {
+		protoStack := &protostack.Stack{}
+		for _, variable := range historicStack {
+			protoVar, err := CreateProtoFromVariable(variable)
+			if err != nil {
+				return nil, fmt.Errorf("cannot marshal variable %w", err)
+			}
+			protoStack.Elements = append(protoStack.Elements, protoVar)
+		}
+		protoStackWithHistory.History = append(protoStackWithHistory.History, protoStack)
+	}
+	return protoStackWithHistory, nil
 }
 
 func (s *Stack) Size() int {
-	return len(s.elts)
+	return len(s.current)
 }
 
-/*
-func (s *Stack) typeAt(l int) (Type, error) {
-	if l < s.Size() {
-		return (s.elts[len(s.elts)-l-1]).getType(), nil
-	}
-	return -1, fmt.Errorf("no elt at %d", l)
+func (s *Stack) HistoryLength() int {
+	return len(s.history)
 }
-*/
 
 func (s *Stack) IsEmpty() bool {
-	return len(s.elts) == 0
+	return len(s.current) == 0
 }
 
 func (s *Stack) Pop() (Variable, error) {
 	if s.IsEmpty() {
 		return nil, fmt.Errorf("empty stack")
 	} else {
-		index := len(s.elts) - 1
-		result := s.elts[index]
-		s.elts = s.elts[:index]
+		index := s.Size() - 1
+		result := s.current[index]
+		s.current = (s.current)[:index]
 		return result, nil
 	}
 }
@@ -140,10 +160,10 @@ func (s *Stack) PopN(n int) ([]Variable, error) {
 	} else if s.Size() < n {
 		return nil, fmt.Errorf("stack contains %d elements but %d were needed", s.Size(), n)
 	} else {
-		index := len(s.elts)
+		index := s.Size()
 		result := make([]Variable, n)
-		copy(result, s.elts[index-n:index])
-		s.elts = s.elts[0 : index-n]
+		copy(result, (s.current)[index-n:index])
+		s.current = s.current[0 : index-n]
 		return result, nil
 	}
 }
@@ -154,29 +174,29 @@ func (s *Stack) PeekN(n int) ([]Variable, error) {
 	} else if s.Size() < n {
 		return nil, fmt.Errorf("stack contains %d elements but %d were needed", s.Size(), n)
 	} else {
-		index := len(s.elts)
+		index := len(s.current)
 		result := make([]Variable, n)
 		// this copy is a bit conservative (operations could modify the slice we give them)
-		copy(result, s.elts[index-n:index])
+		copy(result, (s.current)[index-n:index])
 		return result, nil
 	}
 }
 
 func (s *Stack) Get(level int) (Variable, error) {
 	if level < s.Size() {
-		return s.elts[len(s.elts)-level-1], nil
+		return s.current[len(s.current)-level-1], nil
 	} else {
 		return nil, fmt.Errorf("level %d does not exist in stack of size %d", level, s.Size())
 	}
 }
 
 func (s *Stack) Push(elt Variable) {
-	s.elts = append(s.elts, elt)
-	// fmt.Printf("After Push : len = %d\n", len(s.elts))
+	s.current = append(s.current, elt)
+	// fmt.Printf("After Push : len = %d\n", len(s.history))
 }
 
 func (s *Stack) PushN(elts []Variable) {
-	s.elts = append(s.elts, elts...)
+	s.current = append(s.current, elts...)
 }
 
 func (s *Stack) StartSession() error {
@@ -188,6 +208,9 @@ func (s *Stack) StartSession() error {
 	for _, listener := range s.listeners {
 		listener.SessionStart(s)
 	}
+	var newStack []Variable
+	copy(newStack, s.current)
+	s.history = append(s.history, newStack)
 	return nil
 }
 
@@ -235,12 +258,12 @@ func CreateSaveOnDiskStack(stackSavingPath string) *Stack {
 	if err != nil {
 		stack = CreateStack()
 	} else {
-		protoStack := &protostack.Stack{}
-		err = proto.Unmarshal(file, protoStack)
+		protoStackHistory := &protostack.StackWithHistory{}
+		err = proto.Unmarshal(file, protoStackHistory)
 		if err != nil {
 			stack = CreateStack()
 		} else {
-			stack, err = CreateStackFromProto(Registry, protoStack)
+			stack, err = CreateStackFromProto(Registry, protoStackHistory)
 			if err != nil {
 				stack = CreateStack()
 			}
