@@ -1,17 +1,22 @@
 package rcalc
 
 import (
+	"testing"
+
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
-	"testing"
 )
 
-type ArithmeticTestSuite struct {
+type OperationTestSuite struct {
 	suite.Suite
 }
 
-func (suite *ArithmeticTestSuite) testOperation(operation OperationDesc, inputVars []Variable, expectedOutputVars []*NumericVariable) {
+type ArithmeticTestSuite struct {
+	OperationTestSuite
+}
+
+func (suite *OperationTestSuite) testOperation(operation OperationDesc, inputVars []Variable, expectedOutputVars []*NumericVariable) {
 	stack := CreateStack()
 	for _, inputVar := range inputVars {
 		stack.Push(inputVar)
@@ -76,6 +81,26 @@ func (suite *ArithmeticTestSuite) TestOpsDiv() {
 			CreateNumericVariable(decimal.NewFromInt(9)).asNumericVar(),
 		},
 	)
+}
+
+type StatsTestSuite struct {
+	OperationTestSuite
+}
+
+func (suite *StatsTestSuite) TestComb() {
+	suite.testOperation(combOp,
+		[]Variable{
+			CreateNumericVariable(decimal.NewFromInt(5)),
+			CreateNumericVariable(decimal.NewFromInt(1)),
+		},
+		[]*NumericVariable{
+			CreateNumericVariable(decimal.NewFromInt(5)).asNumericVar(),
+		},
+	)
+}
+
+func TestStatsTestSuite(t *testing.T) {
+	suite.Run(t, new(StatsTestSuite))
 }
 
 func TestCrDirAction(t *testing.T) {

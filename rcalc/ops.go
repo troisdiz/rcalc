@@ -1,6 +1,9 @@
 package rcalc
 
-import "github.com/shopspring/decimal"
+import (
+	"github.com/shopspring/decimal"
+	"gonum.org/v1/gonum/stat/combin"
+)
 
 // Arithmetic package
 
@@ -132,6 +135,30 @@ var xandOp = NewA2R1BooleanOp("xand", func(b bool, b2 bool) bool {
 var BooleanLogicPackage = ActionPackage{
 	staticActions: []Action{
 		&eqNumOp, &ltNumOp, &letNumOp, &gtNumOp, &getNumOp, &negOp, &andOp, &orOp, &xorOp, &xandOp,
+	},
+}
+
+var combOp = NewA2R1NumericOp("comb", func(p decimal.Decimal, n decimal.Decimal) decimal.Decimal {
+	if !n.IsInteger() || !p.IsInteger() {
+		return decimal.Zero
+	}
+	nInt := n.IntPart()
+	pInt := p.IntPart()
+	return decimal.NewFromInt(int64(combin.Binomial(int(nInt), int(pInt))))
+})
+
+var permOp = NewA2R1NumericOp("perm", func(p decimal.Decimal, n decimal.Decimal) decimal.Decimal {
+	if !n.IsInteger() || !p.IsInteger() {
+		return decimal.Zero
+	}
+	nInt := n.IntPart()
+	pInt := p.IntPart()
+	return decimal.NewFromInt(int64(combin.NumPermutations(int(nInt), int(pInt))))
+})
+
+var StatPackage = ActionPackage{
+	staticActions: []Action{
+		&combOp, &permOp,
 	},
 }
 
