@@ -20,5 +20,6 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/multierr v1.9.0 // indirect
 	golang.org/x/exp v0.0.0-20230515195305-f3d0a9c9a5cc // indirect
+	gonum.org/v1/gonum v0.14.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
