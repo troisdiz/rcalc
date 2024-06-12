@@ -147,6 +147,11 @@ list : CURLY_OPEN WHITESPACE* (list_item WHITESPACE*)* CURLY_CLOSE;
 
 list_item : variable # ListItem;
 
-vector : BRACKET_OPEN (vector+|number+) BRACKET_CLOSE ;
+vector : BRACKET_OPEN WHITESPACE* vector_items WHITESPACE* BRACKET_CLOSE ;
+
+vector_items
+    : (number WHITESPACE*)+ # VectorItemNumber
+    | (vector WHITESPACE*)+ # VectorItemVector
+    ;
 
 action_or_var_call: NAME;
