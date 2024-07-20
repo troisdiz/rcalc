@@ -10,13 +10,14 @@ import (
 	"troisdizaines.com/rcalc/rcalc"
 )
 
-var debugMode *bool
-var configFolder *string
+type RootOptions struct {
+	debugMode    bool
+	configFolder string
+}
 
 func NewRootCommand() *cobra.Command {
 
-	var debugMode bool
-	var configFolder string
+	rootOptions := &RootOptions{}
 
 	var rootCmd = &cobra.Command{
 		Use:   "rcalc",
@@ -25,7 +26,7 @@ func NewRootCommand() *cobra.Command {
 It includes a programming language`,
 		Run: func(cmd *cobra.Command, args []string) {
 			var rCalcDir string
-			if configFolder == "" {
+			if rootOptions.configFolder == "" {
 				dir, err := homedir.Dir()
 				if err != nil {
 					fmt.Println("Cannot get home directory")
@@ -33,20 +34,23 @@ It includes a programming language`,
 				}
 				rCalcDir = path.Join(dir, ".rcalc")
 			} else {
-				rCalcDir = configFolder
+				rCalcDir = rootOptions.configFolder
 			}
 
-			rcalc.Run(rCalcDir, true, *debugMode)
+			rcalc.Run(rCalcDir, true, rootOptions.debugMode)
 		},
 	}
 
-	rootCmd.PersistentFlags().BoolVarP(&debugMode, "debugMode", "d", false, "Sets logs verbosity to debug")
-	rootCmd.PersistentFlags().StringVarP(&configFolder, "configFolder", "c", "", "Sets the config folder")
+	rootCmd.PersistentFlags().BoolVarP(&rootOptions.debugMode, "debugMode", "d", false, "Sets logs verbosity to debug")
+	rootCmd.PersistentFlags().StringVarP(&rootOptions.configFolder, "configFolder", "c", "", "Sets the config folder")
+
+	rootCmd.AddCommand(NewRunCommand(rootOptions))
+
 	return rootCmd
 }
 
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
+	if err := NewRootCommand().Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}

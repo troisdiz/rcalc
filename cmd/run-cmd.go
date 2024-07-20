@@ -10,15 +10,15 @@ import (
 	"troisdizaines.com/rcalc/rcalc"
 )
 
-func NewCommandRun() *cobra.Command {
+func NewRunCommand(rootOptions *RootOptions) *cobra.Command {
 
 	var runCmd = &cobra.Command{
-		Use:   "rcalc run <program> --args [args]",
+		Use:   "run <program> --args [args]",
 		Short: "loads and run a Rcalc program",
 		Long:  `Run long desc`,
 		Run: func(cmd *cobra.Command, args []string) {
 			var rCalcDir string
-			if *configFolder == "" {
+			if rootOptions.configFolder == "" {
 				dir, err := homedir.Dir()
 				if err != nil {
 					fmt.Println("Cannot get home directory")
@@ -26,16 +26,11 @@ func NewCommandRun() *cobra.Command {
 				}
 				rCalcDir = path.Join(dir, ".rcalc")
 			} else {
-				rCalcDir = *configFolder
+				rCalcDir = rootOptions.configFolder
 			}
 
-			rcalc.Run(rCalcDir, true, *debugMode)
+			rcalc.Run(rCalcDir, true, rootOptions.debugMode)
 		},
 	}
 	return runCmd
-}
-
-func init() {
-	debugMode = rootCmd.PersistentFlags().BoolP("debugMode", "d", false, "Sets logs verbosity to debug")
-	configFolder = rootCmd.PersistentFlags().StringP("configFolder", "c", "", "Sets the config folder")
 }
