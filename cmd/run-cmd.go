@@ -12,6 +12,9 @@ import (
 
 func NewRunCommand(rootOptions *RootOptions) *cobra.Command {
 
+	var programArgs []string
+	var programOutputAsJson bool
+
 	var runCmd = &cobra.Command{
 		Use:   "run <program> --args [args]",
 		Short: "loads and run a Rcalc program",
@@ -29,8 +32,12 @@ func NewRunCommand(rootOptions *RootOptions) *cobra.Command {
 				rCalcDir = rootOptions.configFolder
 			}
 
-			rcalc.Run(rCalcDir, true, rootOptions.debugMode)
+			rcalc.RunFile(args[0], programArgs, programOutputAsJson, rCalcDir, true, rootOptions.debugMode)
 		},
 	}
+
+	runCmd.PersistentFlags().StringArrayVarP(&programArgs, "args", "a", []string{}, "Program arguments")
+	runCmd.PersistentFlags().BoolVarP(&programOutputAsJson, "jsonOutput", "j", false, "Output formatted in json")
+
 	return runCmd
 }

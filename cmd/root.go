@@ -37,7 +37,7 @@ It includes a programming language`,
 				rCalcDir = rootOptions.configFolder
 			}
 
-			rcalc.Run(rCalcDir, true, rootOptions.debugMode)
+			rcalc.RunRepl(rCalcDir, true, rootOptions.debugMode)
 		},
 	}
 

@@ -1,9 +1,10 @@
 package rcalc
 
 import (
+	"os"
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"os"
 )
 
 var logger *zap.SugaredLogger
@@ -39,6 +40,18 @@ func InitProdLogger(filePath string) {
 	defaultLogLevel := zapcore.InfoLevel
 	baseLogger := zap.New(zapcore.NewCore(fileEncoder, writer, defaultLogLevel), zap.AddStacktrace(zapcore.ErrorLevel))
 	logger = baseLogger.Sugar()
+}
+
+func InitProdStdOutLogger() {
+	configEncoder := zap.NewProductionEncoderConfig()
+	configEncoder.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	fileEncoder := zapcore.NewConsoleEncoder(configEncoder)
+
+	defaultLogLevel := zapcore.InfoLevel
+	baseLogger := zap.New(zapcore.NewCore(fileEncoder, os.Stdout, defaultLogLevel), zap.AddStacktrace(zapcore.ErrorLevel))
+	logger = baseLogger.Sugar()
+
 }
 
 func GetLogger() *zap.SugaredLogger {
