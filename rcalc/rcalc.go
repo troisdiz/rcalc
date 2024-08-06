@@ -94,7 +94,12 @@ func RunFile(programPath string, progArgs []string, outputAsJson bool, stackData
 
 		// write stack to stdout
 		if outputAsJson {
-			fmt.Printf("JSON output not implemented yet\n")
+			fmt.Printf("[\n")
+			for _, stackElt := range stack.elts {
+				//TODO need to jsonsify!
+				fmt.Printf("     \"%s\",\n", stackElt.display())
+			}
+			fmt.Printf("]\n")
 		} else {
 			for _, stackElt := range stack.elts {
 				fmt.Println(stackElt.display())
