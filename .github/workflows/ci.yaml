@@ -13,7 +13,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: '>=1.18.0'
+          go-version: '>=1.24.0'
       - name: Display Go version
         run: go version
       - name: Setup Java
@@ -22,9 +22,9 @@ jobs:
           distribution: 'temurin' # See 'Supported distributions' for available options
           java-version: '17'
       - name: Install Antlr4
-        uses: StoneMoe/setup-antlr4@v4.13.0
+        uses: StoneMoe/setup-antlr4@v4.13.1
         with:
-          download_url: 'https://www.antlr.org/download/antlr-4.13.0-complete.jar'
+          download_url: 'https://www.antlr.org/download/antlr-4.13.1-complete.jar'
       - name: Install Protoc
         uses: arduino/setup-protoc@v2
         with:
@@ -44,8 +44,10 @@ jobs:
       - run: make test
       - run: make compile
       - name: Upload package as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: rcalc-${{matrix.os}}
           path: |
             bin/rcalc
+          # Temporary workaround before doing something more sophisticated
+          overwrite: 'true'
