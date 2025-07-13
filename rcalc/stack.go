@@ -3,6 +3,7 @@ package rcalc
 import (
 	"fmt"
 	"os"
+	"slices"
 
 	"google.golang.org/protobuf/proto"
 	"troisdizaines.com/rcalc/rcalc/protostack"
@@ -194,7 +195,7 @@ func (s *Stack) CloseSession() error {
 	if !s.onGoingSession {
 		return fmt.Errorf("no ongoing session")
 	}
-	for _, listener := range s.listeners {
+	for _, listener := range slices.Backward(s.listeners) {
 		listener.SessionClose(s)
 	}
 	s.onGoingSession = false
