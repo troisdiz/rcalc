@@ -32,14 +32,14 @@ $(PROTO_GO_FILE): $(PROTO_SRC)
 	mkdir -p rcalc/protostack
 	protoc -I=. --go_opt=module=troisdizaines.com/rcalc --go_out=rcalc $<
 
-$(TARGET): $(GRAMMAR_WITNESS) $(SRCS) $(PROTO_GO_FILE)
+$(TARGET): generate
 	go build -o $(TARGET) main/main.go
 
 generate: $(GRAMMAR_WITNESS) $(PROTO_GO_FILE)
 
 compile: $(TARGET)
 
-test: $(GRAMMAR_WITNESS) $(PROTO_GO_FILE)
+test: generate
 	go test ./rcalc ./main
 
 run: $(TARGET)
