@@ -51,9 +51,9 @@ func (op *ActionCommonDesc) UnMarshallFunc() ActionUnMarshallFunc {
 	return ActionCommonDescUnMarshallFunc
 }
 
-// ActionDesc implementation of Action interface
 type ActionApplyFn func(system System, stack *Stack) error
 
+// ActionDesc implementation of Action interface
 type ActionDesc struct {
 	ActionCommonDesc
 	nbArgs        int
@@ -97,7 +97,7 @@ func (a *ActionDesc) Display() string {
 	return a.OpCode()
 }
 
-// OperationDesc implementation of Action interface
+// OperationCommonDesc implementation of Action interface
 type OperationCommonDesc struct {
 	ActionCommonDesc
 	nbArgs    int

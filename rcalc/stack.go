@@ -165,7 +165,7 @@ func (s *Stack) Get(level int) (Variable, error) {
 	if level < s.Size() {
 		return s.elts[len(s.elts)-level-1], nil
 	} else {
-		return nil, fmt.Errorf("Level %d does exist in stack of size %d", level, s.Size())
+		return nil, fmt.Errorf("level %d does exist in stack of size %d", level, s.Size())
 	}
 }
 

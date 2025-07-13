@@ -2,9 +2,10 @@ package rcalc
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/antlr4-go/antlr/v4"
 	"github.com/shopspring/decimal"
-	"strings"
 	parser "troisdizaines.com/rcalc/rcalc/parser"
 )
 
@@ -109,6 +110,7 @@ func toNonLocated[T any](locatedItems []LocatedItem[T]) []T {
 	if locatedItems == nil {
 		return nil
 	}
+	//lint:ignore ST1023
 	var result []T = make([]T, len(locatedItems))
 	for idx, locatedItem := range locatedItems {
 		result[idx] = locatedItem.item
@@ -225,6 +227,7 @@ var _ ParseContext[Action] = (*StartEndLoopContext)(nil)
 
 func (pc *StartEndLoopContext) CreateFinalItem() ([]Action, error) {
 	return []Action{
+		//lint:ignore QF1008
 		&StartNextLoopActionDesc{actions: toNonLocated(pc.BaseParseContext.items)},
 	}, nil
 }
@@ -914,14 +917,14 @@ func parseToActionsImpl(cmds string, lexerName string, registry *ActionRegistry,
 	p.AddErrorListener(el)
 	parseResult := p.Start_()
 	if el.HasErrors() {
-		return nil, fmt.Errorf("There are %d error(s):\n - %s", len(el.messages), strings.Join(el.messages, "\n - "))
+		return nil, fmt.Errorf("there are %d error(s):\n - %s", len(el.messages), strings.Join(el.messages, "\n - "))
 	}
 
 	var pluggedListener parser.RcalcListener = listenerTransformer(listener)
 	antlr.ParseTreeWalkerDefault.Walk(pluggedListener, parseResult)
 	if len(listener.contextManager.actionCtxStack.GetCurrentRoot().GetValidationErrors()) > 0 {
 		errorsAsString := toErrorMessage(listener.contextManager.actionCtxStack.GetCurrentRoot().GetValidationErrors())
-		return nil, fmt.Errorf("There are %d validations error(s):\n%s", len(listener.contextManager.actionCtxStack.GetCurrentRoot().GetValidationErrors()), errorsAsString)
+		return nil, fmt.Errorf("there are %d validations error(s):\n%s", len(listener.contextManager.actionCtxStack.GetCurrentRoot().GetValidationErrors()), errorsAsString)
 	}
 
 	return listener.contextManager.actionCtxStack.GetCurrentRoot().CreateFinalItem()
