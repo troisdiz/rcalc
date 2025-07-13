@@ -924,7 +924,7 @@ func parseToActionsImpl(cmds string, lexerName string, registry *ActionRegistry,
 	antlr.ParseTreeWalkerDefault.Walk(pluggedListener, parseResult)
 	if len(listener.contextManager.actionCtxStack.GetCurrentRoot().GetValidationErrors()) > 0 {
 		errorsAsString := toErrorMessage(listener.contextManager.actionCtxStack.GetCurrentRoot().GetValidationErrors())
-		return nil, fmt.Errorf("there are %d validations error(s):\n%s", len(listener.contextManager.actionCtxStack.GetCurrentRoot().GetValidationErrors()), errorsAsString)
+		return nil, fmt.Errorf("there are %d validation error(s):\n%s", len(listener.contextManager.actionCtxStack.GetCurrentRoot().GetValidationErrors()), errorsAsString)
 	}
 
 	return listener.contextManager.actionCtxStack.GetCurrentRoot().CreateFinalItem()
