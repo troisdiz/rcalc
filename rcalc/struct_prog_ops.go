@@ -3,6 +3,7 @@ package rcalc
 import (
 	"fmt"
 	"strings"
+
 	"troisdizaines.com/rcalc/rcalc/protostack"
 )
 
@@ -31,9 +32,7 @@ func UnMarshallActions(registry *ActionRegistry, protoActions []*protostack.Acti
 	return actions, nil
 }
 
-/*
-	Action used to add a variable to the stack in a variable (can be seen as Variable wrapper)
-*/
+// VariablePutOnStackActionDesc Action used to add a variable to the stack in a variable (can be seen as Variable wrapper)
 type VariablePutOnStackActionDesc struct {
 	value Variable
 }
@@ -95,10 +94,7 @@ func (a *VariablePutOnStackActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
 	}
 }
 
-/*
-	Looks for a local variable named VariableEvaluationDesc.varName in the RuntimeContext and put its value
-	on the stack.
-*/
+// VariableEvaluationActionDesc Looks for a local variable named VariableEvaluationDesc.varName in the RuntimeContext and put its value on the stack.
 type VariableEvaluationActionDesc struct {
 	varName string
 }
@@ -154,9 +150,7 @@ func (a *VariableEvaluationActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
 	}
 }
 
-/*
-	Action to execute if then [else] code structures
-*/
+//IfThenElseActionDesc Action to execute if then [else] code structures
 type IfThenElseActionDesc struct {
 	ifActions   []Action
 	thenActions []Action
@@ -279,9 +273,7 @@ func (a *IfThenElseActionDesc) UnMarshallFunc() ActionUnMarshallFunc {
 	}
 }
 
-/*
-	Action to execute start ... next loops
-*/
+//StartNextLoopActionDesc Action to execute start ... next loops
 type StartNextLoopActionDesc struct {
 	actions []Action
 }

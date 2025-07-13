@@ -83,11 +83,11 @@ type InternalMemory struct {
 	currentFolder *MemoryFolder
 }
 
-func (m *InternalMemory) getCurrentFolder() *MemoryFolder {
-	return m.currentFolder
+func (im *InternalMemory) getCurrentFolder() *MemoryFolder {
+	return im.currentFolder
 }
 
-func (m *InternalMemory) getPath(node MemoryNode) []string {
+func (im *InternalMemory) getPath(node MemoryNode) []string {
 	var result []string
 
 	for n := node; n.getParent() != nil; n = n.getParent() {
@@ -101,8 +101,8 @@ func (m *InternalMemory) getPath(node MemoryNode) []string {
 	return result
 }
 
-func (m *InternalMemory) resolvePath(path []string) MemoryNode {
-	pathNode := m.getRoot()
+func (im *InternalMemory) resolvePath(path []string) MemoryNode {
+	pathNode := im.getRoot()
 	totalDepth := len(path)
 	if totalDepth == 0 {
 		return pathNode
@@ -167,7 +167,7 @@ func (im *InternalMemory) createFolder(folderName string, parent *MemoryFolder) 
 
 func (im *InternalMemory) createVariable(variableName string, parent *MemoryFolder, value Variable) (*MemoryVariable, error) {
 	if parent == nil {
-		return nil, fmt.Errorf("Cannot create memory variable with nil parent folder")
+		return nil, fmt.Errorf("cannot create memory variable with nil parent folder")
 	}
 	memVar := &MemoryVariable{
 		AbstractMemoryNode: AbstractMemoryNode{name: variableName},

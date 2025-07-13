@@ -4,7 +4,7 @@ jobs:
   CI:
     strategy:
       matrix:
-        os: ['ubuntu-latest', 'macos-latest', 'macos-14']
+        os: ['ubuntu-latest', 'macos-15']
     runs-on: ${{matrix.os}}
     steps:
       - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
@@ -13,7 +13,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v3
         with:
-          go-version: '>=1.18.0'
+          go-version: '>=1.24.0'
       - name: Display Go version
         run: go version
       - name: Setup Java
@@ -22,9 +22,9 @@ jobs:
           distribution: 'temurin' # See 'Supported distributions' for available options
           java-version: '17'
       - name: Install Antlr4
-        uses: StoneMoe/setup-antlr4@v4.13.0
+        uses: StoneMoe/setup-antlr4@v4.13.1
         with:
-          download_url: 'https://www.antlr.org/download/antlr-4.13.0-complete.jar'
+          download_url: 'https://www.antlr.org/download/antlr-4.13.1-complete.jar'
       - name: Install Protoc
         uses: arduino/setup-protoc@v2
         with:
@@ -34,18 +34,20 @@ jobs:
       - name: Generate source from antlr grammar and protobuf files
         run: make generate
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v8
         with:
           # Optional: version of golangci-lint to use in form of v1.2 or v1.2.3 or `latest` to use the latest version
           version: latest
-          skip-pkg-cache: true
-          skip-build-cache: true
-          args: --timeout=10m
+          #skip-pkg-cache: true
+          #skip-build-cache: true
+          #args: --timeout=10m
       - run: make test
       - run: make compile
       - name: Upload package as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: rcalc-${{matrix.os}}
           path: |
             bin/rcalc
+          # Temporary workaround before doing something more sophisticated
+          overwrite: 'true'
